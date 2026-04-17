@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pizza_showcase}
+    username: ${DB_USERNAME:pizza}
+    password: ${DB_PASSWORD:pizza}
+
+logging:
+  level:
+    org.springframework.web: INFO
+    com.pizzashowcase: DEBUG
+    org.hibernate.SQL: DEBUG
+
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui

@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: 255 107 53; /* placeholder; nadpisywane przez ThemeLoader w Fazie 1 */
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  @apply bg-white text-slate-900 antialiased;
+}
