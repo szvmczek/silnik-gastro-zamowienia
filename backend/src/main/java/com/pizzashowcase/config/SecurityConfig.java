@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -18,6 +19,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
+
+import java.util.Arrays;
 
 import java.io.IOException;
 import java.net.URI;
@@ -36,19 +39,29 @@ public class SecurityConfig {
                                            JwtAuthenticationFilter jwtFilter,
                                            RateLimitFilter rateLimitFilter,
                                            CorsConfigurationSource corsConfigurationSource,
-                                           ObjectMapper objectMapper) throws Exception {
+                                           ObjectMapper objectMapper,
+                                           Environment environment) throws Exception {
+        boolean devProfile = Arrays.asList(environment.getActiveProfiles()).contains("dev");
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().permitAll()
-            )
+            .authorizeHttpRequests(auth -> {
+                auth
+                    .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/public/**").permitAll();
+                if (devProfile) {
+                    auth.requestMatchers(
+                            "/swagger-ui", "/swagger-ui/**", "/swagger-ui.html",
+                            "/v3/api-docs", "/v3/api-docs/**", "/webjars/**"
+                    ).permitAll();
+                }
+                auth
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/api/**").authenticated()
+                    .anyRequest().denyAll();
+            })
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) -> writeProblem(req, res, HttpStatus.UNAUTHORIZED, objectMapper, "Authentication required"))
                 .accessDeniedHandler((req, res, e) -> writeProblem(req, res, HttpStatus.FORBIDDEN, objectMapper, "Access denied"))
