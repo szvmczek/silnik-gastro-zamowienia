@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "restaurant_settings")
@@ -45,7 +46,15 @@ public class RestaurantSettings extends AuditableEntity {
     @Column(nullable = false, length = 3)
     private String currency = "PLN";
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     protected RestaurantSettings() {
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public Long getId() {

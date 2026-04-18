@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "page_content", uniqueConstraints = @UniqueConstraint(columnNames = "section_key"))
@@ -38,7 +39,15 @@ public class PageContent extends AuditableEntity {
     @Column(name = "cta_href", length = 300)
     private String ctaHref;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     protected PageContent() {
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public Long getId() {

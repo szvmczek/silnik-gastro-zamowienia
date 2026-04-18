@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
@@ -35,7 +36,15 @@ public class OpeningHours extends AuditableEntity {
     @Column(name = "close_time")
     private LocalTime closeTime;
 
+    @Version
+    @Column(nullable = false)
+    private Long version;
+
     protected OpeningHours() {
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public OpeningHours(DayOfWeek dayOfWeek, boolean closed, LocalTime openTime, LocalTime closeTime) {
