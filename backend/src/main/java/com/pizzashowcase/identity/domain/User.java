@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.util.Locale;
+
 @Entity
 @Table(name = "users")
 public class User extends AuditableEntity {
@@ -38,7 +40,7 @@ public class User extends AuditableEntity {
     }
 
     public User(String email, String passwordHash, String displayName, Role role) {
-        this.email = email.toLowerCase();
+        this.email = email.toLowerCase(Locale.ROOT);
         this.passwordHash = passwordHash;
         this.displayName = displayName;
         this.role = role;
@@ -54,7 +56,7 @@ public class User extends AuditableEntity {
     }
 
     public void setEmail(String email) {
-        this.email = email == null ? null : email.toLowerCase();
+        this.email = email == null ? null : email.toLowerCase(Locale.ROOT);
     }
 
     public String getPasswordHash() {
