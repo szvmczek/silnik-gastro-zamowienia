@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { PlaceholderLanding } from "@/features/public/PlaceholderLanding";
+import { LandingPage } from "@/features/public/landing/LandingPage";
 import { PlaceholderMenu } from "@/features/public/PlaceholderMenu";
 import { LoginPage } from "@/features/admin/auth/LoginPage";
 import { AdminLayout } from "@/features/admin/layout/AdminLayout";
@@ -12,7 +12,7 @@ import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<PlaceholderLanding />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/menu" element={<PlaceholderMenu />} />
       <Route path="/checkout" element={<div>Checkout - Faza 3</div>} />
       <Route path="/order/confirmation/:orderNumber" element={<div>Confirmation - Faza 3</div>} />
