@@ -36,6 +36,9 @@ const schema = z.object({
     .string()
     .max(500)
     .optional()
+    .refine((v) => !v || /^https?:\/\/.+/.test(v), {
+      message: "URL musi zaczynać się od http:// lub https://",
+    })
     .transform((v) => (v && v.length > 0 ? v : null)),
   ctaLabel: z
     .string()
@@ -46,6 +49,9 @@ const schema = z.object({
     .string()
     .max(300)
     .optional()
+    .refine((v) => !v || /^(https?:\/\/|\/).+/.test(v), {
+      message: "Link musi zaczynać się od http://, https:// lub /",
+    })
     .transform((v) => (v && v.length > 0 ? v : null)),
 });
 

@@ -14,7 +14,7 @@ public record UpdateSettingsRequest(
         @Size(max = 200) String addressLine,
         @Size(max = 100) String city,
         @Size(max = 20) String postalCode,
-        @Size(max = 500) String logoUrl,
+        @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "logoUrl must start with http:// or https://") String logoUrl,
         @NotBlank @Size(min = 3, max = 3) String currency
 ) {
 }

@@ -46,7 +46,12 @@ const schema = z.object({
   addressLine: nullableOptional(z.string().max(200)),
   city: nullableOptional(z.string().max(100)),
   postalCode: nullableOptional(z.string().max(20)),
-  logoUrl: nullableOptional(z.string().url("Nieprawidłowy URL").max(500)),
+  logoUrl: nullableOptional(
+    z
+      .string()
+      .max(500)
+      .regex(/^https?:\/\/.+/, "URL musi zaczynać się od http:// lub https://")
+  ),
   currency: z
     .string()
     .length(3, "Waluta musi mieć 3 znaki")
