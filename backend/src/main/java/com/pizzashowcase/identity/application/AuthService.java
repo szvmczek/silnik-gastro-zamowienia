@@ -5,6 +5,7 @@ import com.pizzashowcase.identity.api.dto.LoginResponse;
 import com.pizzashowcase.identity.api.dto.UserSummaryDto;
 import com.pizzashowcase.identity.domain.User;
 import com.pizzashowcase.identity.infrastructure.UserRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +18,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private String dummyHash;
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
@@ -24,10 +26,18 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
+    @PostConstruct
+    void initDummyHash() {
+        this.dummyHash = passwordEncoder.encode("timing-equalizer");
+    }
+
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByEmailIgnoreCase(request.email())
-                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        User user = userRepository.findByEmailIgnoreCase(request.email()).orElse(null);
+        if (user == null) {
+            passwordEncoder.matches(request.password(), dummyHash);
+            throw new BadCredentialsException("Invalid credentials");
+        }
         if (!user.isActive()) {
             throw new DisabledException("Account is disabled");
         }
