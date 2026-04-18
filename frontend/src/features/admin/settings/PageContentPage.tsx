@@ -31,7 +31,7 @@ const SECTIONS: { key: SectionKey; label: string; hasCta: boolean }[] = [
 
 const schema = z.object({
   title: z.string().min(1, "Tytuł jest wymagany").max(200),
-  body: z.string().min(1, "Treść jest wymagana"),
+  body: z.string().min(1, "Treść jest wymagana").max(5000, "Maksymalnie 5000 znaków"),
   imageUrl: z
     .string()
     .max(500)
