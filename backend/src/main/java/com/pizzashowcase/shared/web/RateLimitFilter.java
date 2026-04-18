@@ -64,10 +64,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientKey(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
+        // Rely on server.forward-headers-strategy=framework (prod) so Spring
+        // resolves X-Forwarded-* through trusted proxy chain only. Reading the
+        // header directly would let attackers spoof the bucket key.
         return request.getRemoteAddr();
     }
 
