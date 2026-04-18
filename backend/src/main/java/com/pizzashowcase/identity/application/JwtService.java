@@ -4,10 +4,14 @@ import com.pizzashowcase.config.JwtProperties;
 import com.pizzashowcase.identity.domain.Role;
 import com.pizzashowcase.identity.domain.User;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -19,6 +23,7 @@ import java.util.Optional;
 @Service
 public class JwtService {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
     private static final int MIN_KEY_BYTES = 32;
 
     private final JwtProperties properties;
@@ -83,7 +88,14 @@ public class JwtService {
             Role role = Role.valueOf(claims.get("role", String.class));
             Long uid = claims.get("uid", Number.class).longValue();
             return Optional.of(new JwtPayload(claims.getSubject(), uid, role, claims.getExpiration().toInstant()));
+        } catch (ExpiredJwtException ex) {
+            log.debug("JWT expired at {} for subject {}", ex.getClaims().getExpiration(), ex.getClaims().getSubject());
+            return Optional.empty();
+        } catch (JwtException ex) {
+            log.warn("JWT rejected: {}", ex.getClass().getSimpleName());
+            return Optional.empty();
         } catch (Exception ex) {
+            log.warn("JWT parse failed: {}", ex.getClass().getSimpleName());
             return Optional.empty();
         }
     }
