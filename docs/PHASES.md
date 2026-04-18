@@ -12,7 +12,7 @@ Vite + React + TS skeleton, Tailwind, shadcn/ui init, docker-compose,
 migracja V1 pusta, SmokeTestController z /api/ping.
 
 ## Faza 1: Auth + Settings + Theme
-STATUS: PLANNED
+STATUS: DONE
 
 ### Cel
 Admin może się zalogować. Admin może edytować nazwę restauracji, kolor
