@@ -5,6 +5,7 @@ import com.pizzashowcase.restaurant.api.dto.UpdateOpeningHoursRequest;
 import com.pizzashowcase.restaurant.application.OpeningHoursService;
 import com.pizzashowcase.restaurant.application.OpeningHoursService.OpeningHoursUpdate;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/opening-hours")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminOpeningHoursController {
 
     private final OpeningHoursService service;

@@ -7,6 +7,7 @@ import com.pizzashowcase.restaurant.application.PageContentService.PageContentUp
 import com.pizzashowcase.restaurant.domain.SectionKey;
 import com.pizzashowcase.shared.error.ApiException;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/admin/page-content")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminPageContentController {
 
     private final PageContentService service;
