@@ -7,6 +7,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.DecodingException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
@@ -59,7 +60,8 @@ public class JwtService {
             if (decoded.length >= MIN_KEY_BYTES) {
                 return decoded;
             }
-        } catch (IllegalArgumentException ignored) {
+        } catch (DecodingException | IllegalArgumentException ignored) {
+            // Not valid base64 — fall back to raw UTF-8 bytes below.
         }
         return secret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
     }
