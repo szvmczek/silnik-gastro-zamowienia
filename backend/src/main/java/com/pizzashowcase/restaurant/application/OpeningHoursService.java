@@ -42,8 +42,14 @@ public class OpeningHoursService {
                 if (update.openTime() == null || update.closeTime() == null) {
                     throw ApiException.unprocessable("openTime and closeTime are required when not closed (" + update.dayOfWeek() + ")");
                 }
-                if (!update.openTime().isBefore(update.closeTime())) {
-                    throw ApiException.unprocessable("openTime must be before closeTime (" + update.dayOfWeek() + ")");
+                // Domain rule: closeTime == 00:00 means "midnight end-of-day" (open until 24:00).
+                // Any other case requires openTime < closeTime strictly.
+                boolean closesAtMidnight = update.closeTime().equals(LocalTime.MIDNIGHT);
+                boolean validRange = closesAtMidnight
+                        ? !update.openTime().equals(LocalTime.MIDNIGHT)
+                        : update.openTime().isBefore(update.closeTime());
+                if (!validRange) {
+                    throw ApiException.unprocessable("closeTime must be after openTime or 00:00 for midnight (" + update.dayOfWeek() + ")");
                 }
             }
         }

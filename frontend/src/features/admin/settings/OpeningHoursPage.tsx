@@ -68,10 +68,16 @@ const entrySchema = z
       });
       return;
     }
-    if (value.openTime >= value.closeTime) {
+    // Domain rule: closeTime "00:00" means midnight end-of-day.
+    // Any other case requires openTime < closeTime strictly.
+    const closesAtMidnight = value.closeTime === "00:00";
+    const validRange = closesAtMidnight
+      ? value.openTime !== "00:00"
+      : value.openTime < value.closeTime;
+    if (!validRange) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Zamknięcie musi być później niż otwarcie",
+        message: "Zamknięcie musi być później niż otwarcie (00:00 oznacza północ)",
         path: ["closeTime"],
       });
     }
