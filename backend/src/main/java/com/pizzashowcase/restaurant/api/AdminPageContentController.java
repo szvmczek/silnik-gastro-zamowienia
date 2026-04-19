@@ -39,9 +39,9 @@ public class AdminPageContentController {
 
     private SectionKey parse(String section) {
         try {
-            return SectionKey.valueOf(section.toUpperCase());
+            return SectionKey.valueOf(section.toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw ApiException.notFound("Unknown section: " + section);
+            throw ApiException.badRequest("Unknown section: " + section);
         }
     }
 }
