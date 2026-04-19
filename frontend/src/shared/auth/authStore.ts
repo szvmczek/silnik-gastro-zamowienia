@@ -27,7 +27,8 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: () => {
         const { token, expiresAt } = get();
         if (!token || !expiresAt) return false;
-        return new Date(expiresAt).getTime() > Date.now();
+        const CLOCK_SKEW_MS = 30_000;
+        return new Date(expiresAt).getTime() - CLOCK_SKEW_MS > Date.now();
       },
     }),
     {
