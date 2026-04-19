@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,6 +22,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -29,12 +32,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String TARGET_PATH = "/api/auth/login";
     private static final int CAPACITY = 10;
     private static final Duration REFILL_PERIOD = Duration.ofMinutes(1);
+    private static final Duration ENTRY_TTL = Duration.ofMinutes(10);
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Map<String, BucketEntry> buckets = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
+    private final ScheduledExecutorService scheduler;
 
     public RateLimitFilter(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "rate-limit-evictor");
+            t.setDaemon(true);
+            return t;
+        });
+        this.scheduler.scheduleAtFixedRate(this::evictStale, 1, 1, TimeUnit.MINUTES);
+    }
+
+    @PreDestroy
+    void shutdown() {
+        scheduler.shutdownNow();
     }
 
     @Override
@@ -47,8 +63,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain) throws ServletException, IOException {
         String key = clientKey(request);
-        Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket());
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        BucketEntry entry = buckets.computeIfAbsent(key, k -> new BucketEntry(newBucket()));
+        entry.touch();
+        ConsumptionProbe probe = entry.bucket.tryConsumeAndReturnRemaining(1);
         if (probe.isConsumed()) {
             chain.doFilter(request, response);
             return;
@@ -68,6 +85,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
         // resolves X-Forwarded-* through trusted proxy chain only. Reading the
         // header directly would let attackers spoof the bucket key.
         return request.getRemoteAddr();
+    }
+
+    private void evictStale() {
+        long cutoff = System.nanoTime() - ENTRY_TTL.toNanos();
+        buckets.entrySet().removeIf(e -> e.getValue().lastAccessNanos < cutoff);
+    }
+
+    private static final class BucketEntry {
+        final Bucket bucket;
+        volatile long lastAccessNanos;
+
+        BucketEntry(Bucket bucket) {
+            this.bucket = bucket;
+            this.lastAccessNanos = System.nanoTime();
+        }
+
+        void touch() {
+            this.lastAccessNanos = System.nanoTime();
+        }
     }
 
     private void writeRateLimit(HttpServletRequest request, HttpServletResponse response, long retryAfter) throws IOException {
