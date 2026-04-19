@@ -3,6 +3,11 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/pizza_showcase}
     username: ${DB_USERNAME:pizza}
     password: ${DB_PASSWORD:pizza}
+  flyway:
+    # Dev-only: tolerate Phase 1 hotfixes (V5) being added retroactively after
+    # seed V100 was applied. Prod profile stays strict — first-time deploy
+    # applies migrations in order from V1.
+    out-of-order: true
 
 logging:
   level:
