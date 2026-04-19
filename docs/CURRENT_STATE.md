@@ -87,6 +87,10 @@ Brak. Faza 1 zakończona, oczekiwanie na prompt Fazy 2 (Menu).
   profilu dev (np. `flyway.locations: classpath:db/migration, classpath:db/demo`
   tylko w `application-dev.yml`) albo dodać gate po env var
   `SEED_DEMO_DATA=true`.
+- AdminUserSeeder ma teoretyczne okno TOCTOU (`existsByEmailIgnoreCase` +
+  `save`). UNIQUE index na `LOWER(email)` (V4) wyłapie duplikat w DB —
+  seedowanie wykona się raz, drugi start wyloguje błąd z DataIntegrityViolation.
+  Bez znaczenia przy single-instance deploy, akceptowany tech debt.
 
 ## Następne kroki
 Użytkownik wkleja prompt Fazy 2 (Menu).
