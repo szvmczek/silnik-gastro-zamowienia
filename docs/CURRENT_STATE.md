@@ -82,6 +82,11 @@ Brak. Faza 1 zakończona, oczekiwanie na prompt Fazy 2 (Menu).
 - `RestaurantSettings` nie ma fallbacku na brak rekordu — `V100` gwarantuje
   rekord, ręczny DELETE zakończy się 404 na publicznym GET. Zgodnie z planem.
 - CRLF w całym repo (Windows) — nie ingerujemy, Flyway i JVM OK.
+- V100__seed_demo.sql nie jest ogejtowana profilem — na Railway w Fazie 5
+  odpali demo content w produkcji. **TODO Faza 5 (deploy):** przenieść do
+  profilu dev (np. `flyway.locations: classpath:db/migration, classpath:db/demo`
+  tylko w `application-dev.yml`) albo dodać gate po env var
+  `SEED_DEMO_DATA=true`.
 
 ## Następne kroki
 Użytkownik wkleja prompt Fazy 2 (Menu).
