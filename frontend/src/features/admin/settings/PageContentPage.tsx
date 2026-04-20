@@ -39,12 +39,12 @@ const schema = z.object({
     .refine((v) => !v || /^https?:\/\/.+/.test(v), {
       message: "URL musi zaczynać się od http:// lub https://",
     })
-    .transform((v) => (v && v.length > 0 ? v : null)),
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
   ctaLabel: z
     .string()
     .max(60)
     .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
   ctaHref: z
     .string()
     .max(300)
@@ -52,7 +52,7 @@ const schema = z.object({
     .refine((v) => !v || /^(https?:\/\/|\/).+/.test(v), {
       message: "Link musi zaczynać się od http://, https:// lub /",
     })
-    .transform((v) => (v && v.length > 0 ? v : null)),
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
 });
 
 type FormValues = z.input<typeof schema>;

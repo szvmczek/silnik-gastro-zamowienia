@@ -27,8 +27,7 @@ import { applyPrimaryColor } from "@/shared/theme/themeLoader";
 const nullableOptional = (schema: z.ZodString) =>
   z
     .union([schema, z.literal("")])
-    .transform((v) => (v === "" ? null : v))
-    .nullable()
+    .transform((v) => (v === "" ? undefined : v))
     .optional();
 
 const schema = z.object({
@@ -37,7 +36,7 @@ const schema = z.object({
     .string()
     .max(200)
     .optional()
-    .transform((v) => (v && v.length > 0 ? v : null)),
+    .transform((v) => (v && v.length > 0 ? v : undefined)),
   primaryColor: z
     .string()
     .regex(/^#[0-9A-Fa-f]{6}$/, "Kolor musi być w formacie #RRGGBB"),
