@@ -43,6 +43,10 @@ public class AdminProductService {
     }
 
     public AdminProductDto create(CreateProductRequest request) {
+        if (request.basePrice() == null) {
+            throw ApiException.badRequest(
+                    "Produkt musi mieć basePrice przy tworzeniu. Dodaj warianty po utworzeniu, potem wyczyść basePrice w edycji.");
+        }
         Category category = loadCategoryOrThrow(request.categoryId());
         String slug = SlugGenerator.uniqueSlug(request.name(), productRepository::existsBySlug);
         boolean available = request.available() == null || request.available();
@@ -63,6 +67,7 @@ public class AdminProductService {
     public AdminProductDto update(Long id, UpdateProductRequest request) {
         Product product = loadOrThrow(id);
         Category category = loadCategoryOrThrow(request.categoryId());
+        validatePriceStructure(request.basePrice(), product.getVariants().size());
         product.setCategory(category);
         product.setName(request.name().trim());
         product.setDescription(normalize(request.description()));
@@ -71,6 +76,19 @@ public class AdminProductService {
         product.setDisplayOrder(request.displayOrder());
         product.setAvailable(Boolean.TRUE.equals(request.available()));
         return toDto(product);
+    }
+
+    private static void validatePriceStructure(java.math.BigDecimal basePrice, int variantsCount) {
+        boolean hasBasePrice = basePrice != null;
+        boolean hasVariants = variantsCount > 0;
+        if (hasBasePrice && hasVariants) {
+            throw ApiException.badRequest(
+                    "Produkt z wariantami nie może mieć basePrice. Usuń basePrice albo usuń warianty.");
+        }
+        if (!hasBasePrice && !hasVariants) {
+            throw ApiException.badRequest(
+                    "Produkt musi mieć basePrice lub co najmniej jeden wariant.");
+        }
     }
 
     public AdminProductDto updateAvailability(Long id, UpdateAvailabilityRequest request) {
