@@ -3,8 +3,7 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak. Faza 2 **zaakceptowana** po hotfixach z review, oczekiwanie na prompt
-Fazy 3 (Cart + Checkout + Order + Tracking).
+Brak. Faza 3 **DONE**, oczekiwanie na prompt Fazy 4 (Admin Orders + polling).
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
@@ -163,9 +162,140 @@ Fazy 3 (Cart + Checkout + Order + Tracking).
     - Sidebar admina dostał link **Menu** pod `/admin/menu`
     - Placeholder `/menu` z Fazy 0 zastąpiony rzeczywistą stroną
   - Commity: milestone per krok (M1-M7 backend, M8-M15 frontend, M16 docs).
+- [x] Faza 3: Cart + Checkout + Order + Tracking
+  - Backend:
+    - Migracja `V7__orders.sql` (nie `V4__orders.sql` z oryginalnego planu —
+      V3-V6 zajęte przez hotfixy Fazy 1 i migrację menu)
+    - Encje: `order.Order` (z `orderNumber`, `publicTrackingToken` UUID v4,
+      `@Version`, `Address` embeddable), `order.OrderItem`,
+      `order.OrderItemAddon`, `order.OrderStatusHistory`,
+      `order.OrderNumberSequence`
+    - Enumy: `OrderStatus` (pełne 7 stanów, w Fazie 3 używane tylko `NEW`),
+      `FulfillmentType` (DELIVERY / PICKUP), `PaymentMethod`
+      (CASH_ON_DELIVERY / CASH_ON_PICKUP)
+    - `OrderNumberGenerator` — `SELECT ... FOR UPDATE` na
+      `order_number_sequence` w tej samej transakcji co INSERT do `orders`
+      (AD-013). Format `YYYY-NNNNN`, lazy insert rekordu roku.
+    - `CheckoutService` (`@Transactional`):
+      - Walidacja krzyżowa fulfillmentType ↔ paymentMethod ↔ address
+        (`DELIVERY` wymaga adresu + `CASH_ON_DELIVERY`; `PICKUP` bez
+        adresu + `CASH_ON_PICKUP`)
+      - Batch pobiera produkty + warianty + addon-groups + dodatki przez
+        reuse [MenuAssembler split-query](../backend/src/main/java/com/pizzashowcase/menu/application/MenuAssembler.java)
+        (AD-011), `productRepository.findAllById` po unique IDs z request
+      - Per linia: produkt `available=true`, `category.active=true`, wariant
+        musi należeć do produktu (XOR: bez wariantów — `variantId` musi być
+        null), dodatki w grupach przypiętych do produktu, `minSelect` /
+        `maxSelect` / `required` enforced per grupa → 422 z czytelnym
+        `detail` przy naruszeniu
+      - Totals liczone server-side (AD-016): `lineTotal = (unitPrice +
+        sum(addons)) * qty`; `subtotal = sum(lineTotal)`; `total = subtotal`
+        (brak delivery fee w MVP)
+      - Snapshoty nazwy produktu, wariantu, ceny + **nazwy grupy dodatku**
+        (AD-015) zapisywane w `OrderItem` / `OrderItemAddon`
+      - Tworzy Order + 1 wpis `OrderStatusHistory(NEW)` atomowo
+    - `PublicOrderQueryService.findByToken` — projekcja **bez**
+      `customerPhone`, `customerEmail`, `customerNotes` (AD-007). 404 gdy
+      brak.
+    - Publiczne endpointy (w `SecurityConfig` pod `permitAll`):
+      - `POST /api/public/orders` → 201 + `{orderNumber, trackingToken,
+        total}`
+      - `GET /api/public/orders/track/{token}` → 200 / 404
+    - `RateLimitFilter` zrefaktorowany z pojedynczej `TARGET_PATH` na
+      `List<RateLimitRule>` (method+path+Bandwidth). Klucz bucketu `IP|path`
+      żeby reguły były niezależne. Dodana reguła: `POST /api/public/orders`
+      → 10 req/min/IP. Istniejąca reguła login bez zmian.
+    - Rate limit multi-rule testowany smoke: 11 POST w ciągu minuty → 11.
+      zwraca 429 + `Retry-After` + RFC 7807
+    - DTO walidowane Bean Validation (`@NotBlank`, `@Pattern` na telefon PL
+      `^\+?\d{9,11}$`, `@Pattern` na kod pocztowy `^\d{2}-\d{3}$`, `@Size`
+      na uwagi max 500, `@Valid` cascading)
+  - Frontend:
+    - Shadcn/ui dopełnienie: `Sheet` (slide-in drawer), `RadioGroup`
+    - `shared/api/orderApi.ts` — `placeOrder()`, `fetchOrderByToken()` + typy
+      `OrderTrackingDto`, `OrderStatus`, `FulfillmentType`, `PaymentMethod`
+      (bez PII w typie odpowiedzi trackingu)
+    - `features/public/cart/`:
+      - `cartStore.ts` — Zustand + `persist` (key `pizza-showcase-cart`,
+        `partialize` tylko `items`). Line key `productId|variantId|
+        sortedAddonIds` (AD-014) → dodawanie identycznej konfiguracji
+        skleja `qty++`, inna konfiguracja = nowa linia
+      - Selectors `useCartCount()`, `useCartTotal()` — derived (backend i tak
+        liczy od nowa przy checkout, cart total jest wyłącznie do display)
+      - `CartButton` (ikona + badge z liczbą, 99+ cap), `CartDrawer`
+        (Sheet prawostronny, lista z miniaturkami, qty stepper
+        `h-11 w-11 sm:h-9 sm:w-9` — min 44px touch target mobile, trash,
+        total, CTA), `MobileCartBar` (sticky bottom `md:hidden`,
+        widoczny tylko gdy `count > 0`)
+      - Wpięcie w header `MenuPage` i `LandingPage` (button + drawer +
+        mobile bar); padding dolne stron zwiększone (`pb-28 md:pb-16`)
+        żeby MobileCartBar nie nakładał się na content
+      - `ProductModal` "Dodaj do koszyka" odblokowany (Faza 2 miał disabled
+        hint): buduje `CartAddon[]` z `selectedAddons`, zapisuje unitPrice
+        wariantu, toast `Dodano do koszyka: {name}`, zamyka modal
+    - `features/public/checkout/CheckoutPage.tsx`:
+      - Guard: `items.length === 0` → `navigate('/menu', { replace: true })`
+      - RHF + Zod z `superRefine` — adres warunkowy dla DELIVERY, cross-
+        validacja paymentMethod z fulfillmentType (safety net pod auto-
+        derive w UI)
+      - `Controller` z Radix RadioGroup — wybór fulfillment auto-setuje
+        odpowiedni paymentMethod przez `setValue('paymentMethod', ...,
+        { shouldValidate: true })`
+      - Layout grid `lg:grid-cols-[1fr_360px]`; na mobile summary na górze
+        (order-1), formularz pod (order-2); submit przeniesiony z
+        wnętrza aside do **fixed bottom sticky bar** `lg:hidden` przez
+        `<button form="checkout-form" type="submit">` (żeby user nie
+        musiał scrollować w górę pod podsumowanie na mobile)
+      - Payload builder: puste opcjonalne stringi → `null`; `deliveryAddress
+        = null` dla PICKUP
+      - `useMutation(placeOrder)`:
+        - onSuccess: `cartStore.clear()` → `navigate('/order/confirmation/'
+          + orderNumber, { state: { trackingToken, total } })`
+        - onError: `extractProblem(err)` → toast z `detail/title` (RFC
+          7807), nie generic komunikatem
+    - `features/public/order/OrderConfirmationPage.tsx`:
+      - Czyta `trackingToken` + `total` z `location.state`
+      - Token obecny → duży CTA "Śledź zamówienie" → `/track/{token}` +
+        ostrzeżenie o zachowaniu linku
+      - Token nieobecny (refresh) → amber notice "Link do śledzenia dostępny
+        tylko zaraz po złożeniu. Zamówienie {orderNumber} zostało
+        zapisane." (nie crashuje, świadomie nie persistujemy tokenu —
+        AD-007)
+    - `features/public/order/TrackingPage.tsx`:
+      - `useQuery({ queryKey: ['order','track',token],
+        refetchInterval: (q) => TERMINAL.includes(q.state.data?.status) ?
+        false : 15_000, retry: (n, err) => err instanceof AxiosError &&
+        err.response?.status === 404 ? false : n < 2 })`
+      - `refetchIntervalInBackground: false` (oszczędza traffic gdy karta
+        w tle)
+      - TERMINAL_STATUSES = `['DELIVERED', 'CANCELED']` → polling staje
+      - Loading: 3-segment skeleton; 404: XCircle + CTA do `/menu`
+        (brak białego ekranu); inny error: rose alert z `extractProblem`
+      - Render: hero z `orderNumber` + status badge + `Intl.DateTimeFormat
+        ('pl-PL')` dla `placedAt` + ETA pill (Faza 4 wypełni), vertical
+        `StatusTimeline` (flex-col ikon + progress line po lewej,
+        NEW→CONFIRMED→IN_PREPARATION→READY→DELIVERY:OUT_FOR_DELIVERY→
+        DELIVERED | PICKUP:DELIVERED), fulfillment block (MapPin dla
+        dostawy), lista pozycji ze snapshotami + total
+      - CANCELED zastępuje timeline rose info card
+      - "Aktualizowanie…" indicator gdy `isFetching && !isLoading`
+    - Routing: `/checkout`, `/order/confirmation/:orderNumber`,
+      `/track/:token` podmienione z placeholderów Fazy 0 na realne
+      komponenty
+  - Mobile 375px polish (M13): CartDrawer stepper/trash do 44px touch
+    target; CheckoutPage sticky bottom submit; MobileCartBar spacing
+    (`pb-28 md:pb-16` na MenuPage, `pb-24 md:pb-6` na LandingPage)
+  - **Hotfix Fazy 2 (build unblocker):** `PageContentPage.tsx` i
+    `SettingsPage.tsx` miały Zod `.transform(v => ... : null)` dający
+    schema output type `string | null` niespójny z RHF form input type
+    `string | undefined` — `tsc -b` / `npm run build` fail. Fix: zmiana
+    na `.transform(v => ... : undefined)` + drop redundantnego `.nullable()`
+    na `nullableOptional` helperze. Zachowanie runtime niezmienione
+    (mutation callers już mapują `values.x || null`).
+  - Commity: milestone per krok (M1-M6 backend, M7-M13 frontend, M14 docs,
+    osobny hotfix Fazy 2)
 
 ## Fazy zaplanowane
-- [ ] Faza 3: Cart + Checkout + Order + Tracking
 - [ ] Faza 4: Admin Orders + polling (SSE stretch)
 - [ ] Faza 5: Polish + Deploy
 
@@ -186,6 +316,18 @@ Fazy 3 (Cart + Checkout + Order + Tracking).
   `save`). UNIQUE index na `LOWER(email)` (V4) wyłapie duplikat w DB —
   seedowanie wykona się raz, drugi start wyloguje błąd z DataIntegrityViolation.
   Bez znaczenia przy single-instance deploy, akceptowany tech debt.
+- **`OrderConfirmationPage` nie persistuje `trackingToken`** — refresh strony
+  = brak przycisku śledzenia (by design, AD-007: token to publiczny secret-
+  link). Fallback message informuje, że zamówienie zostało zapisane.
+  Alternatywy (email z linkiem, localStorage) — post-MVP.
+- **Brak auto-highlightu niedostępnej pozycji w `CartDrawer` przy 422**
+  z checkoutu. Serwis zwraca RFC 7807 `detail` ("Produkt 'X' nie jest już
+  dostępny"), frontend pokazuje toast. User musi sam zlokalizować i usunąć
+  wadliwą linię. Do dodania w Fazie 5 polish (mapowanie errors → lineKey).
+- **Frontend bundle bez code splittingu** — 690 kB / 205 kB gzip dla
+  całej aplikacji (public + admin). Vite ostrzega o chunkach >500 kB.
+  Akceptowalne dla MVP; code-split per route (`React.lazy` dla `/admin/*`)
+  planowany w Fazie 5 (Polish + Deploy).
 
 ## Następne kroki
-Użytkownik wkleja prompt Fazy 3 (Cart + Checkout + Order + Tracking).
+Użytkownik wkleja prompt Fazy 4 (Admin Orders + polling, SSE stretch).

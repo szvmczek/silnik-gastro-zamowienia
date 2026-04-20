@@ -72,6 +72,25 @@ wielkich liter) → lowercase → `[^a-z0-9]+` zastępowane `-` → trim `-`.
 Kolizje w DB (UNIQUE constraint) rozwiązywane suffixem `-2`, `-3`, …
 Rename slugu odłożony na post-MVP (łamanie zewnętrznych linków / SEO).
 
+### AD-013: Generator orderNumber `YYYY-NNNNN`
+Dedykowana tabela `order_number_sequence(year INT PK, last_number INT)`.
+Atomowy inkrement przez `SELECT ... FOR UPDATE` w tej samej transakcji co
+INSERT do `orders`. Brak ryzyka kolizji przy concurrent checkout.
+Format: `2026-00001` (NNNNN zerowane do 5 cyfr).
+
+### AD-014: Cart line key
+Pozycja koszyka identyfikowana po krotce `(productId, variantId|null,
+sortedAddonIds)`. Identyczna konfiguracja → `qty++`; inna → nowa linia.
+
+### AD-015: Snapshoty również dla `addonGroupName`
+`OrderItemAddon` snapshotuje nie tylko nazwę i cenę dodatku, ale też nazwę
+grupy w momencie zamówienia (do czytelnej historii w Fazie 4).
+
+### AD-016: Klient nie wysyła cen
+Request payload `POST /api/public/orders` zawiera tylko ID (`productId`,
+`variantId`, `addonIds`) + `quantity` + dane klienta. Backend pobiera świeże
+ceny z DB i liczy totals.
+
 ## Znane ograniczenia / tech debt świadomie zaakceptowane
 
 - JWT w localStorage (AD-003) — do migracji przy wdrożeniu produkcyjnym.

@@ -103,7 +103,11 @@ CRUD menu w panelu admina.
 - File upload zdjęć (post-MVP)
 
 ## Faza 3: Cart + Checkout + Order + Tracking
-STATUS: PLANNED
+STATUS: DONE
+
+> Uwaga historyczna: pierwotnie plan zakładał `V4__orders.sql`, ale V3-V6
+> były już zajęte (V3 optimistic-locking, V4 email-lower-unique, V5 opening-
+> hours-midnight, V6 menu). Ostatecznie użyto `V7__orders.sql`.
 
 ### Cel
 Pełny order flow end-to-end: od dodania do koszyka po widok trackingu.
