@@ -3,7 +3,7 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak. Faza 1 zakończona, oczekiwanie na prompt Fazy 2 (Menu).
+Brak. Faza 2 zakończona, oczekiwanie na prompt Fazy 3 (Cart + Checkout + Order + Tracking).
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
@@ -67,9 +67,81 @@ Brak. Faza 1 zakończona, oczekiwanie na prompt Fazy 2 (Menu).
       z linkiem do panelu
     - Reużywalne UI: `Button`, `Input`, `Label`, `Textarea`, `Card`
   - Commity: po każdym milestone (18 milestonów). Historia w `git log`.
+- [x] Faza 2: Menu
+  - Backend:
+    - Migracja `V6__menu.sql` (nie V3 jak w PHASES.md — V3/V4/V5 zajęte
+      przez hotfixy Fazy 1) + seed `V101__seed_menu.sql` (3 kategorie
+      Pizze/Napoje/Desery, 8 produktów, pizze z wariantami 30/40 cm,
+      grupa "Dodatki pizzy" z 4 dodatkami, obrazki Unsplash)
+    - Encje: `menu.Category`, `menu.Product` (basePrice nullable dla
+      produktów z wariantami), `menu.ProductVariant` (price zawsze NOT NULL),
+      `menu.AddonGroup` (minSelect/maxSelect/required + CHECK spójności),
+      `menu.Addon`, `menu.ProductAddonGroup` (explicit m2m z displayOrder)
+    - `shared.util.SlugGenerator` — stripAccents PL + lowercase +
+      `[^a-z0-9]+ → -`, kolizje rozwiązywane suffixem `-2`, `-3` (AD-012)
+    - `MenuAssembler` + `MenuQueryService` — **split 2-query** (q1:
+      categories + products + variants, q2: product→addonGroups→addons
+      IN :productIds) by uniknąć `MultipleBagFetchException` i iloczynu
+      kartezjańskiego. Stitch w pamięci po productId (AD-011)
+    - Publiczne endpointy:
+      - `GET /api/public/menu` — pełne drzewo (tylko category.active=true,
+        produkty niedostępne zwracane z flagą `available=false`)
+      - `GET /api/public/products/{slug}` — jeden produkt z pełnym
+        zagnieżdżeniem + nazwa kategorii; 404 gdy nie istnieje lub
+        kategoria nieaktywna
+    - Admin endpointy (`@PreAuthorize("hasRole('ADMIN')")`):
+      - `GET|POST /api/admin/categories` + `GET|PUT|DELETE /{id}`
+        (409 gdy są produkty)
+      - `GET|POST /api/admin/products` (filtry `?categoryId=`, `?available=`)
+        + `GET|PUT|DELETE /{id}` + `PATCH /{id}/availability`
+      - `GET|POST /api/admin/products/{id}/variants`
+        + `PUT|DELETE /api/admin/variants/{id}` (nested pod productem)
+      - `GET|POST /api/admin/addon-groups` + `GET|PUT|DELETE /{id}`
+        (409 gdy powiązana z produktem)
+      - `POST /api/admin/addon-groups/{id}/addons`
+        + `PUT|DELETE /api/admin/addons/{id}`
+      - `GET|POST /api/admin/products/{id}/addon-groups`
+        + `DELETE /api/admin/products/{productId}/addon-groups/{groupId}`
+    - Walidacja na serwisie: produkt musi mieć albo basePrice, albo
+      ≥1 wariant (XOR enforcowane w create/update)
+  - Frontend:
+    - Shadcn/ui dopełnienie: `Dialog`, `Select`, `Switch`, `Tabs`,
+      `Checkbox` (wszystko przez `radix-ui` namespace, bez per-primitive deps)
+    - `shared/api/menuApi.ts` — pełny surface publiczny + admin (typed)
+    - Public `/menu` (`MenuPage` + `CategoryTabs` + `ProductCard`
+      + `ProductModal` + `VariantPicker` + `AddonGroupPicker`
+      + `useMenuPrice` hook + `usePublicMenu`):
+      - sticky pill-tabs z IntersectionObserver (skip podczas scroll
+        programatycznego)
+      - karty produktów z fallback obrazka, "od X zł" gdy warianty,
+        basePrice gdy bez, badge "Niedostępne" + wyszarzenie
+      - modal z heroem, radio wariantów, checkbox dodatków (auto-swap
+        gdy maxSelect=1, min-select walidacja), quantity stepper,
+        live cena. Przycisk "Dodaj do koszyka" **disabled** z hintem
+        "Koszyk będzie aktywny w Fazie 3"
+    - Admin `/admin/menu` z tabami Kategorie | Produkty | Grupy dodatków
+      (URL state przez `?tab=`):
+      - `CategoriesList` + `CategoryFormDialog` (RHF+Zod, z.coerce.number
+        na displayOrder, Switch active)
+      - `ProductsList` — tabela z miniaturą, filtr kategorii, Switch
+        dostępności z `PATCH availability`, ostrzeżenie gdy 0 kategorii
+      - `ProductEditPage` (`/new` i `/:id`) — sekcje: dane podstawowe
+        + preview obrazka z fallback `onError`, `VariantsSection`
+        (inline CRUD), `AddonGroupsAttachSection` (Select wolnych grup
+        + displayOrder + detach)
+      - `AddonGroupsList` + `AddonGroupFormDialog` (zod refinements:
+        `maxSelect >= minSelect`, `required ⇒ minSelect >= 1`)
+      - `AddonGroupEditPage` — inline CRUD dodatków, pokazuje
+        usedByProducts
+    - Invalidacja po każdej mutacji admina: klucze `["admin","menu",...]`
+      + `["public","menu"]` (landing/menu odświeża się bez hardrefresha)
+    - Pattern błędów: `extractProblem(err)` → RFC 7807 `detail/title`
+      → toast (fallback na lokalny PL komunikat)
+    - Sidebar admina dostał link **Menu** pod `/admin/menu`
+    - Placeholder `/menu` z Fazy 0 zastąpiony rzeczywistą stroną
+  - Commity: milestone per krok (M1-M7 backend, M8-M15 frontend, M16 docs).
 
 ## Fazy zaplanowane
-- [ ] Faza 2: Menu
 - [ ] Faza 3: Cart + Checkout + Order + Tracking
 - [ ] Faza 4: Admin Orders + polling (SSE stretch)
 - [ ] Faza 5: Polish + Deploy

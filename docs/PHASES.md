@@ -59,7 +59,11 @@ Publiczny landing wyświetla te dane z API.
 - Upload zdjęć
 
 ## Faza 2: Menu
-STATUS: PLANNED
+STATUS: DONE
+
+> Uwaga historyczna: pierwotnie plan zakładał `V3__menu.sql`, ale V3/V4/V5
+> zostały zajęte przez hotfixy Fazy 1 (optimistic locking, email-lower unique,
+> opening-hours midnight). Ostatecznie użyto `V6__menu.sql` + `V101__seed_menu.sql`.
 
 ### Cel
 Pełne menu publiczne z kategoriami, produktami, wariantami, dodatkami.

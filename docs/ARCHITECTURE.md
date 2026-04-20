@@ -49,6 +49,29 @@ Dwóch adminów nie nadpisze sobie statusu po cichu. Konflikt — 409.
 File upload odłożony do post-MVP. W MVP admin wkleja URL (seed używa
 Unsplash). Zmiana lokalna w module menu gdy będzie potrzebna.
 
+### AD-011: MenuAssembler split-query (2 zapytania) dla `GET /api/public/menu`
+Jedno zapytanie z pełnym `@EntityGraph` (Category→Product→Variant
++ Product→ProductAddonGroup→AddonGroup→Addon) wyrzuca
+`MultipleBagFetchException` (dwie kolekcje-bag na Product) i generuje
+iloczyn kartezjański. Rozwiązanie: **dwa zapytania split + stitch w serwisie**:
+- q1: `Category LEFT JOIN FETCH products LEFT JOIN FETCH variants`
+  (jedna kolekcja-bag, `Set<>` na obu stronach, `ORDER BY displayOrder`)
+- q2: `ProductAddonGroup JOIN FETCH addonGroup LEFT JOIN FETCH addons
+  WHERE product.id IN :ids` (batch po znanych productIds z q1)
+
+`MenuAssembler` łączy wyniki po `productId`. Łącznie ≤2 zapytania
+dla całego menu, niezależnie od liczby produktów/wariantów/dodatków.
+Ten sam assembler obsługuje `GET /api/public/products/{slug}` z filtrem
+na slug + limit 1.
+
+### AD-012: Slug generowany server-side z Polish-aware diacritic stripping
+Pole `slug` (Category, Product) nie jest edytowalne w formularzu admina —
+auto-derive z `name` przy create przez `shared.util.SlugGenerator`:
+Polish stripAccents (ą→a, ę→e, ć→c, ł→l, ń→n, ó→o, ś→s, ź/ż→z + wariant
+wielkich liter) → lowercase → `[^a-z0-9]+` zastępowane `-` → trim `-`.
+Kolizje w DB (UNIQUE constraint) rozwiązywane suffixem `-2`, `-3`, …
+Rename slugu odłożony na post-MVP (łamanie zewnętrznych linków / SEO).
+
 ## Znane ograniczenia / tech debt świadomie zaakceptowane
 
 - JWT w localStorage (AD-003) — do migracji przy wdrożeniu produkcyjnym.
