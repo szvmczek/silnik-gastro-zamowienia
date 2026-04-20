@@ -4,6 +4,7 @@ import { usePublicMenu } from "./hooks/usePublicMenu";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { CategoryTabs } from "./components/CategoryTabs";
 import { ProductCard } from "./components/ProductCard";
+import { ProductModal } from "./components/ProductModal";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 
 function categoryAnchorId(slug: string) {
@@ -119,22 +120,14 @@ export function MenuPage() {
         ) : null}
       </main>
 
-      {selected ? (
-        <div className="fixed inset-x-0 bottom-4 z-30 mx-auto max-w-md rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-lg">
-          <div className="flex items-center justify-between gap-3">
-            <span>
-              Wybrano: <strong>{selected.name}</strong> — modal w M10.
-            </span>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              className="rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200"
-            >
-              Zamknij
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ProductModal
+        product={selected}
+        open={selected !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+        currency={currency}
+      />
     </div>
   );
 }
