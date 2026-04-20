@@ -13,6 +13,7 @@ import {
   updateAdminProduct,
   type AdminProductDto,
   type CreateProductPayload,
+  type UpdateProductPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/Button";
@@ -152,7 +153,7 @@ export function ProductEditPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: CreateProductPayload) =>
+    mutationFn: (payload: UpdateProductPayload) =>
       updateAdminProduct(productId as number, payload),
     onSuccess: (product) => {
       queryClient.setQueryData(["admin", "menu", "product", product.id], product);
@@ -179,7 +180,12 @@ export function ProductEditPage() {
     if (creating) {
       createMutation.mutate(payload);
     } else {
-      updateMutation.mutate(payload);
+      const currentVersion = productQuery.data?.version;
+      if (currentVersion === undefined) {
+        toast.error("Brak wczytanych danych produktu — odśwież stronę.");
+        return;
+      }
+      updateMutation.mutate({ ...payload, version: currentVersion });
     }
   };
 

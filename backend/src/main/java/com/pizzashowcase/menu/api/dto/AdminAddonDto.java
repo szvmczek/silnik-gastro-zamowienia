@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record AdminAddonDto(
         Long id,
+        Long version,
         Long addonGroupId,
         String name,
         BigDecimal price,

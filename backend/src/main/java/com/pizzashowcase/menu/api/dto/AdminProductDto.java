@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 public record AdminProductDto(
         Long id,
+        Long version,
         Long categoryId,
         String categorySlug,
         String categoryName,

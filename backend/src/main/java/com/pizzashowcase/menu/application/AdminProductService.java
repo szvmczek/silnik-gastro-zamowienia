@@ -10,6 +10,7 @@ import com.pizzashowcase.menu.infrastructure.CategoryRepository;
 import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.shared.error.ApiException;
 import com.pizzashowcase.shared.util.SlugGenerator;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +67,9 @@ public class AdminProductService {
 
     public AdminProductDto update(Long id, UpdateProductRequest request) {
         Product product = loadOrThrow(id);
+        if (!request.version().equals(product.getVersion())) {
+            throw new OptimisticLockingFailureException("Product " + id + " version mismatch");
+        }
         Category category = loadCategoryOrThrow(request.categoryId());
         validatePriceStructure(request.basePrice(), product.getVariants().size());
         product.setCategory(category);
@@ -116,6 +120,7 @@ public class AdminProductService {
         Category c = p.getCategory();
         return new AdminProductDto(
                 p.getId(),
+                p.getVersion(),
                 c.getId(),
                 c.getSlug(),
                 c.getName(),

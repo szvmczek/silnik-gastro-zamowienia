@@ -22,6 +22,7 @@ import {
   updateAdminCategory,
   type AdminCategoryDto,
   type CreateCategoryPayload,
+  type UpdateCategoryPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 
@@ -90,7 +91,7 @@ export function CategoryFormDialog({ open, onOpenChange, category }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: CreateCategoryPayload) =>
+    mutationFn: (payload: UpdateCategoryPayload) =>
       updateAdminCategory(category!.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "menu", "categories"] });
@@ -115,7 +116,7 @@ export function CategoryFormDialog({ open, onOpenChange, category }: Props) {
       active: Boolean(values.active),
     };
     if (editing) {
-      updateMutation.mutate(payload);
+      updateMutation.mutate({ ...payload, version: category!.version });
     } else {
       createMutation.mutate(payload);
     }

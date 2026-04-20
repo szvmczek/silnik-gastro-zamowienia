@@ -70,6 +70,7 @@ export async function fetchPublicProductBySlug(slug: string): Promise<PublicProd
 
 export interface AdminCategoryDto {
   id: number;
+  version: number;
   slug: string;
   name: string;
   description: string | null;
@@ -86,6 +87,7 @@ export interface CreateCategoryPayload {
 }
 
 export interface UpdateCategoryPayload {
+  version: number;
   name: string;
   description?: string | null;
   displayOrder: number;
@@ -115,6 +117,7 @@ export async function deleteAdminCategory(id: number): Promise<void> {
 
 export interface AdminProductDto {
   id: number;
+  version: number;
   categoryId: number;
   categorySlug: string;
   categoryName: string;
@@ -140,6 +143,7 @@ export interface CreateProductPayload {
 }
 
 export interface UpdateProductPayload {
+  version: number;
   categoryId: number;
   name: string;
   description?: string | null;
@@ -195,6 +199,7 @@ export async function patchAdminProductAvailability(
 
 export interface AdminVariantDto {
   id: number;
+  version: number;
   productId: number;
   name: string;
   price: string;
@@ -208,6 +213,7 @@ export interface CreateVariantPayload {
 }
 
 export interface UpdateVariantPayload {
+  version: number;
   name: string;
   price: string;
   displayOrder: number;
@@ -245,6 +251,7 @@ export async function deleteAdminVariant(id: number): Promise<void> {
 
 export interface AdminAddonDto {
   id: number;
+  version: number;
   addonGroupId: number;
   name: string;
   price: string;
@@ -253,6 +260,7 @@ export interface AdminAddonDto {
 
 export interface AdminAddonGroupDto {
   id: number;
+  version: number;
   name: string;
   minSelect: number;
   maxSelect: number;
@@ -269,6 +277,7 @@ export interface CreateAddonGroupPayload {
 }
 
 export interface UpdateAddonGroupPayload {
+  version: number;
   name: string;
   minSelect: number;
   maxSelect: number;
@@ -282,6 +291,7 @@ export interface CreateAddonPayload {
 }
 
 export interface UpdateAddonPayload {
+  version: number;
   name: string;
   price: string;
   displayOrder: number;

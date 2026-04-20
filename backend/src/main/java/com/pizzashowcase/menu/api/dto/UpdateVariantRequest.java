@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 
 public record UpdateVariantRequest(
+        @NotNull Long version,
         @NotBlank @Size(max = 60) String name,
         @NotNull @DecimalMin(value = "0.00") @Digits(integer = 8, fraction = 2) BigDecimal price,
         int displayOrder

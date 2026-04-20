@@ -8,6 +8,7 @@ import com.pizzashowcase.menu.infrastructure.CategoryRepository;
 import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.shared.error.ApiException;
 import com.pizzashowcase.shared.util.SlugGenerator;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +55,9 @@ public class AdminCategoryService {
 
     public AdminCategoryDto update(Long id, UpdateCategoryRequest request) {
         Category category = loadOrThrow(id);
+        if (!request.version().equals(category.getVersion())) {
+            throw new OptimisticLockingFailureException("Category " + id + " version mismatch");
+        }
         category.setName(request.name().trim());
         category.setDescription(normalize(request.description()));
         category.setDisplayOrder(request.displayOrder());
@@ -78,6 +82,7 @@ public class AdminCategoryService {
     private AdminCategoryDto toDto(Category c) {
         return new AdminCategoryDto(
                 c.getId(),
+                c.getVersion(),
                 c.getSlug(),
                 c.getName(),
                 c.getDescription(),

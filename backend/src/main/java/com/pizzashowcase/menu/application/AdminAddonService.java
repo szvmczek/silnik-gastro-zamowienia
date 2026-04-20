@@ -7,6 +7,7 @@ import com.pizzashowcase.menu.domain.Addon;
 import com.pizzashowcase.menu.domain.AddonGroup;
 import com.pizzashowcase.menu.infrastructure.AddonRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,9 @@ public class AdminAddonService {
 
     public AdminAddonDto update(Long id, UpdateAddonRequest request) {
         Addon addon = loadOrThrow(id);
+        if (!request.version().equals(addon.getVersion())) {
+            throw new OptimisticLockingFailureException("Addon " + id + " version mismatch");
+        }
         String name = request.name().trim();
         Long groupId = addon.getAddonGroup().getId();
         if (!addon.getName().equalsIgnoreCase(name)

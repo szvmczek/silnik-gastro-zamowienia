@@ -9,6 +9,7 @@ import com.pizzashowcase.menu.domain.AddonGroup;
 import com.pizzashowcase.menu.infrastructure.AddonGroupRepository;
 import com.pizzashowcase.menu.infrastructure.ProductAddonGroupRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,9 @@ public class AdminAddonGroupService {
 
     public AdminAddonGroupDto update(Long id, UpdateAddonGroupRequest request) {
         AddonGroup group = loadOrThrow(id);
+        if (!request.version().equals(group.getVersion())) {
+            throw new OptimisticLockingFailureException("AddonGroup " + id + " version mismatch");
+        }
         validateSelectRange(request.minSelect(), request.maxSelect());
         boolean required = Boolean.TRUE.equals(request.required());
         if (required && request.minSelect() < 1) {
@@ -99,6 +103,7 @@ public class AdminAddonGroupService {
         long usedBy = productAddonGroupRepository.countByAddonGroupId(g.getId());
         return new AdminAddonGroupDto(
                 g.getId(),
+                g.getVersion(),
                 g.getName(),
                 g.getMinSelect(),
                 g.getMaxSelect(),
@@ -111,6 +116,7 @@ public class AdminAddonGroupService {
     static AdminAddonDto toAddonDto(Addon a) {
         return new AdminAddonDto(
                 a.getId(),
+                a.getVersion(),
                 a.getAddonGroup().getId(),
                 a.getName(),
                 a.getPrice(),

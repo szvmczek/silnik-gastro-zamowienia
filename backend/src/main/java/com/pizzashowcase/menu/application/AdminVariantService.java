@@ -8,6 +8,7 @@ import com.pizzashowcase.menu.domain.ProductVariant;
 import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.menu.infrastructure.ProductVariantRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,6 +49,9 @@ public class AdminVariantService {
 
     public AdminVariantDto update(Long id, UpdateVariantRequest request) {
         ProductVariant variant = loadVariantOrThrow(id);
+        if (!request.version().equals(variant.getVersion())) {
+            throw new OptimisticLockingFailureException("Variant " + id + " version mismatch");
+        }
         String name = request.name().trim();
         if (!variant.getName().equalsIgnoreCase(name)
                 && variantRepository.existsByProductIdAndNameIgnoreCase(variant.getProduct().getId(), name)) {
@@ -77,6 +81,7 @@ public class AdminVariantService {
     private AdminVariantDto toDto(ProductVariant v) {
         return new AdminVariantDto(
                 v.getId(),
+                v.getVersion(),
                 v.getProduct().getId(),
                 v.getName(),
                 v.getPrice(),

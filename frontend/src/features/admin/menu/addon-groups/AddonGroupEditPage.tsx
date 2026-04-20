@@ -13,6 +13,7 @@ import {
   updateAdminAddon,
   type AdminAddonDto,
   type CreateAddonPayload,
+  type UpdateAddonPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/Button";
@@ -86,7 +87,7 @@ export function AddonGroupEditPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ addonId, payload }: { addonId: number; payload: CreateAddonPayload }) =>
+    mutationFn: ({ addonId, payload }: { addonId: number; payload: UpdateAddonPayload }) =>
       updateAdminAddon(addonId, payload),
     onSuccess: () => {
       invalidate();
@@ -175,7 +176,10 @@ export function AddonGroupEditPage() {
                   pending={updateMutation.isPending}
                   onCancel={() => setEditingId(null)}
                   onSubmit={(values) =>
-                    updateMutation.mutate({ addonId: addon.id, payload: toPayload(values) })
+                    updateMutation.mutate({
+                      addonId: addon.id,
+                      payload: { ...toPayload(values), version: addon.version },
+                    })
                   }
                 />
               ) : (

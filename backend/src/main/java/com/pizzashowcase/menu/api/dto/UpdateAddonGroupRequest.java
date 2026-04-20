@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record UpdateAddonGroupRequest(
+        @NotNull Long version,
         @NotBlank @Size(max = 100) String name,
         @Min(0) int minSelect,
         @Min(0) int maxSelect,

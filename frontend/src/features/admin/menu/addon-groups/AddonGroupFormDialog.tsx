@@ -21,6 +21,7 @@ import {
   updateAdminAddonGroup,
   type AdminAddonGroupDto,
   type CreateAddonGroupPayload,
+  type UpdateAddonGroupPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 
@@ -95,7 +96,7 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: CreateAddonGroupPayload) =>
+    mutationFn: (payload: UpdateAddonGroupPayload) =>
       updateAdminAddonGroup(group!.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "menu", "addon-groups"] });
@@ -118,7 +119,7 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
       maxSelect: Number(values.maxSelect),
       required: Boolean(values.required),
     };
-    if (editing) updateMutation.mutate(payload);
+    if (editing) updateMutation.mutate({ ...payload, version: group!.version });
     else createMutation.mutate(payload);
   };
 

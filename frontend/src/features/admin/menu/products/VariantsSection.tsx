@@ -12,6 +12,7 @@ import {
   updateAdminVariant,
   type AdminVariantDto,
   type CreateVariantPayload,
+  type UpdateVariantPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/Button";
@@ -82,7 +83,7 @@ export function VariantsSection({ productId }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: CreateVariantPayload }) =>
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateVariantPayload }) =>
       updateAdminVariant(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "menu", "variants", productId] });
@@ -149,7 +150,10 @@ export function VariantsSection({ productId }: Props) {
                 pending={updateMutation.isPending}
                 onCancel={() => setEditingId(null)}
                 onSubmit={(values) =>
-                  updateMutation.mutate({ id: variant.id, payload: toPayload(values) })
+                  updateMutation.mutate({
+                    id: variant.id,
+                    payload: { ...toPayload(values), version: variant.version },
+                  })
                 }
               />
             ) : (
