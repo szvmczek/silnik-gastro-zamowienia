@@ -3,7 +3,8 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak. Faza 3 **DONE**, oczekiwanie na prompt Fazy 4 (Admin Orders + polling).
+Faza 4 (Admin Orders + polling) — branch `phase-4` utworzony, oczekiwanie
+na prompt implementacyjny.
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
@@ -328,6 +329,40 @@ Brak. Faza 3 **DONE**, oczekiwanie na prompt Fazy 4 (Admin Orders + polling).
   całej aplikacji (public + admin). Vite ostrzega o chunkach >500 kB.
   Akceptowalne dla MVP; code-split per route (`React.lazy` dla `/admin/*`)
   planowany w Fazie 5 (Polish + Deploy).
+
+### Tech debt z review Fazy 3 (świadomie zaakceptowany)
+- **BUG-3: Zod/Bean validation desync na `deliveryAddress.notes`** — frontend
+  Zod ma `max(200)`, backend Bean `@Size(max=255)` na uwagach do adresu.
+  Niezgodność niewidoczna dla usera (FE złapie pierwsze), ale dryf
+  walidacji do naprawy przy najbliższym dotknięciu `CheckoutPage.tsx` —
+  ujednolicić na 255 (matchować BE) lub 200 po obu stronach.
+- **Double-submit bez idempotency key** — `POST /api/public/orders` nie
+  ma deduplikacji po stronie serwera. FE disabluje przycisk podczas
+  `mutation.isPending`, więc w UI realnie nie da się dwa razy kliknąć.
+  Akceptowalne dla MVP; pełen idempotency-key (`Idempotency-Key` header
+  + dedup table) post-MVP gdy pojawią się retry'e z mobile/sieci flaky.
+- **Adres dostawy widoczny przez secret-link tracking token** —
+  `GET /api/public/orders/track/{token}` zwraca `deliveryAddress` (street,
+  city, postalCode), żeby user widział co zamówił. Token to UUID v4
+  (122 bity entropii, nieprzewidywalny), więc ryzyko enumeration
+  zaniedbywalne. PII w pełni: telefon, email, customerNotes — celowo
+  **nie** zwracane (AD-007). Akceptowane ryzyko świadomie; w post-MVP
+  można rozważyć skrócenie adresu (tylko miasto) po przejściu w
+  status terminalny.
+- **Brak React `ErrorBoundary` na poziomie aplikacji** — runtime error
+  w którymkolwiek komponencie public/admin owocuje białym ekranem
+  (Vite domyślnie). Planowane w Fazie 5 (Polish + Deploy) — global
+  boundary z fallback UI + opcjonalnie Sentry/console error reporting.
+- **Mikro-bugi LOW (Faza 5 polish):**
+  - `BigDecimal` arytmetyka w `CheckoutService` bez jawnego
+    `setScale(2, HALF_UP)` na `lineTotal`/`subtotal` — Postgres `NUMERIC(10,2)`
+    truncate'uje przy persiście, ale liczby wracające w response mogą
+    mieć więcej miejsc niż 2.
+  - `String.toLowerCase()` bez `Locale.ROOT` w paru miejscach (slug
+    generator i email comparison już mają, ale audit pełny do zrobienia).
+  - Część kontrolerów używa `consumes/produces` domyślnych Springa zamiast
+    jawnie `MediaType.APPLICATION_JSON_VALUE` — content negotiation
+    działa, ale eksplicytnie czytelniej.
 
 ## Następne kroki
 Użytkownik wkleja prompt Fazy 4 (Admin Orders + polling, SSE stretch).
