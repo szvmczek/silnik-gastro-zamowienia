@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -29,10 +30,16 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final String TARGET_PATH = "/api/auth/login";
-    private static final int CAPACITY = 10;
-    private static final Duration REFILL_PERIOD = Duration.ofMinutes(1);
     private static final Duration ENTRY_TTL = Duration.ofMinutes(10);
+
+    private static final List<Rule> RULES = List.of(
+            new Rule("POST", "/api/auth/login",
+                    Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofMinutes(1)).build(),
+                    "Too many login attempts. Try again later."),
+            new Rule("POST", "/api/public/orders",
+                    Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofMinutes(1)).build(),
+                    "Too many order submissions. Try again later.")
+    );
 
     private final Map<String, BucketEntry> buckets = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
@@ -55,15 +62,20 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !(TARGET_PATH.equals(request.getRequestURI()) && "POST".equalsIgnoreCase(request.getMethod()));
+        return matchRule(request) == null;
     }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain) throws ServletException, IOException {
-        String key = clientKey(request);
-        BucketEntry entry = buckets.computeIfAbsent(key, k -> new BucketEntry(newBucket()));
+        Rule rule = matchRule(request);
+        if (rule == null) {
+            chain.doFilter(request, response);
+            return;
+        }
+        String key = rule.path() + "|" + clientKey(request);
+        BucketEntry entry = buckets.computeIfAbsent(key, k -> new BucketEntry(newBucket(rule.bandwidth())));
         entry.touch();
         ConsumptionProbe probe = entry.bucket.tryConsumeAndReturnRemaining(1);
         if (probe.isConsumed()) {
@@ -71,13 +83,22 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
         long retryAfterSeconds = TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill()) + 1;
-        writeRateLimit(request, response, retryAfterSeconds);
+        writeRateLimit(request, response, retryAfterSeconds, rule.detail());
     }
 
-    private Bucket newBucket() {
-        return Bucket.builder()
-                .addLimit(Bandwidth.builder().capacity(CAPACITY).refillGreedy(CAPACITY, REFILL_PERIOD).build())
-                .build();
+    private Rule matchRule(HttpServletRequest request) {
+        String method = request.getMethod();
+        String uri = request.getRequestURI();
+        for (Rule r : RULES) {
+            if (r.method().equalsIgnoreCase(method) && r.path().equals(uri)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    private Bucket newBucket(Bandwidth bandwidth) {
+        return Bucket.builder().addLimit(bandwidth).build();
     }
 
     private String clientKey(HttpServletRequest request) {
@@ -106,11 +127,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
     }
 
-    private void writeRateLimit(HttpServletRequest request, HttpServletResponse response, long retryAfter) throws IOException {
+    private record Rule(String method, String path, Bandwidth bandwidth, String detail) {
+    }
+
+    private void writeRateLimit(HttpServletRequest request,
+                                HttpServletResponse response,
+                                long retryAfter,
+                                String detail) throws IOException {
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
         response.setHeader("Retry-After", Long.toString(retryAfter));
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts. Try again later.");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, detail);
         problem.setTitle(HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase());
         problem.setInstance(URI.create(request.getRequestURI()));
         problem.setProperty("timestamp", Instant.now().toString());
