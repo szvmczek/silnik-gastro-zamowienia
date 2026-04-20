@@ -16,8 +16,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -76,11 +76,11 @@ public class Order extends AuditableEntity {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
-    private List<OrderItem> items = new ArrayList<>();
+    private Set<OrderItem> items = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("changedAt ASC, id ASC")
-    private List<OrderStatusHistory> statusHistory = new ArrayList<>();
+    private Set<OrderStatusHistory> statusHistory = new LinkedHashSet<>();
 
     protected Order() {
     }
@@ -178,7 +178,7 @@ public class Order extends AuditableEntity {
         return version;
     }
 
-    public List<OrderItem> getItems() {
+    public Set<OrderItem> getItems() {
         return items;
     }
 
@@ -187,7 +187,7 @@ public class Order extends AuditableEntity {
         item.setOrder(this);
     }
 
-    public List<OrderStatusHistory> getStatusHistory() {
+    public Set<OrderStatusHistory> getStatusHistory() {
         return statusHistory;
     }
 

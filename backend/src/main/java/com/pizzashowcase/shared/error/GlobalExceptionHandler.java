@@ -15,6 +15,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
@@ -52,6 +53,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ProblemDetail> handleUnreadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request", request, null);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ProblemDetail> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        String required = ex.getRequiredType() == null ? "expected" : ex.getRequiredType().getSimpleName();
+        String detail = "Parameter '" + ex.getName() + "' has invalid format (expected " + required + ")";
+        return buildResponse(HttpStatus.BAD_REQUEST, detail, request, null);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

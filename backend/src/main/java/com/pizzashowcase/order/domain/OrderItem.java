@@ -15,8 +15,8 @@ import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "order_items")
@@ -53,7 +53,7 @@ public class OrderItem extends AuditableEntity {
 
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
-    private List<OrderItemAddon> addons = new ArrayList<>();
+    private Set<OrderItemAddon> addons = new LinkedHashSet<>();
 
     protected OrderItem() {
     }
@@ -114,7 +114,7 @@ public class OrderItem extends AuditableEntity {
         return lineTotal;
     }
 
-    public List<OrderItemAddon> getAddons() {
+    public Set<OrderItemAddon> getAddons() {
         return addons;
     }
 
