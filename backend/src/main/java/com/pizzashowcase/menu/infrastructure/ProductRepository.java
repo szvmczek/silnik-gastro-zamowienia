@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,4 +38,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "LEFT JOIN FETCH p.variants v " +
            "WHERE p.slug = :slug")
     Optional<Product> findBySlugWithVariants(String slug);
+
+    @Query("SELECT DISTINCT p FROM Product p " +
+           "JOIN FETCH p.category c " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE p.id IN :ids")
+    List<Product> findAllByIdInWithVariants(@Param("ids") Collection<Long> ids);
 }
