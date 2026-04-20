@@ -116,3 +116,41 @@ Razem z Fazą 6 lub tuż po. Potwierdzenie zamówienia + zmiana statusu mailem.
 - Multi-tenant (gdy sprzedaż template'u wielu klientom w jednej instancji)
 - PWA (offline menu, push notifications)
 - File upload zdjęć produktów (zamiast URL)
+
+## Tech debt świadomie odłożony
+
+Bugi wykryte w review fazy, nie-blockery dla akceptacji, ale do uprzątnięcia
+gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
+
+### Z Fazy 2 (Menu)
+
+- **Bug #5 — N+1 w `GET /api/admin/products`**
+  Lista produktów w panelu admina dociąga `category`, a dla każdego produktu
+  potencjalnie warianty/grupy dodatków po jednej query. Fix: `@EntityGraph`
+  na `ProductRepository.findAll(Pageable)` z `category` (i opcjonalnie
+  `variants`) albo dedykowana metoda z `JOIN FETCH`. Po dodaniu paginacji
+  problem ograniczony do jednej strony, ale dalej brzydki.
+
+- **Bug #6 / #7 — race condition na unikalności `slug`**
+  `SlugGenerator` rozwiązuje kolizje suffixami `-2`, `-3` na podstawie
+  odczytu z bazy. Dwa równoległe POST-y tej samej nazwy mogą wygenerować
+  ten sam slug i drugi padnie z `DataIntegrityViolationException` →
+  obecnie 500. Fix: złapać DIV w `AdminCategoryService` /
+  `AdminProductService` i zmapować na **409 Conflict** (RFC 7807,
+  `slug already exists`). Alternatywnie: retry z kolejnym suffixem
+  raz, potem 409. Niski priorytet — pojedynczy admin w MVP.
+
+- **Bug #10 / #11 / #12 — edge case'y publicznego menu**
+  - #10: produkt z `available=false` i jednocześnie kategoria
+    `active=false` — obecnie wycinany na poziomie kategorii, ale flaga
+    `available` w odpowiedzi powinna być spójna.
+  - #11: `GET /api/public/products/{slug}` zwraca 404 gdy kategoria
+    nieaktywna, ale frontend pokazuje generyczny błąd zamiast "produkt
+    chwilowo niedostępny".
+  - #12: produkt z grupą dodatków, gdzie wszystkie addony mają
+    `available=false` — modal pokazuje pustą sekcję wymaganą
+    (jeśli `required=true`) i blokuje "Dodaj do koszyka" bez
+    czytelnego komunikatu. Backend powinien odfiltrować addony
+    niedostępne lub flagować całą grupę.
+
+  Fix razem z Fazą 5 (polish) — wymaga decyzji UX, nie tylko kodu.

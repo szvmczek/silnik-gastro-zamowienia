@@ -3,7 +3,8 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak. Faza 2 zakończona, oczekiwanie na prompt Fazy 3 (Cart + Checkout + Order + Tracking).
+Brak. Faza 2 **zaakceptowana** po hotfixach z review, oczekiwanie na prompt
+Fazy 3 (Cart + Checkout + Order + Tracking).
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
@@ -104,6 +105,28 @@ Brak. Faza 2 zakończona, oczekiwanie na prompt Fazy 3 (Cart + Checkout + Order 
         + `DELETE /api/admin/products/{productId}/addon-groups/{groupId}`
     - Walidacja na serwisie: produkt musi mieć albo basePrice, albo
       ≥1 wariant (XOR enforcowane w create/update)
+  - **Hotfixy review (po M16):**
+    - **Optimistic locking enforced na wszystkich update endpointach menu**
+      (`PUT /api/admin/categories/{id}`, `/products/{id}`, `/variants/{id}`,
+      `/addon-groups/{id}`, `/addons/{id}`). Każdy `Update*Request` ma teraz
+      `@NotNull Long version`; serwis porównuje z `entity.getVersion()`
+      i rzuca `OptimisticLockingFailureException` → **409** (RFC 7807) gdy
+      mismatch. `Admin*Dto` echo-ują `version`, frontend round-trip-uje je
+      w mutacjach. **BREAKING CHANGE dla klientów API**: każdy PUT na
+      menu wymaga teraz pola `version` w body — stare klienty dostaną
+      400 (`version: must not be null`). `PATCH /products/{id}/availability`
+      celowo pominięte (single-field toggle, konflikt to szum).
+    - **XOR basePrice/variants enforced w `AdminProductService`**:
+      `create` wymaga `basePrice` (warianty dodaje się dopiero po
+      stworzeniu produktu); `update` blokuje ustawienie `basePrice` gdy
+      produkt ma już ≥1 wariant — w obu przypadkach **422** z
+      czytelnym komunikatem zamiast cichego utworzenia produktu w
+      stanie niespójnym.
+    - Whitelist schematów `http://` / `https://` przywrócona na
+      `Product.imageUrl` (regresja po refaktorze walidatora w M11).
+    - `GET /api/admin/products` dostał paginację (`?page=&size=`,
+      domyślnie `size=20`, max 100) — zgodnie z QA_CHECKLIST,
+      lista admin nie może odpalać unbounded query.
   - Frontend:
     - Shadcn/ui dopełnienie: `Dialog`, `Select`, `Switch`, `Tabs`,
       `Checkbox` (wszystko przez `radix-ui` namespace, bez per-primitive deps)
@@ -165,4 +188,4 @@ Brak. Faza 2 zakończona, oczekiwanie na prompt Fazy 3 (Cart + Checkout + Order 
   Bez znaczenia przy single-instance deploy, akceptowany tech debt.
 
 ## Następne kroki
-Użytkownik wkleja prompt Fazy 2 (Menu).
+Użytkownik wkleja prompt Fazy 3 (Cart + Checkout + Order + Tracking).
