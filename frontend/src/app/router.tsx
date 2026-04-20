@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { LandingPage } from "@/features/public/landing/LandingPage";
-import { PlaceholderMenu } from "@/features/public/PlaceholderMenu";
+import { MenuPage } from "@/features/public/menu/MenuPage";
 import { LoginPage } from "@/features/admin/auth/LoginPage";
 import { AdminLayout } from "@/features/admin/layout/AdminLayout";
 import { DashboardPage } from "@/features/admin/dashboard/DashboardPage";
@@ -13,7 +13,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/menu" element={<PlaceholderMenu />} />
+      <Route path="/menu" element={<MenuPage />} />
       <Route path="/checkout" element={<div>Checkout - Faza 3</div>} />
       <Route path="/order/confirmation/:orderNumber" element={<div>Confirmation - Faza 3</div>} />
       <Route path="/track/:token" element={<div>Tracking - Faza 3</div>} />
