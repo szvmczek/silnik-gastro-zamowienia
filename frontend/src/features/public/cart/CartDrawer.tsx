@@ -120,7 +120,7 @@ function CartLineRow({ item, currency, onIncrement, onDecrement, onRemove }: Row
             type="button"
             onClick={onRemove}
             aria-label="Usuń pozycję"
-            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-rose-600"
+            className="-mr-2 -mt-1 flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-rose-600 sm:h-9 sm:w-9"
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -140,18 +140,20 @@ function CartLineRow({ item, currency, onIncrement, onDecrement, onRemove }: Row
               type="button"
               onClick={onDecrement}
               aria-label="Zmniejsz ilość"
-              className="flex h-7 w-7 items-center justify-center text-slate-600 hover:bg-slate-50"
+              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-9 sm:w-9"
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="h-4 w-4" />
             </button>
-            <span className="w-8 text-center text-sm font-semibold">{item.quantity}</span>
+            <span className="w-10 text-center text-sm font-semibold sm:w-8">
+              {item.quantity}
+            </span>
             <button
               type="button"
               onClick={onIncrement}
               aria-label="Zwiększ ilość"
-              className="flex h-7 w-7 items-center justify-center text-slate-600 hover:bg-slate-50"
+              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-9 sm:w-9"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
           <span className="text-sm font-semibold text-slate-900">

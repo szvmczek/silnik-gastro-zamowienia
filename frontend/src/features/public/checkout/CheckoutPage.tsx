@@ -224,11 +224,16 @@ export function CheckoutPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-6">
+      <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 lg:pb-16">
         <h1 className="mb-6 text-2xl font-bold sm:text-3xl">Złóż zamówienie</h1>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6 lg:order-1 order-2">
+          <form
+            id="checkout-form"
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+            className="space-y-6 lg:order-1 order-2"
+          >
             <Section title="Dane kontaktowe">
               <Field label="Imię i nazwisko" htmlFor="customerName" error={errors.customerName?.message}>
                 <Input
@@ -473,22 +478,23 @@ export function CheckoutPage() {
               </div>
             </div>
 
-            <div className="mt-4 lg:hidden">
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={mutation.isPending}
-                onClick={handleSubmit(onSubmit)}
-              >
-                {mutation.isPending
-                  ? "Składanie zamówienia…"
-                  : `Zamów i zapłać ${formatPrice(total, currency)}`}
-              </Button>
-            </div>
           </aside>
         </div>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] backdrop-blur lg:hidden">
+        <Button
+          type="submit"
+          form="checkout-form"
+          size="lg"
+          className="w-full"
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending
+            ? "Składanie zamówienia…"
+            : `Zamów i zapłać ${formatPrice(total, currency)}`}
+        </Button>
+      </div>
     </div>
   );
 }
