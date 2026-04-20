@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import { VariantPicker } from "./VariantPicker";
 import { AddonGroupPicker } from "./AddonGroupPicker";
 import { formatPrice } from "../lib/formatPrice";
 import { useMenuPrice, type SelectedAddons } from "../hooks/useMenuPrice";
+import { useCartStore, type CartAddon } from "@/features/public/cart/cartStore";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 
 interface Props {
@@ -41,7 +43,8 @@ export function ProductModal({ product, open, onOpenChange, currency }: Props) {
     setQuantity(1);
   }, [product, open]);
 
-  const { unit, total } = useMenuPrice({ product, variantId, selectedAddons, quantity });
+  const { unit, total, variant } = useMenuPrice({ product, variantId, selectedAddons, quantity });
+  const addItem = useCartStore((s) => s.addItem);
 
   const validationIssue = useMemo(() => {
     if (!product) return null;
@@ -56,6 +59,37 @@ export function ProductModal({ product, open, onOpenChange, currency }: Props) {
     }
     return null;
   }, [product, variantId, selectedAddons]);
+
+  const handleAddToCart = () => {
+    if (!product || validationIssue) return;
+    const addons: CartAddon[] = [];
+    for (const group of product.addonGroups) {
+      const picked = selectedAddons[group.id];
+      if (!picked) continue;
+      for (const addon of group.addons) {
+        if (picked.has(addon.id)) {
+          addons.push({
+            addonId: addon.id,
+            name: addon.name,
+            groupName: group.name,
+            price: Number(addon.price),
+          });
+        }
+      }
+    }
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      variantId: variant?.id ?? null,
+      variantName: variant?.name ?? null,
+      addons,
+      unitPrice: variant ? Number(variant.price) : Number(product.basePrice ?? 0),
+      quantity,
+      imageUrl: product.imageUrl,
+    });
+    toast.success(`Dodano do koszyka: ${product.name}`);
+    onOpenChange(false);
+  };
 
   const toggleAddon = (groupId: number, addonId: number) => {
     setSelectedAddons((prev) => {
@@ -157,10 +191,10 @@ export function ProductModal({ product, open, onOpenChange, currency }: Props) {
               </div>
               <button
                 type="button"
-                disabled
-                title="Koszyk pojawi się w Fazie 3"
+                disabled={validationIssue !== null}
+                onClick={handleAddToCart}
                 className={cn(
-                  "flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors",
+                  "flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                   "disabled:cursor-not-allowed disabled:opacity-60"
                 )}
               >
@@ -172,11 +206,7 @@ export function ProductModal({ product, open, onOpenChange, currency }: Props) {
             </div>
             {validationIssue ? (
               <p className="mt-2 text-xs font-medium text-rose-600">{validationIssue}</p>
-            ) : (
-              <p className="mt-2 text-xs text-slate-500">
-                Koszyk będzie aktywny w Fazie 3.
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
       </DialogContent>

@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPublicOpeningHours } from "@/shared/api/openingHoursApi";
 import { fetchPublicPageContent } from "@/shared/api/pageContentApi";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
+import { CartButton } from "@/features/public/cart/CartButton";
+import { CartDrawer } from "@/features/public/cart/CartDrawer";
+import { MobileCartBar } from "@/features/public/cart/MobileCartBar";
 import { HeroSection } from "./HeroSection";
 import { AboutSection } from "./AboutSection";
 import { ContactSection } from "./ContactSection";
@@ -10,6 +14,7 @@ import { OpeningHoursSection } from "./OpeningHoursSection";
 
 export function LandingPage() {
   const { data: settings } = usePublicSettings();
+  const [cartOpen, setCartOpen] = useState(false);
   const { data: pageContent } = useQuery({
     queryKey: ["public", "page-content"],
     queryFn: fetchPublicPageContent,
@@ -37,19 +42,20 @@ export function LandingPage() {
               {settings?.name ?? "Restauracja"}
             </span>
           </Link>
-          <nav className="hidden items-center gap-6 text-sm font-medium text-slate-600 sm:flex">
-            <a href="#about" className="hover:text-primary">
+          <nav className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:gap-6">
+            <a href="#about" className="hidden hover:text-primary sm:inline">
               O nas
             </a>
-            <a href="#hours" className="hover:text-primary">
+            <a href="#hours" className="hidden hover:text-primary sm:inline">
               Godziny
             </a>
-            <a href="#contact" className="hover:text-primary">
+            <a href="#contact" className="hidden hover:text-primary sm:inline">
               Kontakt
             </a>
             <Link to="/menu" className="hover:text-primary">
               Menu
             </Link>
+            <CartButton onClick={() => setCartOpen(true)} />
           </nav>
         </div>
       </header>
@@ -61,7 +67,7 @@ export function LandingPage() {
         <ContactSection settings={settings} />
       </main>
 
-      <footer className="border-t border-slate-200 bg-white py-6">
+      <footer className="border-t border-slate-200 bg-white py-6 pb-24 md:pb-6">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 text-sm text-slate-500 sm:flex-row">
           <span>© {new Date().getFullYear()} {settings?.name ?? "Restauracja"}</span>
           <Link to="/admin/login" className="hover:text-primary">
@@ -69,6 +75,9 @@ export function LandingPage() {
           </Link>
         </div>
       </footer>
+
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      <MobileCartBar onOpenCart={() => setCartOpen(true)} />
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { CategoryTabs } from "./components/CategoryTabs";
 import { ProductCard } from "./components/ProductCard";
 import { ProductModal } from "./components/ProductModal";
+import { CartButton } from "@/features/public/cart/CartButton";
+import { CartDrawer } from "@/features/public/cart/CartDrawer";
+import { MobileCartBar } from "@/features/public/cart/MobileCartBar";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 
 function categoryAnchorId(slug: string) {
@@ -15,6 +18,7 @@ export function MenuPage() {
   const { data: menu, isLoading, isError } = usePublicMenu();
   const { data: settings } = usePublicSettings();
   const [selected, setSelected] = useState<PublicProductDto | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const activeCategories = useMemo(
     () => (menu?.categories ?? []).filter((c) => c.active),
@@ -45,15 +49,16 @@ export function MenuPage() {
               {settings?.name ?? "Restauracja"}
             </span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm font-medium text-slate-600">
-            <Link to="/" className="hover:text-primary">
+          <nav className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:gap-4">
+            <Link to="/" className="hidden hover:text-primary sm:inline">
               Strona główna
             </Link>
+            <CartButton onClick={() => setCartOpen(true)} />
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-6">
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 md:pb-16">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Menu</h1>
           <p className="mt-1 text-sm text-slate-600">
@@ -128,6 +133,9 @@ export function MenuPage() {
         }}
         currency={currency}
       />
+
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      <MobileCartBar onOpenCart={() => setCartOpen(true)} />
     </div>
   );
 }
