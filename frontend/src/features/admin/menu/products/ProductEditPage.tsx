@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/Select";
 import { VariantsSection } from "./VariantsSection";
+import { AddonGroupsAttachSection } from "./AddonGroupsAttachSection";
 
 const schema = z
   .object({
@@ -354,12 +355,11 @@ export function ProductEditPage() {
         </div>
       </form>
 
-      {!creating && productId !== null ? <VariantsSection productId={productId} /> : null}
-
-      {!creating ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-white p-6 text-sm text-slate-500">
-          Przypięte grupy dodatków pojawią się w M15.
-        </div>
+      {!creating && productId !== null ? (
+        <>
+          <VariantsSection productId={productId} />
+          <AddonGroupsAttachSection productId={productId} />
+        </>
       ) : null}
     </div>
   );

@@ -9,6 +9,7 @@ import { OpeningHoursPage } from "@/features/admin/settings/OpeningHoursPage";
 import { PageContentPage } from "@/features/admin/settings/PageContentPage";
 import { MenuOverviewPage } from "@/features/admin/menu/MenuOverviewPage";
 import { ProductEditPage } from "@/features/admin/menu/products/ProductEditPage";
+import { AddonGroupEditPage } from "@/features/admin/menu/addon-groups/AddonGroupEditPage";
 import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
 
 export function AppRouter() {
@@ -32,6 +33,7 @@ export function AppRouter() {
         <Route path="menu" element={<MenuOverviewPage />} />
         <Route path="menu/products/new" element={<ProductEditPage />} />
         <Route path="menu/products/:id" element={<ProductEditPage />} />
+        <Route path="menu/addon-groups/:id" element={<AddonGroupEditPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="opening-hours" element={<OpeningHoursPage />} />
         <Route path="page-content" element={<PageContentPage />} />

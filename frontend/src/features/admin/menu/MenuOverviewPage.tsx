@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/Tabs";
 import { CategoriesList } from "./categories/CategoriesList";
 import { ProductsList } from "./products/ProductsList";
+import { AddonGroupsList } from "./addon-groups/AddonGroupsList";
 
 type TabKey = "categories" | "products" | "addon-groups";
 
@@ -49,9 +50,7 @@ export function MenuOverviewPage() {
         </TabsContent>
 
         <TabsContent value="addon-groups">
-          <div className="rounded-lg border border-dashed border-slate-200 py-12 text-center text-sm text-slate-500">
-            Grupy dodatków pojawią się w M15.
-          </div>
+          <AddonGroupsList />
         </TabsContent>
       </Tabs>
     </div>
