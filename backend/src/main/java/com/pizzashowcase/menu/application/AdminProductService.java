@@ -11,10 +11,10 @@ import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.shared.error.ApiException;
 import com.pizzashowcase.shared.util.SlugGenerator;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional
@@ -30,12 +30,9 @@ public class AdminProductService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminProductDto> list(Long categoryId, Boolean available) {
-        return productRepository.findAllOrdered().stream()
-                .filter(p -> categoryId == null || p.getCategory().getId().equals(categoryId))
-                .filter(p -> available == null || p.isAvailable() == available)
-                .map(this::toDto)
-                .toList();
+    public Page<AdminProductDto> list(Long categoryId, Boolean available, Pageable pageable) {
+        return productRepository.findAllFiltered(categoryId, available, pageable)
+                .map(this::toDto);
     }
 
     @Transactional(readOnly = true)

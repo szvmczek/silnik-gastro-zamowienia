@@ -156,13 +156,29 @@ export interface UpdateProductPayload {
 export interface AdminProductsFilter {
   categoryId?: number;
   available?: boolean;
+  page?: number;
+  size?: number;
 }
 
-export async function fetchAdminProducts(filter: AdminProductsFilter = {}): Promise<AdminProductDto[]> {
+export interface PageResponse<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+}
+
+export async function fetchAdminProducts(
+  filter: AdminProductsFilter = {}
+): Promise<PageResponse<AdminProductDto>> {
   const params: Record<string, string> = {};
   if (filter.categoryId !== undefined) params.categoryId = String(filter.categoryId);
   if (filter.available !== undefined) params.available = String(filter.available);
-  const { data } = await apiClient.get<AdminProductDto[]>("/admin/products", { params });
+  if (filter.page !== undefined) params.page = String(filter.page);
+  if (filter.size !== undefined) params.size = String(filter.size);
+  const { data } = await apiClient.get<PageResponse<AdminProductDto>>("/admin/products", { params });
   return data;
 }
 

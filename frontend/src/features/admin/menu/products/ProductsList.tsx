@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   deleteAdminProduct,
   fetchAdminCategories,
@@ -32,6 +32,8 @@ export function ProductsList() {
   const currency = settings?.currency ?? "PLN";
 
   const [categoryFilter, setCategoryFilter] = useState<string>(ALL);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
 
   const { data: categories } = useQuery({
     queryKey: ["admin", "menu", "categories"],
@@ -40,9 +42,13 @@ export function ProductsList() {
 
   const categoryId = categoryFilter === ALL ? undefined : Number(categoryFilter);
 
+  useEffect(() => {
+    setPage(0);
+  }, [categoryId]);
+
   const productsQuery = useQuery({
-    queryKey: ["admin", "menu", "products", { categoryId }],
-    queryFn: () => fetchAdminProducts({ categoryId }),
+    queryKey: ["admin", "menu", "products", { categoryId, page, size: PAGE_SIZE }],
+    queryFn: () => fetchAdminProducts({ categoryId, page, size: PAGE_SIZE }),
   });
 
   const availabilityMutation = useMutation({
@@ -83,7 +89,12 @@ export function ProductsList() {
     return "—";
   };
 
-  const products = productsQuery.data ?? [];
+  const products = productsQuery.data?.content ?? [];
+  const totalElements = productsQuery.data?.totalElements ?? 0;
+  const totalPages = productsQuery.data?.totalPages ?? 0;
+  const currentPage = productsQuery.data?.number ?? 0;
+  const isFirst = productsQuery.data?.first ?? true;
+  const isLast = productsQuery.data?.last ?? true;
 
   const categoryOptions = useMemo(
     () => [
@@ -153,6 +164,7 @@ export function ProductsList() {
       ) : null}
 
       {products.length > 0 ? (
+        <>
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -242,6 +254,38 @@ export function ProductsList() {
             </tbody>
           </table>
         </div>
+        <div className="flex items-center justify-between text-sm text-slate-600">
+          <span>
+            Strona <span className="font-medium">{currentPage + 1}</span> z{" "}
+            <span className="font-medium">{Math.max(totalPages, 1)}</span>
+            {" · "}
+            <span className="font-medium">{totalElements}</span>{" "}
+            {totalElements === 1 ? "produkt" : "produktów"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isFirst || productsQuery.isFetching}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              aria-label="Poprzednia strona"
+            >
+              <ChevronLeft className="h-4 w-4" /> Poprzednia
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={isLast || productsQuery.isFetching}
+              onClick={() => setPage((p) => p + 1)}
+              aria-label="Następna strona"
+            >
+              Następna <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        </>
       ) : null}
     </div>
   );
