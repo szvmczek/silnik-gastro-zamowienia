@@ -7,6 +7,7 @@ import { DashboardPage } from "@/features/admin/dashboard/DashboardPage";
 import { SettingsPage } from "@/features/admin/settings/SettingsPage";
 import { OpeningHoursPage } from "@/features/admin/settings/OpeningHoursPage";
 import { PageContentPage } from "@/features/admin/settings/PageContentPage";
+import { MenuOverviewPage } from "@/features/admin/menu/MenuOverviewPage";
 import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
 
 export function AppRouter() {
@@ -27,6 +28,7 @@ export function AppRouter() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="menu" element={<MenuOverviewPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="opening-hours" element={<OpeningHoursPage />} />
         <Route path="page-content" element={<PageContentPage />} />

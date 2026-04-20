@@ -6,6 +6,7 @@ import { cn } from "@/shared/lib/cn";
 
 const navItems = [
   { to: "/admin", label: "Pulpit", end: true },
+  { to: "/admin/menu", label: "Menu" },
   { to: "/admin/settings", label: "Ustawienia" },
   { to: "/admin/opening-hours", label: "Godziny otwarcia" },
   { to: "/admin/page-content", label: "Treści stron" },
