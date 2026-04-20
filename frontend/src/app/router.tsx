@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { LandingPage } from "@/features/public/landing/LandingPage";
 import { MenuPage } from "@/features/public/menu/MenuPage";
 import { CheckoutPage } from "@/features/public/checkout/CheckoutPage";
+import { OrderConfirmationPage } from "@/features/public/order/OrderConfirmationPage";
+import { TrackingPage } from "@/features/public/order/TrackingPage";
 import { LoginPage } from "@/features/admin/auth/LoginPage";
 import { AdminLayout } from "@/features/admin/layout/AdminLayout";
 import { DashboardPage } from "@/features/admin/dashboard/DashboardPage";
@@ -19,8 +21,8 @@ export function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/menu" element={<MenuPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
-      <Route path="/order/confirmation/:orderNumber" element={<div>Confirmation - Faza 3</div>} />
-      <Route path="/track/:token" element={<div>Tracking - Faza 3</div>} />
+      <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
+      <Route path="/track/:token" element={<TrackingPage />} />
       <Route path="/admin/login" element={<LoginPage />} />
       <Route
         path="/admin"
