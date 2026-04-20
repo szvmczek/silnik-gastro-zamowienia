@@ -20,6 +20,6 @@ public record CreateOrderRequest(
         @NotNull PaymentMethod paymentMethod,
         @Valid AddressRequest deliveryAddress,
         @Size(max = 500) String customerNotes,
-        @NotEmpty @Valid List<CreateOrderItemRequest> items
+        @NotEmpty @Size(max = 50) @Valid List<CreateOrderItemRequest> items
 ) {
 }
