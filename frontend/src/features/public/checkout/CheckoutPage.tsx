@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/RadioGroup";
 import { extractProblem } from "@/shared/api/client";
 import { placeOrder, type CreateOrderRequest } from "@/shared/api/orderApi";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
+import { useIsRestaurantOpen } from "@/shared/hooks/useIsRestaurantOpen";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { lineTotal, useCartStore, useCartTotal } from "@/features/public/cart/cartStore";
 
@@ -134,6 +135,7 @@ export function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clear);
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
+  const { isOpen: restaurantIsOpen } = useIsRestaurantOpen();
 
   useEffect(() => {
     if (items.length === 0) {
@@ -226,6 +228,12 @@ export function CheckoutPage() {
 
       <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 lg:pb-16">
         <h1 className="mb-6 text-2xl font-bold sm:text-3xl">Złóż zamówienie</h1>
+
+        {!restaurantIsOpen ? (
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Restauracja jest teraz zamknięta. Zamówienia przyjmujemy w godzinach otwarcia.
+          </div>
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <form
@@ -426,10 +434,12 @@ export function CheckoutPage() {
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={mutation.isPending}
+                disabled={mutation.isPending || !restaurantIsOpen}
               >
                 {mutation.isPending
                   ? "Składanie zamówienia…"
+                  : !restaurantIsOpen
+                  ? "Restauracja zamknięta"
                   : `Zamów i zapłać ${formatPrice(total, currency)}`}
               </Button>
             </div>
@@ -488,10 +498,12 @@ export function CheckoutPage() {
           form="checkout-form"
           size="lg"
           className="w-full"
-          disabled={mutation.isPending}
+          disabled={mutation.isPending || !restaurantIsOpen}
         >
           {mutation.isPending
             ? "Składanie zamówienia…"
+            : !restaurantIsOpen
+            ? "Restauracja zamknięta"
             : `Zamów i zapłać ${formatPrice(total, currency)}`}
         </Button>
       </div>
