@@ -1,0 +1,38 @@
+# Node
+**/node_modules/
+
+# Build artifacts
+backend/build/
+backend/out/
+backend/.gradle/
+frontend/dist/
+frontend/build/
+
+# VCS
+.git/
+.gitignore
+.gitattributes
+
+# Env + secrets
+.env
+.env.local
+*.env
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+.claude-code/
+
+# Docs — nie potrzebne w obrazie
+docs/
+README.md
+CLAUDE.md

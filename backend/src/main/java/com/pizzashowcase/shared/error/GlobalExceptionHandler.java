@@ -1,11 +1,13 @@
 package com.pizzashowcase.shared.error;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -83,8 +85,32 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ProblemDetail> handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ProblemDetail> handleNoResource(NoResourceFoundException ex,
+                                                          HttpServletRequest request,
+                                                          HttpServletResponse response) throws Exception {
+        String path = request.getRequestURI();
+        if (!path.startsWith("/api/") && !path.startsWith("/actuator/") && acceptsHtml(request)) {
+            request.getRequestDispatcher("/index.html").forward(request, response);
+            return null;
+        }
         return buildResponse(HttpStatus.NOT_FOUND, "Resource not found", request, null);
+    }
+
+    private boolean acceptsHtml(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        if (accept == null || accept.isBlank()) {
+            return false;
+        }
+        try {
+            for (MediaType mt : MediaType.parseMediaTypes(accept)) {
+                if (mt.includes(MediaType.TEXT_HTML)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
     }
 
     @ExceptionHandler(Exception.class)

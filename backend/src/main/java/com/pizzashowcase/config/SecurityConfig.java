@@ -62,7 +62,7 @@ public class SecurityConfig {
                 auth
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers("/api/**").authenticated()
-                    .anyRequest().denyAll();
+                    .anyRequest().permitAll();
             })
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint((req, res, e) -> writeProblem(req, res, HttpStatus.UNAUTHORIZED, objectMapper, "Authentication required"))
