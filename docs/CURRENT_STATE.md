@@ -519,10 +519,57 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
   jest user story Fazy 4. Card-view per wiersz dla `<md` — odłożone,
   można dodać w Fazie 5 jeśli okaże się potrzebne w demo.
 
+### Tech debt z review Fazy 4 (dopisane po akceptacji)
+- **BUG-1 DEPLOY BLOCKER: JWT w Tomcat access logu przez SSE query param** —
+  `GET /api/admin/orders/stream?token=<JWT>` trafia do domyślnego access
+  log patternu Tomcata razem z całym query stringiem. Token ma 12h TTL,
+  więc log = potencjalny leak długożyjącego secretu. **Przed deploy
+  Fazy 5 wymagane jedno z:** (a) maskowanie query w access log pattern
+  (custom `AccessLogValve` z regex `token=[^&]*` → `token=***`), lub
+  (b) migracja AD-018 na httpOnly cookie (i zdjęcie query-param fallbacku
+  z `JwtAuthenticationFilter.extractToken`). Opcja (a) tańsza, (b)
+  czystsza architektonicznie.
+- **BUG-2/3: SSE threading defaults** — `SseEmitterRegistry` używa
+  `Executors.newSingleThreadScheduledExecutor()` dla heartbeatu (jeden
+  wątek obsługuje heartbeaty wszystkich emiterów; blokada na write zatrzyma
+  kolejne ticki), a `@EnableAsync` bez własnego `TaskExecutor` = Spring
+  domyślnie używa `SimpleAsyncTaskExecutor` (wątek per event, bez
+  poolingu). Akceptowalne dla MVP (1-2 adminów online, sporadyczne eventy).
+  Post-MVP: `ThreadPoolTaskScheduler` dla heartbeatu + `ThreadPoolTask-
+  Executor` jako `@Primary` dla `@Async`.
+- **BUG-5: SSE reconnect bez limitu prób** — `useAdminOrderFeed` ma
+  exponential backoff (1s→2s→…cap 30s) ale nieskończoną liczbę prób.
+  Przy trwałym 401/backend down generuje log noise (toast nie, bo
+  `onerror` jest silent). Do dodania: licznik prób + stan `disconnected`
+  po np. 10 nieudanych + CTA "Odśwież stronę" w UI.
+- **BUG-7: ETA ustawialne na DELIVERED/CANCELED** — backend
+  `OrderStatusService.updateEta` nie sprawdza statusu, pozwala zapisać
+  `etaMinutes` na zamówieniu terminalnym. UX nit: w panelu admin ETA
+  na dostarczonym zamówieniu nie ma sensu. Fix: w service guard
+  `if (order.getStatus().isTerminal()) throw unprocessable(...)` i
+  ukrycie przycisku "Ustaw ETA" w `OrderDetailPage` gdy status terminalny.
+- **BUG-9: loading text zamiast skeletona** — `OrdersListPage` i
+  `OrderDetailPage` pokazują `"Ładowanie..."` jako plain text podczas
+  initial fetch (tracking/menu mają już skeletony). Do wyrównania
+  w Fazie 5 polish — skeleton table (5 wierszy) dla listy, skeleton
+  cards dla detalu.
+- **Rate limit brak na `GET /api/admin/orders/stream`** — `RateLimit-
+  Filter` ma reguły na `POST /api/auth/login` i `POST /api/public/orders`,
+  ale SSE stream jest auth-gated przez JWT (ROLE_ADMIN) bez dodatkowego
+  limitu otwartych połączeń per IP. W praktyce admin otwiera 1 EventSource
+  per karta, ale nic nie chroni przed użytkownikiem z ukradzionym tokenem
+  otwierającym 1000 połączeń. Dorzucić regułę (np. `GET
+  /api/admin/orders/stream` → 10 req/min/IP) w Fazie 5.
+
 ## Następne kroki
 Faza 5 (Polish + Deploy) — UX polish, Error Boundary, code splitting,
 Dockerfile produkcyjny, deploy Railway, README + customization + deployment
-docs. Poza tym podczas Fazy 5 warto adresować carry-over z review Fazy 3
-(BUG-3 desync walidacji, idempotency-key na `POST /api/public/orders`,
-`BigDecimal.setScale(2, HALF_UP)`, React ErrorBoundary, code splitting per
-route) — wszystko zbierane w QA_CHECKLIST na start Fazy 5.
+docs. **Gating przed deploy:** BUG-1 z review Fazy 4 (JWT w access logu
+przez SSE query param) musi zostać rozwiązany (maskowanie access log
+pattern albo migracja AD-018 na httpOnly cookie). Poza tym podczas Fazy 5
+warto adresować carry-over z review Fazy 3 (BUG-3 desync walidacji,
+idempotency-key na `POST /api/public/orders`, `BigDecimal.setScale(2,
+HALF_UP)`, React ErrorBoundary, code splitting per route) i dopisany
+carry-over z review Fazy 4 (threading SSE, reconnect cap, ETA guard na
+terminalnych, skeleton loading w admin orders, rate limit na SSE stream) —
+wszystko zbierane w QA_CHECKLIST na start Fazy 5.
