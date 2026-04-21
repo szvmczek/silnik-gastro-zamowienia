@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useAuth } from "@/shared/auth/useAuth";
 import { Button } from "@/shared/components/ui/Button";
 import { cn } from "@/shared/lib/cn";
+import { useAdminOrderFeed } from "@/features/admin/realtime/useAdminOrderFeed";
+import { SoundToggle } from "@/features/admin/realtime/SoundToggle";
 
 const navItems = [
   { to: "/admin", label: "Pulpit", end: true },
@@ -17,6 +19,7 @@ export function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  useAdminOrderFeed();
 
   const handleLogout = () => {
     logout();
@@ -46,6 +49,7 @@ export function AdminLayout() {
                 {user.displayName}
               </span>
             )}
+            <SoundToggle />
             <Button variant="ghost" size="sm" onClick={handleLogout}>
               Wyloguj
             </Button>
