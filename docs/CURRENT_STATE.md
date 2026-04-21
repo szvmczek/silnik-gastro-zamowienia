@@ -436,8 +436,76 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
   - Commity: milestone per krok (M1-M5 backend CORE, M6-M10 frontend CORE,
     M11 SSE backend, M12 SSE frontend, M13 smoke + M10 hotfixes, M14 docs)
 
+## Faza 5 — Polish + Deploy (DONE kod; Railway deploy ostatni krok manualny)
+- **Cel**: dowiezc showcase do stanu gotowego pod HTTPS, zalatac deploy-blockery
+  z review Fazy 4 i carry-over z Faz 1-3, dopisac dokumentacje umozliwiajaca
+  rebrandig + deploy przez nowego dev w <30 min.
+- **Branch**: `phase-5`. Milestony:
+  - **M1** prod profile, SPA fallback (`ErrorViewResolver` +
+    `GlobalExceptionHandler.handleNoResource`), JSON logs
+    (`logstash-logback-encoder`), graceful shutdown, `server.tomcat.accesslog.enabled=false`
+    (BUG-1 mitigation). Commit `98f45c9`.
+  - **M2** multi-stage Dockerfile (node:20-alpine → JDK 21 jammy → JRE 21
+    jammy), `SecurityConfig` `anyRequest().permitAll()` dla SPA fallback
+    (route auth zachowana na `/api/admin/**` + `/api/**`),
+    `GlobalExceptionHandler.handleNoResource` → forward `/index.html` dla
+    `Accept: text/html`. Commit `e76a9f5`.
+  - **M4** Carry-over tech debt z Faz 3-4: `deliveryAddress.notes` Zod
+    200→255 (alignment z BE Bean Validation), `Locale.ROOT` w
+    `CheckoutService.normalizeEmail`, `setScale(2, HALF_UP)` na
+    `lineTotal`/`subtotal`/`total`, ETA terminal guard (422
+    gdy DELIVERED/CANCELED), `ThreadPoolTaskExecutor` (core=2, max=4,
+    queue=50, `CallerRunsPolicy`) jako `@Bean("taskExecutor")`. Commit `b2f3b79`.
+  - **M5 BE** Rate limit `GET /api/admin/orders/stream` → 30 req/min/IP.
+    Commit `3c3d7ba`.
+  - **M5 FE** BUG-9: skeletony w `OrdersListPage` (5-wierszowa tabela) +
+    `OrderDetailPage` (4 karty). Nowy `Skeleton` primitive w
+    `shared/components/ui`. Commit `62a18ce`.
+  - **M6/1** globalny `ErrorBoundary` (class component, fallback UI z
+    `<a href="/">`, dev-only stack trace) wokol `<Routes>` w
+    `providers.tsx`. Commit `681cf7d`.
+  - **M6/2** `useIsRestaurantOpen` hook (`Intl.DateTimeFormat` strefa
+    `Europe/Warsaw`, fail-open gdy brak godzin) + `CheckoutPage` banner +
+    disabled CTA gdy zamkniete. Commit `59a0152`.
+  - **M6/3** OSM iframe map na `ContactSection` (Nominatim geocoding
+    client-side, staleTime Infinity, bez Leaflet, fallback na adres
+    tekstowy gdy geokodowanie failuje). Commit `37cb160`.
+  - **M7** SEO: `SeoHead` komponent (direct DOM, bez react-helmet)
+    aktualizuje `document.title`, `meta description`, OG tags (`og:title`,
+    `og:description`, `og:image`, `og:type=website`) z
+    `RestaurantSettings`. Favicon inline SVG emoji pizza w `index.html` +
+    fallback `public/favicon.svg`. `public/manifest.json` z
+    `theme_color=#E11D48`. Commit `aa71c94`.
+  - **M8** Dokumentacja: `README.md` refresh (quickstart <30 min,
+    weryfikacja URLs, build Docker), `docs/customization.md` NEW (panel
+    admin + V100/V101 seeds + favicon/manifest swap + env vars),
+    `docs/deployment.md` NEW (Railway 6 krokow + troubleshooting).
+- **Akceptowalny tech debt (nie zrobione w Fazie 5, na ROADMAP):**
+  - SSE AD-018 query-param auth → httpOnly cookie (mitigacja:
+    access log wylaczony; Railway proxy moze nadal logowac URL).
+  - BUG-5 SSE reconnect retry cap + `disconnected` state.
+  - Code splitting per route (`React.lazy` dla `/admin/*`).
+  - Seed V100/V101 gate po profilu / env var — showcase CELOWO deployuje
+    z demo contentem, notka w deployment.md dla clean-start.
+  - Framer Motion transitions na drawer/modal/public routes — Tier 3,
+    wyciete pod presja czasu.
+  - Mobile 375px audit per-ekran — Tier 3, zalozenie: istniejacy Tailwind
+    responsywny design wystarcza pod demo.
+  - Admin orders table card-view dla `<md` — Tier 3.
+  - Mapa: zamiast lat/lon migracji → Nominatim runtime geokoding (brak
+    dodatkowych kolumn, brak BE zmian).
+- **Definition of done (PHASES.md:225-229):**
+  - [x] Kod gotowy pod HTTPS (Dockerfile multi-stage, prod profile, SPA
+    fallback, JSON logs, graceful shutdown, rate limit SSE, ETA guard).
+  - [x] README quickstart <30 min (6 krokow od clone → localhost:5173).
+  - [x] Customization + deployment docs (rebranding + Railway w <30 min).
+  - [ ] Live URL pod HTTPS — **czeka na manualny deploy Railway** (M3
+    planu pominiety na prosbe usera; kod jest gotowy).
+  - [ ] End-to-end demo na live URL — do zrobienia po deploy.
+
 ## Fazy zaplanowane
-- [ ] Faza 5: Polish + Deploy
+Wszystkie fazy MVP (0-5) zamkniete w kodzie. Railway deploy to ostatni
+manualny krok — patrz [deployment.md](./deployment.md).
 
 ## Aktualne ostrzeżenia / tech debt świadomie zaakceptowany
 - Host ma JDK 25 — produkcyjny toolchain to JDK 21 (foojay auto-provision).
@@ -562,14 +630,20 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
   /api/admin/orders/stream` → 10 req/min/IP) w Fazie 5.
 
 ## Następne kroki
-Faza 5 (Polish + Deploy) — UX polish, Error Boundary, code splitting,
-Dockerfile produkcyjny, deploy Railway, README + customization + deployment
-docs. **Gating przed deploy:** BUG-1 z review Fazy 4 (JWT w access logu
-przez SSE query param) musi zostać rozwiązany (maskowanie access log
-pattern albo migracja AD-018 na httpOnly cookie). Poza tym podczas Fazy 5
-warto adresować carry-over z review Fazy 3 (BUG-3 desync walidacji,
-idempotency-key na `POST /api/public/orders`, `BigDecimal.setScale(2,
-HALF_UP)`, React ErrorBoundary, code splitting per route) i dopisany
-carry-over z review Fazy 4 (threading SSE, reconnect cap, ETA guard na
-terminalnych, skeleton loading w admin orders, rate limit na SSE stream) —
-wszystko zbierane w QA_CHECKLIST na start Fazy 5.
+Faza 5 (Polish + Deploy) zamknięta w kodzie — wszystkie deploy-blockery
+(BUG-1 access log, ETA guard, @Async pool, SSE rate limit) oraz carry-over
+tech debt (notes align, Locale.ROOT, setScale, ErrorBoundary, skeletony)
+rozwiązane. Pozostaje **manualny deploy na Railway** wg
+[deployment.md](./deployment.md):
+1. Utworzyć projekt Railway + Postgres plugin.
+2. Dodać serwis z GitHub repo (branch `main` po mergu `phase-5`).
+3. Ustawić env vars (`JWT_SECRET` wygenerowany `openssl rand -base64 48`,
+   `ADMIN_EMAIL`/`ADMIN_PASSWORD`, `CORS_ALLOWED_ORIGINS` na Railway URL,
+   `SPRING_PROFILES_ACTIVE=prod`, `DB_*` z refs `${{Postgres.*}}`).
+4. Healthcheck `/actuator/health`.
+5. Smoke: `/api/public/settings`, złożenie zamówienia public + obsługa
+   admin, tracking polling.
+
+Post-MVP (ROADMAP.md): SSE httpOnly cookie (AD-018 migracja), code
+splitting per route, Framer Motion transitions, mobile 375px audit,
+admin table card-view, seed V100/V101 gate po profilu.

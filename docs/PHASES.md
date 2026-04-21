@@ -200,7 +200,7 @@ Admin obsługuje zamówienia. Klient widzi zmiany statusu na trackingu.
 - Notyfikacje email/SMS
 
 ## Faza 5: Polish + Deploy
-STATUS: PLANNED
+STATUS: DONE (kod); deploy Railway — ostatni krok manualny
 
 ### Cel
 Showcase premium pod HTTPS, gotowy do pokazania klientowi.
