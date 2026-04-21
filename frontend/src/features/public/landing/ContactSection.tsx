@@ -1,10 +1,20 @@
 import type { SettingsDto } from "@/shared/api/settingsApi";
+import { useAddressGeocode } from "@/shared/hooks/useAddressGeocode";
 
 interface Props {
   settings: SettingsDto | undefined;
 }
 
+function buildAddressString(settings: SettingsDto): string | null {
+  const parts = [settings.addressLine, settings.postalCode, settings.city].filter(
+    (p): p is string => !!p && p.trim().length > 0
+  );
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
 export function ContactSection({ settings }: Props) {
+  const addressString = settings ? buildAddressString(settings) : null;
+  const geocode = useAddressGeocode(addressString);
   if (!settings) return null;
   const hasAddress = settings.addressLine || settings.city || settings.postalCode;
 
@@ -58,6 +68,21 @@ export function ContactSection({ settings }: Props) {
             </div>
           )}
         </div>
+        {geocode.data ? (
+          <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <iframe
+              title="Mapa dojazdu"
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${
+                geocode.data.lon - 0.005
+              },${geocode.data.lat - 0.003},${geocode.data.lon + 0.005},${
+                geocode.data.lat + 0.003
+              }&layer=mapnik&marker=${geocode.data.lat},${geocode.data.lon}`}
+              className="h-80 w-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        ) : null}
       </div>
     </section>
   );
