@@ -126,12 +126,7 @@ export function OrderDetailPage() {
   }
 
   if (query.isPending) {
-    return (
-      <div className="space-y-3">
-        <BackLink />
-        <p className="text-sm text-slate-500">Ładowanie…</p>
-      </div>
-    );
+    return <OrderDetailSkeleton />;
   }
 
   if (errorMessage || !order) {
@@ -318,6 +313,26 @@ export function OrderDetailPage() {
         }
         isSubmitting={etaMutation.isPending}
       />
+    </div>
+  );
+}
+
+function OrderDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <BackLink />
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="h-8 w-48 animate-pulse rounded bg-slate-200" />
+        <div className="h-6 w-24 animate-pulse rounded-full bg-slate-200" />
+        <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+        <div className="h-56 animate-pulse rounded-lg bg-slate-200 lg:col-span-2" />
+        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+      </div>
     </div>
   );
 }

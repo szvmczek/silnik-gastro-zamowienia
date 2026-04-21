@@ -166,7 +166,7 @@ export function OrdersListPage() {
 
       <div className="rounded-lg border border-slate-200 bg-white">
         {listQuery.isPending ? (
-          <div className="p-6 text-sm text-slate-500">Ładowanie…</div>
+          <OrdersListSkeleton />
         ) : rows.length === 0 ? (
           <div className="p-10 text-center text-sm text-slate-500">
             Brak zamówień dla tych filtrów.
@@ -247,5 +247,39 @@ export function OrdersListPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function OrdersListSkeleton() {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Numer</TableHead>
+          <TableHead>Data</TableHead>
+          <TableHead>Klient</TableHead>
+          <TableHead>Rodzaj</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Kwota</TableHead>
+          <TableHead className="w-24 text-right">Akcja</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <TableRow key={idx}>
+            <TableCell><div className="h-4 w-20 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell><div className="h-4 w-32 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell>
+              <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
+              <div className="mt-1 h-3 w-20 animate-pulse rounded bg-slate-200" />
+            </TableCell>
+            <TableCell><div className="h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell><div className="h-5 w-20 animate-pulse rounded-full bg-slate-200" /></TableCell>
+            <TableCell className="text-right"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell className="text-right"><div className="ml-auto h-4 w-14 animate-pulse rounded bg-slate-200" /></TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
