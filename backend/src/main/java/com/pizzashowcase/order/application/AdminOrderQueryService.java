@@ -92,7 +92,7 @@ public class AdminOrderQueryService {
         );
     }
 
-    private AdminOrderDto toDto(Order order) {
+    public AdminOrderDto toDto(Order order) {
         List<OrderTrackingItemDto> items = order.getItems().stream()
                 .map(item -> new OrderTrackingItemDto(
                         item.getProductNameSnapshot(),
