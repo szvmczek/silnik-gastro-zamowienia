@@ -91,12 +91,39 @@ Request payload `POST /api/public/orders` zawiera tylko ID (`productId`,
 `variantId`, `addonIds`) + `quantity` + dane klienta. Backend pobiera świeże
 ceny z DB i liczy totals.
 
+### AD-017: State machine location — backend source of truth, FE mirror
+Logika dozwolonych przejść statusu zamówienia (z uwzględnieniem
+`FulfillmentType` dla gałęzi `READY → OUT_FOR_DELIVERY | DELIVERED`) żyje
+w metodzie `canTransitionTo(OrderStatus next, FulfillmentType ft)` na enumie
+`order.domain.OrderStatus` — **jedna prawda**. `OrderStatusService` wywołuje
+tę metodę przed zapisem; naruszenie → `ApiException.unprocessable` → 422.
+Frontend ma **mirror** w [features/admin/orders/lib/transitions.ts](../frontend/src/features/admin/orders/lib/transitions.ts)
+(`allowedTransitions(status, fulfillmentType)`), używany **wyłącznie do UI**
+(ukrywa niedostępne przyciski akcji w `OrderDetailPage`). Backend pozostaje
+ostateczną bramką — FE dryft z enumem nie narazi spójności danych, co
+najwyżej pozwoli pokazać przycisk który dostanie 422. Rozbieżność FE↔BE do
+audytu przy każdej zmianie state machine.
+
+### AD-018: SSE auth via query param `?token=`
+`EventSource` (Web API) nie wspiera niestandardowych nagłówków, więc
+JWT nie może lecieć w `Authorization`. Akceptowane rozwiązanie dla
+showcase/demo: `GET /api/admin/orders/stream?token=...`. Filter
+`identity.infrastructure.JwtAuthenticationFilter` akceptuje `?token=`
+**wyłącznie dla tej jednej ścieżki** (`SSE_PATH = "/api/admin/orders/stream"`) —
+każdy inny endpoint nadal wymaga `Authorization: Bearer`. Ryzyka: token
+w Referer, w logach proxy, w URL historii. Do migracji przy wdrożeniu
+produkcyjnym — preferowany wariant: httpOnly cookie + SameSite=Strict
+(spina się z AD-003) albo fetch-stream polyfill zamiast `EventSource`.
+
 ## Znane ograniczenia / tech debt świadomie zaakceptowane
 
 - JWT w localStorage (AD-003) — do migracji przy wdrożeniu produkcyjnym.
 - Brak refresh tokenów — klient musi się zalogować ponownie po 12h.
+- SSE token w query param (AD-018) — do migracji na httpOnly cookie
+  przy wdrożeniu produkcyjnym.
 - Brak skalowania SSE na wiele instancji (brak Redis pub/sub) — Railway
-  w MVP = 1 instancja.
+  w MVP = 1 instancja. `SseEmitterRegistry` trzyma emitery in-memory;
+  broadcast dociera tylko do klientów podpiętych do tego samego JVM.
 - Godziny otwarcia bez wyjątków świątecznych — do dodania post-MVP.
 - Statyczne obrazki bez CDN — OK dla showcase, dla produkcji rozważyć
   S3 + CloudFront.

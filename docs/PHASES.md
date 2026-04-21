@@ -145,7 +145,13 @@ Pełny order flow end-to-end: od dodania do koszyka po widok trackingu.
 - Płatności online
 
 ## Faza 4: Admin Orders + polling (SSE stretch)
-STATUS: PLANNED
+STATUS: DONE (CORE + STRETCH)
+
+> Uwaga historyczna: **STRETCH (SSE) dowieziony** — plan traktował go jako
+> opcjonalny, ale CORE zamknął się bez blokerów, więc M11-M13 weszły.
+> Szczegóły implementacji i smoke-test: CURRENT_STATE.md → Faza 4.
+> Dwie nowe decyzje architektoniczne: AD-017 (state machine location),
+> AD-018 (SSE query-param auth) — ARCHITECTURE.md.
 
 ### Cel
 Admin obsługuje zamówienia. Klient widzi zmiany statusu na trackingu.

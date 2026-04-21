@@ -3,8 +3,7 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Faza 4 (Admin Orders + polling) — branch `phase-4` utworzony, oczekiwanie
-na prompt implementacyjny.
+Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
@@ -295,9 +294,149 @@ na prompt implementacyjny.
     (mutation callers już mapują `values.x || null`).
   - Commity: milestone per krok (M1-M6 backend, M7-M13 frontend, M14 docs,
     osobny hotfix Fazy 2)
+- [x] Faza 4: Admin Orders + polling (SSE stretch)
+  - Backend CORE:
+    - State machine w `order.domain.OrderStatus.canTransitionTo(next, ft)` —
+      jedna prawda, gałąź `READY → OUT_FOR_DELIVERY | DELIVERED` rozstrzyga
+      po `FulfillmentType`. Naruszenie → `ApiException.unprocessable` → 422
+      (AD-017). **29 testów jednostkowych enuma** (`OrderStatusTransitionTest`)
+      pokrywają wszystkie legalne przejścia + wszystkie zabronione (terminale,
+      skoki, fulfillment-mismatch)
+    - DTOs w `order.api.dto.admin.*`: `AdminOrderListItemDto` (light),
+      `AdminOrderDto` (full + items + history + address), `AdminOrderStatus-
+      HistoryDto`, `UpdateOrderStatusRequest` (`@NotNull version`), `Update-
+      OrderEtaRequest` (`@NotNull version`, `@Min(0) @Max(480) minutesFromNow`),
+      `AdminDashboardSummaryDto`
+    - `AdminOrderQueryService` — list z filtrami (status, fulfillmentType,
+      dateFrom/dateTo półotwarty przedział `Europe/Warsaw`), get-by-id
+      z `@EntityGraph`, dashboard summary (3 liczniki)
+    - `OrderStatusService` (`@Transactional`) — `changeStatus(id, request)`:
+      load → `assertVersion` → `canTransitionTo` → zapis status + wpis
+      `OrderStatusHistory(changedBy = admin email z SecurityContext)` →
+      `saveAndFlush` (żeby `@Version` bumpnęło przed mapowaniem do DTO —
+      inaczej response wraca ze stale version i kolejny PATCH 409). Drugi
+      entry-point `updateEta(id, request)` bez state machine, tylko version
+      check
+    - `OrderRepository.findAllFiltered(status, ft, from, to, Pageable)`
+      z NULL-checkami w `@Query` (pattern z `ProductRepository`) +
+      3 metody `countBy...` dla dashboard summary
+    - Endpointy (`@PreAuthorize("hasRole('ADMIN')")`):
+      - `GET /api/admin/orders` — pagination + filtry, size=20 default,
+        sort=placedAt DESC
+      - `GET /api/admin/orders/{id}` → 404 gdy brak
+      - `PATCH /api/admin/orders/{id}/status`, `PATCH /api/admin/orders/{id}/eta`
+      - `GET /api/admin/dashboard/summary` (osobny `AdminDashboardController`)
+    - Konflikt wersji → `OptimisticLockingFailureException` → 409 przez
+      istniejący `GlobalExceptionHandler` (AD-009). Bez nowych hotfixów
+      exception handlera
+    - **Brak nowej migracji** — `etaMinutes` (Integer) istnieje od `V7__orders.sql`
+      Fazy 3. Pole semantycznie = "minuty od teraz" w momencie zapisu;
+      tracking DTO ma to interpretować jako stałą etykietę (świadomie,
+      wariant A z planu)
+  - Frontend CORE:
+    - shadcn primitives: `Badge`, `Table` (Radix namespace, bez per-primitive deps)
+    - `shared/lib/formatDate.ts` — `formatDateTime(iso)` z `Intl.DateTimeFormat
+      ('pl-PL', {dateStyle:'short', timeStyle:'short'})`. `TrackingPage`
+      celowo nie ruszany (ma własny inline Intl)
+    - `shared/api/orderApi.ts` — typy `AdminOrderListItemDto`, `AdminOrderDto`,
+      `AdminOrderStatusHistoryDto`, `PaginatedResponse<T>` + funkcje `fetch-
+      AdminOrders`, `fetchAdminOrderById`, `updateOrderStatus`, `updateOrderEta`,
+      `fetchDashboardSummary`
+    - `features/admin/dashboard/DashboardPage.tsx` + `components/KpiTile.tsx` —
+      3 kafelki ("Nowe dziś" → `?status=NEW`, "W przygotowaniu" → filtr
+      `CONFIRMED|IN_PREPARATION`, "Do dostawy" → filtr `READY|OUT_FOR_DELIVERY`).
+      Każdy klik w kafelek → nawigacja do `/admin/orders` z prefiltrem przez
+      URL query params. Dashboard polling 15s
+    - `features/admin/orders/OrdersListPage.tsx` — toolbar z filtrami (Select
+      status, Select fulfillment, 2 × `<input type="date">`), stan filtrów
+      w URL przez `useSearchParams` (refresh + share-link działają), Table
+      z kolumnami (numer, data, klient, fulfillment, status Badge, total,
+      CTA "Szczegóły"), paginacja prev/next + "Strona X z Y", empty state.
+      **Polling 10s** (`refetchInterval: 10_000`, `refetchIntervalInBackground:
+      false`)
+    - `features/admin/orders/OrderDetailPage.tsx` — header z badge + placedAt +
+      fulfillmentType + paymentMethod, karty Klient / Adres dostawy
+      (warunkowo) / Pozycje (ze snapshotami i dodatkami) / ETA (dialog
+      z presetami 15/30/45/60 min + własna liczba) / Akcje statusu (przyciski
+      tylko dozwolonych przejść, mirror state machine z `lib/transitions.ts`)
+      / Historia statusów (timeline z `changedAt` + `changedBy`). Akcja
+      "Anuluj zamówienie" w osobnym wariancie `destructive` z potwierdzeniem
+      w Dialogu. Mutacje invalidują `["admin","orders","detail", id]` +
+      `["admin","orders","list"]`. Polling detail 10s. 409 → toast "Ktoś
+      inny zmienił zamówienie. Odśwież." + invalidate; 422 → toast
+      z `extractProblem(err).detail`
+    - `lib/transitions.ts` — FE mirror state machine z `OrderStatus.java`
+      (AD-017). Używany **wyłącznie do UI** — backend jest ostateczną bramką
+    - `OrderStatusBadge.tsx` — mapping status → kolor + label PL
+    - `AdminLayout.navItems` dostał link **Zamówienia** pod `/admin/orders`;
+      dashboard placeholder z Fazy 1 podmieniony na realny `DashboardPage`
+  - Backend STRETCH (SSE):
+    - `com.pizzashowcase.realtime` — nowy pakiet:
+      - `SseEmitterRegistry` — `ConcurrentHashMap<UUID, SseEmitter>`, daemon
+        `ScheduledExecutorService` heartbeat 25s fixed rate, cleanup na
+        `onCompletion/onTimeout/onError`, `broadcast()` usuwa emitery które
+        rzuciły IOException przy send
+      - `SseEventEnvelope(String type, Object payload)` — JSON shape dla
+        klienta (`{type, payload}`)
+      - `SseEventBroadcaster` z `@Async` + `@TransactionalEventListener
+        (phase = AFTER_COMMIT)` na `OrderCreatedEvent` i `OrderStatusChanged-
+        Event`. Broadcast **po commicie** i off-thread — failure SSE nie
+        roluje business transakcji
+      - `RealtimeConfig` z `@EnableAsync`
+      - `SseAdminController` — `GET /api/admin/orders/stream` (produces
+        `text/event-stream`, `@PreAuthorize("hasRole('ADMIN')")`, timeout
+        30min, wysyła `READY` po zarejestrowaniu emitera)
+    - `order.application.event.*` — dwa recordy: `OrderCreatedEvent(id,
+      orderNumber, total, placedAt)` publikowany przez `CheckoutService`
+      na końcu `placeOrder`, `OrderStatusChangedEvent(id, orderNumber,
+      newStatus)` publikowany przez `OrderStatusService.changeStatus`
+      (nie przez `updateEta` — ETA nie jest zmianą statusu)
+    - `JwtAuthenticationFilter` — refaktor do helpera `extractToken(request)`:
+      najpierw `Authorization: Bearer`, potem — **tylko dla `/api/admin/
+      orders/stream`** — query param `?token=`. Surface pojedynczej ścieżki,
+      zero luzowania auth gdzie indziej (AD-018)
+  - Frontend STRETCH (SSE):
+    - `features/admin/realtime/useAdminOrderFeed.ts` — hook (`useEffect`):
+      otwiera `new EventSource(/api/admin/orders/stream?token=${jwt})`,
+      listenery per event type:
+        - `READY` → reset backoff
+        - `ORDER_CREATED` → invalidate `["admin","orders","list"]` +
+          `["admin","dashboard","summary"]`, `toast.success("Nowe zamówienie:
+          {orderNumber}")`, `if (getSoundEnabled()) playBeep()`
+        - `ORDER_STATUS_CHANGED` → invalidate list + `["admin","orders",
+          "detail", orderId]`
+      reconnect z exponential backoff (1s → 2s → … cap 30s), cleanup
+      w useEffect teardown. Token czytany przez `useAuthStore.getState()` —
+      świeży przy każdym `connect()`
+    - `features/admin/realtime/soundPrefs.ts` — localStorage key `admin-sounds-
+      enabled` (default true), lazy module-level `AudioContext`,
+      `playBeep()` = 880 Hz sine + gain envelope (0.0001 → 0.3 → 0.0001,
+      0.2s total). Gate na `ctx.state === "suspended"` → `ctx.resume().then
+      (start)`. Silent no-op przy blokadzie autoplay
+    - `features/admin/realtime/SoundToggle.tsx` — Button ghost z ikonami
+      `Volume2`/`VolumeX` (lucide-react), toggle persistuje w localStorage,
+      onClick `playBeep()` gdy włączamy (primuje AudioContext pod
+      user gesture). PL aria-label/title
+    - `AdminLayout` montuje `useAdminOrderFeed()` raz (globalne) i renderuje
+      `<SoundToggle />` w headerze przed przyciskiem "Wyloguj". Fallback:
+      polling 10s z CORE dalej działa — brak ręcznego downgrade'u
+    - **Smoke e2e (M13):** SSE-stream po loginie: `READY` < 100ms, `ORDER_
+      CREATED` 193ms po POST zamówienia, `ORDER_STATUS_CHANGED` 181ms po
+      PATCH statusu, heartbeat `:hb` co ~25s. Obie latencje znacznie poniżej
+      progu <1s z planu
+  - **M10 smoke hotfixy:**
+    - `OrderStatusService.changeStatus` przeszedł na `saveAndFlush(order)`
+      żeby `@Version` bumpnęło przed mapowaniem do DTO. Bez flusha klient
+      dostawał stale `version=N` w response i następny PATCH kończył się
+      409. Druga linia obrony (spójna z AD-009)
+    - `OrderStatusHistory.changedAt` był ustawiany w PrePersist, w response
+      DTO wracał `null` bezpośrednio po mutacji. Fix: konstruktor `new
+      OrderStatusHistory(status, Instant.now(), changedBy)` ustawia pole
+      jawnie, PrePersist tylko no-op fallback
+  - Commity: milestone per krok (M1-M5 backend CORE, M6-M10 frontend CORE,
+    M11 SSE backend, M12 SSE frontend, M13 smoke + M10 hotfixes, M14 docs)
 
 ## Fazy zaplanowane
-- [ ] Faza 4: Admin Orders + polling (SSE stretch)
 - [ ] Faza 5: Polish + Deploy
 
 ## Aktualne ostrzeżenia / tech debt świadomie zaakceptowany
@@ -364,5 +503,26 @@ na prompt implementacyjny.
     jawnie `MediaType.APPLICATION_JSON_VALUE` — content negotiation
     działa, ale eksplicytnie czytelniej.
 
+### Tech debt z Fazy 4 (świadomie odłożony)
+- **SSE token w query param `?token=...`** (AD-018) — akceptowalne dla
+  showcase/demo, do migracji na httpOnly cookie przy wdrożeniu
+  produkcyjnym. Token trafia do Referer / logów proxy / URL historii;
+  `EventSource` nie wspiera niestandardowych nagłówków, stąd kompromis.
+- **Brak skalowania SSE na wiele instancji** — `SseEmitterRegistry`
+  trzyma emitery in-memory (`ConcurrentHashMap`); broadcast dociera tylko
+  do klientów podpiętych do tego samego JVM. Railway w MVP = 1 instancja,
+  więc realnie bez wpływu. Skalowanie horyzontalne wymaga Redis pub/sub
+  (lub podobnego fan-out) — post-MVP.
+- **Admin orders table: brak card-view dla `<md`** — na mobile tabela
+  scrolluje się poziomo (`overflow-x-auto`). Świadoma decyzja: admin
+  realnie pracuje z desktopa / tabletu, mobile-obsługa zamówień nie
+  jest user story Fazy 4. Card-view per wiersz dla `<md` — odłożone,
+  można dodać w Fazie 5 jeśli okaże się potrzebne w demo.
+
 ## Następne kroki
-Użytkownik wkleja prompt Fazy 4 (Admin Orders + polling, SSE stretch).
+Faza 5 (Polish + Deploy) — UX polish, Error Boundary, code splitting,
+Dockerfile produkcyjny, deploy Railway, README + customization + deployment
+docs. Poza tym podczas Fazy 5 warto adresować carry-over z review Fazy 3
+(BUG-3 desync walidacji, idempotency-key na `POST /api/public/orders`,
+`BigDecimal.setScale(2, HALF_UP)`, React ErrorBoundary, code splitting per
+route) — wszystko zbierane w QA_CHECKLIST na start Fazy 5.
