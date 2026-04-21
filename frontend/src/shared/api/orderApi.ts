@@ -96,3 +96,126 @@ export async function fetchOrderByToken(token: string): Promise<OrderTrackingDto
   const { data } = await apiClient.get<OrderTrackingDto>(`/public/orders/track/${token}`);
   return data;
 }
+
+// ---- Admin ----
+
+export interface SpringPage<T> {
+  content: T[];
+  number: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  empty: boolean;
+}
+
+export interface AdminOrderListItemDto {
+  id: number;
+  version: number;
+  orderNumber: string;
+  status: OrderStatus;
+  fulfillmentType: FulfillmentType;
+  paymentMethod: PaymentMethod;
+  customerName: string;
+  customerPhone: string;
+  total: string;
+  placedAt: string;
+  etaMinutes: number | null;
+  itemsCount: number;
+}
+
+export interface AdminOrderStatusHistoryDto {
+  status: OrderStatus;
+  changedAt: string;
+  changedBy: string | null;
+}
+
+export interface AdminOrderDto {
+  id: number;
+  version: number;
+  orderNumber: string;
+  status: OrderStatus;
+  etaMinutes: number | null;
+  fulfillmentType: FulfillmentType;
+  paymentMethod: PaymentMethod;
+  placedAt: string;
+  updatedAt: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string | null;
+  customerNotes: string | null;
+  deliveryAddress: OrderTrackingAddressDto | null;
+  items: OrderTrackingItemDto[];
+  subtotal: string;
+  total: string;
+  statusHistory: AdminOrderStatusHistoryDto[];
+}
+
+export interface AdminDashboardSummaryDto {
+  newToday: number;
+  inPreparation: number;
+  awaitingFulfillment: number;
+}
+
+export interface AdminOrdersQuery {
+  status?: OrderStatus | null;
+  fulfillmentType?: FulfillmentType | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  page?: number;
+  size?: number;
+}
+
+export interface UpdateOrderStatusPayload {
+  version: number;
+  status: OrderStatus;
+}
+
+export interface UpdateOrderEtaPayload {
+  version: number;
+  minutesFromNow: number;
+}
+
+export async function fetchAdminOrders(
+  query: AdminOrdersQuery = {}
+): Promise<SpringPage<AdminOrderListItemDto>> {
+  const params: Record<string, string | number> = {};
+  if (query.status) params.status = query.status;
+  if (query.fulfillmentType) params.fulfillmentType = query.fulfillmentType;
+  if (query.dateFrom) params.dateFrom = query.dateFrom;
+  if (query.dateTo) params.dateTo = query.dateTo;
+  if (query.page !== undefined) params.page = query.page;
+  if (query.size !== undefined) params.size = query.size;
+  const { data } = await apiClient.get<SpringPage<AdminOrderListItemDto>>("/admin/orders", {
+    params,
+  });
+  return data;
+}
+
+export async function fetchAdminOrderById(id: number): Promise<AdminOrderDto> {
+  const { data } = await apiClient.get<AdminOrderDto>(`/admin/orders/${id}`);
+  return data;
+}
+
+export async function updateOrderStatus(
+  id: number,
+  payload: UpdateOrderStatusPayload
+): Promise<AdminOrderDto> {
+  const { data } = await apiClient.patch<AdminOrderDto>(`/admin/orders/${id}/status`, payload);
+  return data;
+}
+
+export async function updateOrderEta(
+  id: number,
+  payload: UpdateOrderEtaPayload
+): Promise<AdminOrderDto> {
+  const { data } = await apiClient.patch<AdminOrderDto>(`/admin/orders/${id}/eta`, payload);
+  return data;
+}
+
+export async function fetchDashboardSummary(): Promise<AdminDashboardSummaryDto> {
+  const { data } = await apiClient.get<AdminDashboardSummaryDto>("/admin/dashboard/summary");
+  return data;
+}
