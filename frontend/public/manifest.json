@@ -1,0 +1,16 @@
+{
+  "name": "Pizza Showcase",
+  "short_name": "Pizza",
+  "description": "Zamów pizzę z dostawą lub odbiorem osobistym",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E11D48",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

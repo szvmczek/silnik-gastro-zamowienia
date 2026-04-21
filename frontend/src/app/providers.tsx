@@ -3,6 +3,7 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "sonner";
 import type { PropsWithChildren } from "react";
 import { ThemeBootstrap } from "@/app/ThemeBootstrap";
+import { SeoHead } from "@/app/SeoHead";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +19,7 @@ export function AppProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeBootstrap />
+        <SeoHead />
         {children}
         <Toaster position="top-right" />
       </BrowserRouter>
