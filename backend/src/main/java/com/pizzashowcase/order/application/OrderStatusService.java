@@ -43,14 +43,18 @@ public class OrderStatusService {
 
         order.setStatus(next);
         order.addStatusHistory(new OrderStatusHistory(next, Instant.now(), currentAdminIdentity()));
-        return adminOrderQueryService.toDto(order);
+        // Force flush so @Version bumps before we read it into the DTO.
+        // Without this, the client sees stale version=N and the next PATCH 409s.
+        Order saved = orderRepository.saveAndFlush(order);
+        return adminOrderQueryService.toDto(saved);
     }
 
     public AdminOrderDto updateEta(Long id, UpdateOrderEtaRequest request) {
         Order order = loadOrThrow(id);
         assertVersion(order, request.version());
         order.setEtaMinutes(request.minutesFromNow());
-        return adminOrderQueryService.toDto(order);
+        Order saved = orderRepository.saveAndFlush(order);
+        return adminOrderQueryService.toDto(saved);
     }
 
     private Order loadOrThrow(Long id) {

@@ -28,6 +28,10 @@ import java.util.List;
 public class AdminOrderQueryService {
 
     private static final ZoneId RESTAURANT_ZONE = ZoneId.of("Europe/Warsaw");
+    private static final Instant RANGE_MIN = Instant.EPOCH;
+    // Sentinel "far future" — PostgreSQL timestamptz supports up to 294276 AD,
+    // Instant.MAX would overflow. Year 9999 is safely above any real order.
+    private static final Instant RANGE_MAX = Instant.parse("9999-12-31T23:59:59Z");
     private static final List<OrderStatus> IN_PREPARATION_STATUSES =
             List.of(OrderStatus.CONFIRMED, OrderStatus.IN_PREPARATION);
     private static final List<OrderStatus> AWAITING_FULFILLMENT_STATUSES =
@@ -68,11 +72,11 @@ public class AdminOrderQueryService {
     }
 
     private Instant toInstantStart(LocalDate date) {
-        return date == null ? null : date.atStartOfDay(RESTAURANT_ZONE).toInstant();
+        return date == null ? RANGE_MIN : date.atStartOfDay(RESTAURANT_ZONE).toInstant();
     }
 
     private Instant toInstantEndExclusive(LocalDate date) {
-        return date == null ? null : date.plusDays(1).atStartOfDay(RESTAURANT_ZONE).toInstant();
+        return date == null ? RANGE_MAX : date.plusDays(1).atStartOfDay(RESTAURANT_ZONE).toInstant();
     }
 
     private AdminOrderListItemDto toListItem(Order order) {

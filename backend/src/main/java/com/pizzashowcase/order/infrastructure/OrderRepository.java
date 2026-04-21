@@ -23,16 +23,19 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items", "items.addons", "statusHistory"})
     Optional<Order> findWithDetailsById(Long id);
 
+    // Date range is always bound (service layer fills sentinel values when
+    // filter is not applied). Hibernate 6 + PostgreSQL cannot infer Instant
+    // type for `:param IS NULL`, so we drop the null-checks for timestamps.
+    // Enum null-checks work because $= :status provides the type on the same
+    // parameter bind.
     @Query(value = "SELECT o FROM Order o WHERE " +
                    "(:status IS NULL OR o.status = :status) AND " +
                    "(:fulfillmentType IS NULL OR o.fulfillmentType = :fulfillmentType) AND " +
-                   "(:fromInclusive IS NULL OR o.createdAt >= :fromInclusive) AND " +
-                   "(:toExclusive IS NULL OR o.createdAt < :toExclusive)",
+                   "o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive",
            countQuery = "SELECT COUNT(o) FROM Order o WHERE " +
                         "(:status IS NULL OR o.status = :status) AND " +
                         "(:fulfillmentType IS NULL OR o.fulfillmentType = :fulfillmentType) AND " +
-                        "(:fromInclusive IS NULL OR o.createdAt >= :fromInclusive) AND " +
-                        "(:toExclusive IS NULL OR o.createdAt < :toExclusive)")
+                        "o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive")
     @EntityGraph(attributePaths = "items")
     Page<Order> findAllFiltered(@Param("status") OrderStatus status,
                                 @Param("fulfillmentType") FulfillmentType fulfillmentType,
