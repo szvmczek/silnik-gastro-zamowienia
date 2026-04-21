@@ -45,7 +45,7 @@ const checkoutSchema = z
       apartmentNumber: z.string().trim().max(20, "Maks. 20 znaków").optional(),
       postalCode: z.string().trim(),
       city: z.string().trim(),
-      notes: z.string().trim().max(200, "Maks. 200 znaków").optional(),
+      notes: z.string().trim().max(255, "Maks. 255 znaków").optional(),
     }),
     customerNotes: z.string().trim().max(500, "Maks. 500 znaków").optional(),
   })

@@ -27,11 +27,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -80,10 +82,11 @@ public class CheckoutService {
             items.add(item);
             subtotal = subtotal.add(item.getLineTotal());
         }
+        subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
 
         String orderNumber = orderNumberGenerator.next();
         UUID trackingToken = UUID.randomUUID();
-        BigDecimal total = subtotal;
+        BigDecimal total = subtotal.setScale(2, RoundingMode.HALF_UP);
 
         Order order = new Order(
                 orderNumber,
@@ -163,7 +166,8 @@ public class CheckoutService {
                 .map(OrderItemAddon::getUnitPriceSnapshot)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal lineUnitTotal = unitPrice.add(addonsSum);
-        BigDecimal lineTotal = lineUnitTotal.multiply(BigDecimal.valueOf(line.quantity()));
+        BigDecimal lineTotal = lineUnitTotal.multiply(BigDecimal.valueOf(line.quantity()))
+                .setScale(2, RoundingMode.HALF_UP);
 
         OrderItem item = new OrderItem(
                 product.getId(),
@@ -289,7 +293,7 @@ public class CheckoutService {
 
     private static String normalizeEmail(String email) {
         String t = trimOrNull(email);
-        return t == null ? null : t.toLowerCase();
+        return t == null ? null : t.toLowerCase(Locale.ROOT);
     }
 
     private static String normalizeNotes(String notes) {

@@ -59,6 +59,10 @@ public class OrderStatusService {
     public AdminOrderDto updateEta(Long id, UpdateOrderEtaRequest request) {
         Order order = loadOrThrow(id);
         assertVersion(order, request.version());
+        if (order.getStatus().isTerminal()) {
+            throw ApiException.unprocessable(
+                    "ETA nie może być ustawione na zamówieniu w statusie terminalnym.");
+        }
         order.setEtaMinutes(request.minutesFromNow());
         Order saved = orderRepository.saveAndFlush(order);
         return adminOrderQueryService.toDto(saved);
