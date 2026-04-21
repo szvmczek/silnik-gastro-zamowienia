@@ -11,6 +11,7 @@ import { SettingsPage } from "@/features/admin/settings/SettingsPage";
 import { OpeningHoursPage } from "@/features/admin/settings/OpeningHoursPage";
 import { PageContentPage } from "@/features/admin/settings/PageContentPage";
 import { MenuOverviewPage } from "@/features/admin/menu/MenuOverviewPage";
+import { OrdersListPage } from "@/features/admin/orders/OrdersListPage";
 import { ProductEditPage } from "@/features/admin/menu/products/ProductEditPage";
 import { AddonGroupEditPage } from "@/features/admin/menu/addon-groups/AddonGroupEditPage";
 import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
@@ -33,6 +34,7 @@ export function AppRouter() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route path="orders" element={<OrdersListPage />} />
         <Route path="menu" element={<MenuOverviewPage />} />
         <Route path="menu/products/new" element={<ProductEditPage />} />
         <Route path="menu/products/:id" element={<ProductEditPage />} />
