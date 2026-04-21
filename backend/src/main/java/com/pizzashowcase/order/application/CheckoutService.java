@@ -11,6 +11,7 @@ import com.pizzashowcase.order.api.dto.AddressRequest;
 import com.pizzashowcase.order.api.dto.CreateOrderItemRequest;
 import com.pizzashowcase.order.api.dto.CreateOrderRequest;
 import com.pizzashowcase.order.api.dto.OrderConfirmationDto;
+import com.pizzashowcase.order.application.event.OrderCreatedEvent;
 import com.pizzashowcase.order.domain.Address;
 import com.pizzashowcase.order.domain.FulfillmentType;
 import com.pizzashowcase.order.domain.Order;
@@ -21,6 +22,7 @@ import com.pizzashowcase.order.domain.OrderStatusHistory;
 import com.pizzashowcase.order.domain.PaymentMethod;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,15 +44,18 @@ public class CheckoutService {
     private final ProductAddonGroupRepository productAddonGroupRepository;
     private final OrderRepository orderRepository;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CheckoutService(ProductRepository productRepository,
                            ProductAddonGroupRepository productAddonGroupRepository,
                            OrderRepository orderRepository,
-                           OrderNumberGenerator orderNumberGenerator) {
+                           OrderNumberGenerator orderNumberGenerator,
+                           ApplicationEventPublisher eventPublisher) {
         this.productRepository = productRepository;
         this.productAddonGroupRepository = productAddonGroupRepository;
         this.orderRepository = orderRepository;
         this.orderNumberGenerator = orderNumberGenerator;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -99,6 +104,11 @@ public class CheckoutService {
         order.addStatusHistory(new OrderStatusHistory(OrderStatus.NEW, Instant.now(), null));
 
         Order persisted = orderRepository.save(order);
+        eventPublisher.publishEvent(new OrderCreatedEvent(
+                persisted.getId(),
+                persisted.getOrderNumber(),
+                persisted.getTotal(),
+                persisted.getCreatedAt() != null ? persisted.getCreatedAt() : Instant.now()));
         return new OrderConfirmationDto(persisted.getOrderNumber(), persisted.getPublicTrackingToken(), persisted.getTotal());
     }
 

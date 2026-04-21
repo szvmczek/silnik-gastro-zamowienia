@@ -21,6 +21,9 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    // EventSource cannot send custom headers, so SSE clients pass JWT as ?token=.
+    // Allow this fallback only on the SSE endpoint to keep the surface area tiny.
+    private static final String SSE_PATH = "/api/admin/orders/stream";
 
     private final JwtService jwtService;
 
@@ -32,12 +35,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain chain) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith(BEARER_PREFIX)) {
-            String token = header.substring(BEARER_PREFIX.length()).trim();
+        String token = extractToken(request);
+        if (token != null) {
             jwtService.parse(token).ifPresent(payload -> populateContext(request, payload));
         }
         chain.doFilter(request, response);
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith(BEARER_PREFIX)) {
+            return header.substring(BEARER_PREFIX.length()).trim();
+        }
+        if (SSE_PATH.equals(request.getRequestURI())) {
+            String queryToken = request.getParameter("token");
+            if (queryToken != null && !queryToken.isBlank()) {
+                return queryToken.trim();
+            }
+        }
+        return null;
     }
 
     private void populateContext(HttpServletRequest request, JwtPayload payload) {

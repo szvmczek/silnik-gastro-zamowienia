@@ -3,11 +3,13 @@ package com.pizzashowcase.order.application;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderEtaRequest;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderStatusRequest;
+import com.pizzashowcase.order.application.event.OrderStatusChangedEvent;
 import com.pizzashowcase.order.domain.Order;
 import com.pizzashowcase.order.domain.OrderStatus;
 import com.pizzashowcase.order.domain.OrderStatusHistory;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,11 +24,14 @@ public class OrderStatusService {
 
     private final OrderRepository orderRepository;
     private final AdminOrderQueryService adminOrderQueryService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public OrderStatusService(OrderRepository orderRepository,
-                              AdminOrderQueryService adminOrderQueryService) {
+                              AdminOrderQueryService adminOrderQueryService,
+                              ApplicationEventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.adminOrderQueryService = adminOrderQueryService;
+        this.eventPublisher = eventPublisher;
     }
 
     public AdminOrderDto changeStatus(Long id, UpdateOrderStatusRequest request) {
@@ -46,6 +51,8 @@ public class OrderStatusService {
         // Force flush so @Version bumps before we read it into the DTO.
         // Without this, the client sees stale version=N and the next PATCH 409s.
         Order saved = orderRepository.saveAndFlush(order);
+        eventPublisher.publishEvent(new OrderStatusChangedEvent(
+                saved.getId(), saved.getOrderNumber(), saved.getStatus()));
         return adminOrderQueryService.toDto(saved);
     }
 
