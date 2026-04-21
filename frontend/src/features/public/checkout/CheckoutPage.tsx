@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -136,9 +136,10 @@ export function CheckoutPage() {
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
   const { isOpen: restaurantIsOpen } = useIsRestaurantOpen();
+  const orderPlacedRef = useRef(false);
 
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !orderPlacedRef.current) {
       navigate("/menu", { replace: true });
     }
   }, [items.length, navigate]);
@@ -161,6 +162,7 @@ export function CheckoutPage() {
   const mutation = useMutation({
     mutationFn: placeOrder,
     onSuccess: (data) => {
+      orderPlacedRef.current = true;
       clearCart();
       toast.success(`Zamówienie ${data.orderNumber} przyjęte`);
       navigate(`/order/confirmation/${data.orderNumber}`, {
