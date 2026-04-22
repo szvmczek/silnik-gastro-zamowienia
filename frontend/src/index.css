@@ -16,3 +16,13 @@ body {
   font-family: "Inter", system-ui, sans-serif;
   @apply bg-white text-slate-900 antialiased;
 }
+
+@layer components {
+  .kicker {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(148 163 184); /* slate-400 */
+  }
+}
