@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pizza Showcase — Panel admina (ekrany 8–18)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { primary: 'rgb(var(--color-primary) / <alpha-value>)' },
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+    }},
+  };
+</script>
+<style>
+  :root { --color-primary: 255 107 53; }
+  html, body { background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; }
+  .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="public-site/ui.jsx"></script>
+<script type="text/babel" src="admin/ui.jsx"></script>
+<script type="text/babel" src="admin/login-and-dashboard.jsx"></script>
+<script type="text/babel" src="admin/orders-list.jsx"></script>
+<script type="text/babel" src="admin/order-details.jsx"></script>
+<script type="text/babel" src="admin/menu-mgmt.jsx"></script>
+<script type="text/babel" src="admin/settings.jsx"></script>
+<script type="text/babel" data-presets="react">
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="s8-login" title="8 · Admin login" subtitle="Minimalistyczny, błąd inline, bez social / bez reset hasła (post-MVP)">
+        <DCArtboard id="login" label="Admin login" width={1280} height={820}><AdminLogin/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s10-dashboard" title="9 + 10 · Admin shell + Dashboard" subtitle="Sidebar stały, 3 KPI tile'y (bez wykresów), ostatnie zamówienia">
+        <DCArtboard id="dashboard" label="Dashboard" width={1280} height={960}><AdminDashboard/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s11-orders" title="11 · Lista zamówień" subtitle="Karty/rows z filtrami chip, kropka primary na nowym zamówieniu, polling co 10 s">
+        <DCArtboard id="orders-list" label="Orders list" width={1280} height={1080}><OrdersList/></DCArtboard>
+        <DCArtboard id="orders-empty" label="Orders list · pusty stan" width={1280} height={600}><OrdersListEmpty/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s12-order-details" title="12 · Szczegóły zamówienia" subtitle="Serce panelu · Zasada Pani Kasi: dominująca akcja z micro-helperem „następnie: ...”">
+        <DCArtboard id="order-details" label="Order details" width={1280} height={1400}><OrderDetails/></DCArtboard>
+        <DCArtboard id="set-eta" label="Modal · Ustaw ETA" width={640} height={560}><SetEtaModal/></DCArtboard>
+        <DCArtboard id="cancel-order" label="Modal · Anuluj zamówienie" width={640} height={680}><CancelOrderModal/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s13-categories" title="13 · Menu — kategorie" subtitle="Drag & drop do kolejności, toggle aktywności">
+        <DCArtboard id="categories" label="Categories" width={1280} height={600}><CategoriesList/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s14-products" title="14 · Menu — produkty" subtitle="Grid 3 kolumny, szybki toggle dostępności bez wchodzenia w edycję">
+        <DCArtboard id="products" label="Products" width={1280} height={860}><ProductsList/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s15-product-form" title="15 · Formularz produktu" subtitle="Create/Edit · warianty inline, URL + live preview zdjęcia">
+        <DCArtboard id="product-form" label="Product form" width={1280} height={1880}><ProductForm/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s16-settings-general" title="16 · Ustawienia — ogólne" subtitle="Color picker z live preview komponentów przed zapisem">
+        <DCArtboard id="settings-general" label="Settings · general" width={1280} height={1000}><SettingsGeneral/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s17-settings-hours" title="17 · Ustawienia — godziny" subtitle="7 dni, switch otwarte/zamknięte, „skopiuj godziny” na hover">
+        <DCArtboard id="settings-hours" label="Settings · hours" width={1280} height={780}><SettingsHours/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s18-settings-content" title="18 · Ustawienia — treści strony" subtitle="Edytor Hero + O nas z live preview z boku">
+        <DCArtboard id="settings-content" label="Settings · content" width={1280} height={1240}><SettingsContent/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

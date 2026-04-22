@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Pizza Showcase — Public Site (ekrany 1–7)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { primary: 'rgb(var(--color-primary) / <alpha-value>)' },
+      fontFamily: { sans: ['Inter','system-ui','sans-serif'] },
+    }},
+  };
+</script>
+<style>
+  :root { --color-primary: 255 107 53; }
+  html, body { background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; }
+  .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="public-site/ui.jsx"></script>
+<script type="text/babel" src="public-site/landing.jsx"></script>
+<script type="text/babel" src="public-site/menu-and-product.jsx"></script>
+<script type="text/babel" src="public-site/cart-and-checkout.jsx"></script>
+<script type="text/babel" src="public-site/confirmation-and-tracking.jsx"></script>
+<script type="text/babel" data-presets="react">
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="s1-landing" title="1 · Landing" subtitle="Hero editorial, teaser menu, about, kontakt + godziny">
+        <DCArtboard id="landing-desktop" label="Landing · desktop 1280" width={1280} height={2800}><LandingDesktop/></DCArtboard>
+        <DCArtboard id="landing-mobile" label="Landing · mobile 375" width={375} height={1680}><LandingMobile/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s2-menu" title="2 · Menu" subtitle="Kategorie sticky, karty produktów, stan niedostępny">
+        <DCArtboard id="menu-desktop" label="Menu · desktop 1280" width={1280} height={1900}><MenuDesktop/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s3-product" title="3 · Szczegóły produktu" subtitle="Modal (desktop) + bottom sheet (mobile). Cena aktualizuje się live.">
+        <DCArtboard id="product-desktop" label="Product modal · desktop" width={1000} height={760}><ProductModalDesktop/></DCArtboard>
+        <DCArtboard id="product-mobile" label="Product sheet · mobile" width={375} height={760}><ProductSheetMobile/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s4-cart" title="4 · Cart drawer" subtitle="Sheet side=right z prawej (desktop) · pusty stan">
+        <DCArtboard id="cart-desktop" label="Cart · desktop" width={1280} height={820}><CartDrawerDesktop/></DCArtboard>
+        <DCArtboard id="cart-empty" label="Cart · empty state" width={440} height={680}><CartDrawerEmpty/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s5-checkout" title="5 · Checkout" subtitle="2 kolumny (desktop) / single column + sticky bar (mobile)">
+        <DCArtboard id="checkout-desktop" label="Checkout · desktop" width={1280} height={1280}><CheckoutDesktop/></DCArtboard>
+        <DCArtboard id="checkout-mobile" label="Checkout · mobile" width={375} height={900}><CheckoutMobile/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s6-confirm" title="6 · Potwierdzenie zamówienia" subtitle="Card centered, numer wyróżniony, CTA do trackingu">
+        <DCArtboard id="confirmation" label="Order confirmation" width={1280} height={820}><Confirmation/></DCArtboard>
+      </DCSection>
+
+      <DCSection id="s7-tracking" title="7 · Tracking publiczny" subtitle="Timeline z pulsującym aktywnym krokiem, ETA, wskaźnik auto-refresh">
+        <DCArtboard id="tracking-desktop" label="Tracking · desktop" width={1280} height={1000}><TrackingDesktop/></DCArtboard>
+        <DCArtboard id="tracking-mobile" label="Tracking · mobile" width={375} height={960}><TrackingMobile/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

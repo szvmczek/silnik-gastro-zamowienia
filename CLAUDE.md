@@ -89,6 +89,7 @@ YAGNI.
 - Post-MVP (płatności, dostawa): docs/ROADMAP.md
 - Checklista QA do review: docs/QA_CHECKLIST.md
 - Co jest zrobione: docs/CURRENT_STATE.md
+- Design reference: docs/design/ (Claude Design handoff)
 
 ## Czego absolutnie NIE robisz
 - Nie dodajesz funkcji spoza aktualnej fazy (patrz PHASES.md).

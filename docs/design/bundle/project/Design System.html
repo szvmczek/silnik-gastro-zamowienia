@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pizza Showcase — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { primary: 'rgb(var(--color-primary) / <alpha-value>)' },
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+      },
+    },
+  };
+</script>
+<style>
+  :root { --color-primary: 255 107 53; }
+  html, body { background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; }
+  .swatch { box-shadow: inset 0 0 0 1px rgba(0,0,0,0.06); }
+  .tok-row { display: grid; grid-template-columns: 160px 1fr auto; align-items: center; gap: 16px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  /* Dotted placeholder for imagery */
+  .ph-stripes {
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgba(15,23,42,0.04) 0,
+      rgba(15,23,42,0.04) 8px,
+      rgba(15,23,42,0.08) 8px,
+      rgba(15,23,42,0.08) 16px
+    );
+  }
+  .dot-pulse::after {
+    content:''; position:absolute; inset:0; border-radius:9999px;
+    box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.45);
+    animation: dotpulse 1.8s ease-out infinite;
+  }
+  @keyframes dotpulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.45); }
+    100% { box-shadow: 0 0 0 10px rgba(var(--color-primary), 0); }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+// ─────────── Small presentational helpers ───────────
+const Section = ({ title, kicker, children }) => (
+  <div className="px-8 py-7">
+    {kicker && <div className="mono text-[11px] tracking-[0.2em] uppercase text-slate-400 mb-1.5">{kicker}</div>}
+    <h2 className="text-[22px] font-semibold text-slate-900 tracking-tight mb-5">{title}</h2>
+    {children}
+  </div>
+);
+
+const Divider = () => <div className="h-px bg-slate-200 mx-8" />;
+
+const Swatch = ({ color, name, value, onLight, big }) => (
+  <div className="flex flex-col gap-2">
+    <div
+      className={`swatch rounded-md ${big ? 'h-20' : 'h-14'}`}
+      style={{ background: color }}
+    />
+    <div className="flex items-baseline justify-between">
+      <span className="text-[13px] font-medium text-slate-800">{name}</span>
+      <span className="mono text-[11px] text-slate-400">{value}</span>
+    </div>
+    {onLight && <div className="mono text-[10px] text-slate-400 -mt-1">{onLight}</div>}
+  </div>
+);
+
+// ─────────── Artboard: Foundations (colors + type + tokens) ───────────
+const FoundationsArtboard = () => {
+  const neutrals = [
+    ['slate-50', '#f8fafc'],
+    ['slate-100', '#f1f5f9'],
+    ['slate-200', '#e2e8f0'],
+    ['slate-300', '#cbd5e1'],
+    ['slate-400', '#94a3b8'],
+    ['slate-500', '#64748b'],
+    ['slate-600', '#475569'],
+    ['slate-700', '#334155'],
+    ['slate-800', '#1e293b'],
+    ['slate-900', '#0f172a'],
+  ];
+  const brandRamp = [
+    ['primary/5',  'rgb(255 107 53 / 0.05)'],
+    ['primary/10', 'rgb(255 107 53 / 0.10)'],
+    ['primary/20', 'rgb(255 107 53 / 0.20)'],
+    ['primary/40', 'rgb(255 107 53 / 0.40)'],
+    ['primary/70', 'rgb(255 107 53 / 0.70)'],
+    ['primary',    'rgb(255 107 53)'],
+  ];
+  const status = [
+    { name: 'Success — Emerald',  bg:'#d1fae5', fg:'#047857', use:'Gotowe, Dostarczone, toasty zapisu' },
+    { name: 'Warning — Amber',    bg:'#fef3c7', fg:'#b45309', use:'W przygotowaniu, W drodze' },
+    { name: 'Info — Sky',         bg:'#e0f2fe', fg:'#0369a1', use:'Potwierdzone' },
+    { name: 'Danger — Rose',      bg:'#ffe4e6', fg:'#be123c', use:'Anulowane, błędy, destruktywne akcje' },
+    { name: 'Muted — Slate',      bg:'#f1f5f9', fg:'#475569', use:'Cykl zakończony, neutralne' },
+  ];
+
+  return (
+    <div className="bg-white w-[1200px]">
+      {/* header */}
+      <div className="px-8 py-10 border-b border-slate-200">
+        <div className="mono text-[11px] tracking-[0.2em] uppercase text-slate-400">Etap 1 · fundamenty</div>
+        <h1 className="text-[42px] leading-[1.05] font-semibold text-slate-900 tracking-tight mt-2">Pizza Showcase — design system</h1>
+        <p className="text-[15px] text-slate-500 max-w-[640px] mt-3 leading-relaxed">
+          Spójny zestaw tokenów i komponentów zgodny z repo <span className="mono text-slate-700">silnik-gastro-zamowienia</span>.
+          Font: Inter (tylko <span className="mono">font-sans</span>). Kolor marki przez <span className="mono">--color-primary</span> (RGB bez przecinków),
+          używany zawsze przez klasy <span className="mono">primary</span>. Reszta: neutrale slate + stonowany status-kolor.
+        </p>
+      </div>
+
+      {/* COLORS */}
+      <Section kicker="Colors · brand" title="Kolor marki — jedyny akcent">
+        <div className="grid grid-cols-3 gap-6 items-start">
+          <div className="col-span-1">
+            <div className="rounded-xl p-6 text-white relative overflow-hidden h-[168px] flex flex-col justify-between"
+                 style={{ background: 'rgb(var(--color-primary))' }}>
+              <div className="mono text-[11px] tracking-[0.18em] uppercase opacity-80">primary</div>
+              <div>
+                <div className="text-[28px] font-semibold leading-none">#FF6B35</div>
+                <div className="mono text-[12px] opacity-85 mt-1">rgb(255 107 53)</div>
+              </div>
+            </div>
+            <p className="text-[13px] text-slate-500 mt-3 leading-relaxed">
+              Zawsze przez <span className="mono">bg-primary / text-primary / border-primary / ring-primary</span>. W kodzie CSS var
+              — klient podmienia ją z panelu, cała strona aktualizuje akcent.
+            </p>
+          </div>
+
+          <div className="col-span-2">
+            <div className="grid grid-cols-6 gap-3">
+              {brandRamp.map(([n,c]) => <Swatch key={n} name={n} value={c.includes('/') ? c.match(/[\d.]+(?=\))/)[0] : '1.00'} color={c} />)}
+            </div>
+            <p className="text-[13px] text-slate-500 mt-4 leading-relaxed">
+              Alpha-rampka dla tintów: <span className="mono">primary/10</span> na badge'ach, <span className="mono">primary/20</span> na subtelnych tłach sekcji,
+              <span className="mono"> primary</span> tylko na CTA i elementach wyeksponowanych.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      <Section kicker="Colors · neutrals" title="Neutrale — slate (shadcn base)">
+        <div className="grid grid-cols-10 gap-2">
+          {neutrals.map(([n,c]) => (
+            <div key={n} className="flex flex-col gap-1.5">
+              <div className="swatch rounded-md h-12" style={{ background: c }} />
+              <div className="text-[11px] font-medium text-slate-700">{n}</div>
+              <div className="mono text-[10px] text-slate-400 -mt-1">{c}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 grid grid-cols-3 gap-4 text-[13px] text-slate-600 leading-relaxed">
+          <div><span className="font-semibold text-slate-900">Tło strony:</span> <span className="mono">slate-50</span> (admin) / <span className="mono">white</span> (public).</div>
+          <div><span className="font-semibold text-slate-900">Tekst główny:</span> <span className="mono">slate-900</span>. <span className="font-semibold text-slate-900">Muted:</span> <span className="mono">slate-500</span>.</div>
+          <div><span className="font-semibold text-slate-900">Obramowania:</span> <span className="mono">slate-200</span>. <span className="font-semibold text-slate-900">Divider:</span> <span className="mono">slate-100/200</span>.</div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      <Section kicker="Colors · status" title="Status → kolor (jeden mapping dla całego produktu)">
+        <div className="grid grid-cols-5 gap-3">
+          {status.map(s => (
+            <div key={s.name} className="rounded-lg border border-slate-200 p-4 bg-white">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      style={{ background: s.bg, color: s.fg }}>
+                  {s.name.split(' — ')[0]}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="swatch rounded h-6 w-6" style={{ background: s.bg }} />
+                <div className="swatch rounded h-6 w-6" style={{ background: s.fg }} />
+              </div>
+              <div className="text-[12px] text-slate-500 mt-3 leading-snug">{s.use}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-lg border border-slate-200 overflow-hidden">
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 mono text-[11px] tracking-[0.18em] uppercase text-slate-500">
+            Mapowanie stanów zamówienia
+          </div>
+          <table className="w-full text-[13px]">
+            <thead className="text-left text-slate-500">
+              <tr className="border-b border-slate-200">
+                <th className="px-4 py-2 font-medium">Stan (backend)</th>
+                <th className="px-4 py-2 font-medium">Etykieta PL</th>
+                <th className="px-4 py-2 font-medium">Badge</th>
+                <th className="px-4 py-2 font-medium">Intent</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              {[
+                ['NEW', 'Nowe', {bg:'rgb(255 107 53 / 0.10)', fg:'rgb(255 107 53)'}, 'primary · świeże, wymaga akcji'],
+                ['CONFIRMED', 'Potwierdzone', {bg:'#e0f2fe', fg:'#0369a1'}, 'info · przyjęte'],
+                ['IN_PREPARATION', 'W przygotowaniu', {bg:'#fef3c7', fg:'#b45309'}, 'warning · w toku'],
+                ['READY', 'Gotowe', {bg:'#d1fae5', fg:'#047857'}, 'success · do wydania'],
+                ['OUT_FOR_DELIVERY', 'W drodze', {bg:'#fef3c7', fg:'#b45309'}, 'warning · w toku'],
+                ['DELIVERED', 'Dostarczone', {bg:'#f1f5f9', fg:'#475569'}, 'muted · cykl zamknięty'],
+                ['CANCELED', 'Anulowane', {bg:'#ffe4e6', fg:'#be123c'}, 'danger · przerwane'],
+              ].map(([code, label, s, intent]) => (
+                <tr key={code} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-2.5 mono text-[12px] text-slate-600">{code}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-900">{label}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium" style={{ background: s.bg, color: s.fg }}>
+                      {label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-slate-500">{intent}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* TYPOGRAPHY */}
+      <Section kicker="Type · Inter" title="Typograficzna skala">
+        <div className="grid grid-cols-[1fr_auto] gap-x-12 gap-y-5 items-baseline">
+          {[
+            ['Display',   'text-[56px] leading-[1.02] font-semibold tracking-[-0.02em]', 'Nonna Maria — pizzeria z charakterem', '56 / 57 · -2% · 600'],
+            ['H1',        'text-[40px] leading-[1.08] font-semibold tracking-[-0.015em]', 'Z pieca opalanego drewnem', '40 / 43 · -1.5% · 600'],
+            ['H2',        'text-[28px] leading-[1.15] font-semibold tracking-[-0.01em]',  'Z naszego menu',          '28 / 32 · -1% · 600'],
+            ['H3',        'text-[20px] leading-[1.25] font-semibold tracking-[-0.005em]', 'Pozycje zamówienia',      '20 / 25 · -0.5% · 600'],
+            ['H4 / card', 'text-[17px] leading-[1.35] font-semibold',                     'Dane klienta',            '17 / 23 · 600'],
+            ['Body L',    'text-[16px] leading-[1.6] text-slate-600',                     'Spokojny akapit dla opisów „O nas" i treści redakcyjnych.', '16 / 26 · 400'],
+            ['Body',      'text-[14px] leading-[1.55] text-slate-700',                    'Standardowy tekst interfejsu, formularze, listy.',          '14 / 22 · 400'],
+            ['Small',     'text-[13px] leading-[1.5] text-slate-500',                     'Metadane, podpisy, opisy pól.',                              '13 / 20 · 400'],
+            ['Caption',   'mono text-[11px] tracking-[0.18em] uppercase text-slate-400',  'micro-helper · kicker · meta', '11 / 16 · +18%'],
+            ['Display №', 'text-[64px] leading-none font-semibold tracking-[-0.02em] mono', '2026‑00123', 'dla numerów zamówień — widoczne z 2m'],
+          ].map(([name, cls, sample, meta]) => (
+            <React.Fragment key={name}>
+              <div className="min-w-0">
+                <div className="mono text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">{name}</div>
+                <div className={cls + ' text-slate-900'}>{sample}</div>
+              </div>
+              <div className="mono text-[11px] text-slate-400 whitespace-nowrap">{meta}</div>
+            </React.Fragment>
+          ))}
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* SPACING / RADII / SHADOWS */}
+      <Section kicker="Tokens" title="Spacing · radii · shadows · motion">
+        <div className="grid grid-cols-4 gap-8">
+          {/* Spacing */}
+          <div>
+            <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400 mb-3">Spacing · 4px base</div>
+            <div className="space-y-2">
+              {[['2xs','4','0.5'], ['xs','8','2'], ['sm','12','3'], ['md','16','4'], ['lg','24','6'], ['xl','32','8'], ['2xl','48','12'], ['3xl','64','16']].map(([n,px,tw]) => (
+                <div key={n} className="flex items-center gap-3">
+                  <div className="w-10 text-[12px] font-medium text-slate-700">{n}</div>
+                  <div className="bg-slate-900 h-2 rounded-sm" style={{ width: `${px}px` }} />
+                  <div className="mono text-[11px] text-slate-400 ml-auto">{px}px · {tw}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Radii */}
+          <div>
+            <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400 mb-3">Radii</div>
+            <div className="space-y-3">
+              {[['sm', 4, 'inputs wewnętrzne, checkboxy'], ['md', 6, 'przyciski, inputy, chipsy'], ['lg', 8, 'karty, modale'], ['xl', 12, 'hero tiles, galeria'], ['full', 9999, 'badges, avatary']].map(([n,r,use]) => (
+                <div key={n} className="flex items-center gap-3">
+                  <div className="h-10 w-14 bg-slate-100 border border-slate-200" style={{ borderRadius: `${r}px` }} />
+                  <div>
+                    <div className="text-[12px] font-medium text-slate-700">{n} <span className="mono text-[10px] text-slate-400 ml-1">{r === 9999 ? '9999' : r+'px'}</span></div>
+                    <div className="text-[11px] text-slate-500">{use}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Shadows */}
+          <div>
+            <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400 mb-3">Shadows</div>
+            <div className="space-y-4">
+              {[
+                ['xs','0 1px 2px rgba(15,23,42,0.04)',              'karty statyczne'],
+                ['sm','0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.05)', 'karty list'],
+                ['md','0 4px 12px -2px rgba(15,23,42,0.08)',        'hover lift'],
+                ['lg','0 12px 28px -6px rgba(15,23,42,0.12)',       'modal / sheet'],
+                ['focus','0 0 0 3px rgb(255 107 53 / 0.35)',        'ring-primary · focus'],
+              ].map(([n,bs,use]) => (
+                <div key={n} className="flex items-center gap-3">
+                  <div className="h-12 w-16 bg-white rounded-md border border-slate-100" style={{ boxShadow: bs }} />
+                  <div>
+                    <div className="text-[12px] font-medium text-slate-700">{n}</div>
+                    <div className="text-[11px] text-slate-500">{use}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Motion */}
+          <div>
+            <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400 mb-3">Motion</div>
+            <div className="space-y-3 text-[12px] text-slate-700">
+              <div><div className="font-semibold text-slate-900">fast · 120ms</div><div className="text-slate-500">hover fill, ring, color swap</div></div>
+              <div><div className="font-semibold text-slate-900">base · 180ms</div><div className="text-slate-500">button press, toggle, chip</div></div>
+              <div><div className="font-semibold text-slate-900">slow · 260ms</div><div className="text-slate-500">modal, sheet, drawer</div></div>
+              <div><div className="font-semibold text-slate-900">stagger · 40ms</div><div className="text-slate-500">listy przy wejściu</div></div>
+              <div className="pt-2 border-t border-slate-100">
+                <div className="mono text-[10px] text-slate-400 mb-1">EASING</div>
+                <div className="mono text-[11px] text-slate-600">cubic-bezier(0.2, 0.7, 0.3, 1)</div>
+                <div className="text-slate-500 mt-1">z wyczuciem, bez bounce'a</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* GRID / BREAKPOINTS */}
+      <Section kicker="Layout" title="Breakpointy · grid · container">
+        <div className="grid grid-cols-4 gap-3 text-[12px]">
+          {[
+            ['mobile', '375px', '1 kol · 16px gutter', '#0f172a'],
+            ['tablet', '≥ 768px', '8 kol · 24px gutter', '#334155'],
+            ['desktop', '≥ 1024px', '12 kol · 24px gutter', '#64748b'],
+            ['wide',   '≥ 1280px', '12 kol · max 1200px', '#94a3b8'],
+          ].map(([n,w,c,bg]) => (
+            <div key={n} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex items-baseline justify-between mb-3">
+                <div className="font-semibold text-slate-900">{n}</div>
+                <div className="mono text-[11px] text-slate-400">{w}</div>
+              </div>
+              <div className="h-12 rounded flex gap-0.5 p-0.5 ph-stripes">
+                {Array.from({length: n==='mobile'?1:n==='tablet'?8:12}).map((_,i)=>(
+                  <div key={i} className="flex-1 rounded-sm" style={{ background: 'rgba(255,107,53,0.15)', outline: '1px solid rgba(255,107,53,0.35)' }} />
+                ))}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-2.5">{c}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+    </div>
+  );
+};
+
+// ─────────── Artboard: Components ───────────
+const Btn = ({ variant='primary', size='md', children, className='' }) => {
+  const v = {
+    primary: 'bg-primary text-white hover:brightness-95 active:brightness-90',
+    secondary: 'bg-slate-900 text-white hover:bg-slate-800',
+    outline: 'bg-white text-slate-800 border border-slate-300 hover:bg-slate-50',
+    ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
+    danger: 'bg-red-600 text-white hover:bg-red-700',
+    dangerOutline: 'bg-white text-red-600 border border-red-200 hover:bg-red-50',
+  }[variant];
+  const s = { sm: 'h-8 px-3 text-sm', md: 'h-10 px-4 text-sm', lg: 'h-12 px-6 text-base' }[size];
+  return (
+    <button className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-all ${v} ${s} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const Badge = ({ variant='default', children }) => {
+  const v = {
+    default: 'bg-slate-100 text-slate-700',
+    primary: 'bg-primary/10 text-primary',
+    info: 'bg-sky-100 text-sky-700',
+    success: 'bg-emerald-100 text-emerald-700',
+    warning: 'bg-amber-100 text-amber-700',
+    danger: 'bg-rose-100 text-rose-700',
+    muted: 'bg-slate-100 text-slate-500',
+  }[variant];
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${v}`}>{children}</span>;
+};
+
+const ComponentsArtboard = () => {
+  return (
+    <div className="bg-white w-[1200px]">
+      <div className="px-8 py-10 border-b border-slate-200">
+        <div className="mono text-[11px] tracking-[0.2em] uppercase text-slate-400">Etap 1 · komponenty</div>
+        <h1 className="text-[36px] leading-[1.08] font-semibold text-slate-900 tracking-tight mt-2">Komponenty bazowe</h1>
+        <p className="text-[14px] text-slate-500 max-w-[640px] mt-2 leading-relaxed">
+          Przyciski, badge'e, inputy, karty, stany pustych list, skeleton loading, toasty. Wszystko oparte o klasy z <span className="mono">shared/components/ui</span>.
+        </p>
+      </div>
+
+      {/* BUTTONS */}
+      <Section kicker="Buttons" title="Przyciski · warianty i rozmiary">
+        <div className="grid grid-cols-[200px_1fr] gap-y-5 gap-x-8 items-center">
+          {[
+            ['Primary', 'primary', 'Zamów online'],
+            ['Secondary (dark)', 'secondary', 'Zaloguj się'],
+            ['Outline', 'outline', 'Zobacz całe menu'],
+            ['Ghost', 'ghost', 'Anuluj'],
+            ['Danger', 'danger', 'Anuluj zamówienie'],
+            ['Danger outline', 'dangerOutline', 'Usuń produkt'],
+          ].map(([label, v, txt]) => (
+            <React.Fragment key={label}>
+              <div>
+                <div className="text-[13px] font-medium text-slate-900">{label}</div>
+                <div className="mono text-[11px] text-slate-400 mt-0.5">variant="{v}"</div>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Btn variant={v} size="sm">{txt}</Btn>
+                <Btn variant={v} size="md">{txt} →</Btn>
+                <Btn variant={v} size="lg">{txt} →</Btn>
+                <Btn variant={v} size="md" className="opacity-60 pointer-events-none">disabled</Btn>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+
+        <div className="mt-6 rounded-lg bg-slate-50 border border-slate-200 p-4 flex items-start gap-3">
+          <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[12px] font-bold flex-shrink-0 mt-0.5">i</div>
+          <div className="text-[13px] text-slate-600 leading-relaxed">
+            <span className="font-semibold text-slate-900">Zasada primary:</span> jeden dominujący primary button na ekran.
+            Wielokrotne primary na tym samym ekranie są błędem — drugi wybór zawsze jako outline/ghost.
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* BADGES */}
+      <Section kicker="Badges" title="Badge'e — warianty">
+        <div className="flex flex-wrap items-center gap-3">
+          {['default','primary','info','success','warning','danger','muted'].map(v => (
+            <Badge key={v} variant={v}>{v}</Badge>
+          ))}
+        </div>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <Badge variant="primary">Nowe</Badge>
+          <Badge variant="info">Potwierdzone</Badge>
+          <Badge variant="warning">W przygotowaniu</Badge>
+          <Badge variant="success">Gotowe</Badge>
+          <Badge variant="warning">W drodze</Badge>
+          <Badge variant="muted">Dostarczone</Badge>
+          <Badge variant="danger">Anulowane</Badge>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* INPUTS */}
+      <Section kicker="Forms" title="Inputy · stany">
+        <div className="grid grid-cols-2 gap-x-10 gap-y-6 max-w-[860px]">
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Imię</label>
+            <input className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="np. Kasia" defaultValue="Anna" />
+            <div className="mono text-[11px] text-slate-400 mt-1">idle</div>
+          </div>
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Telefon</label>
+            <input className="flex h-10 w-full rounded-md border border-primary bg-white px-3 py-2 text-sm placeholder:text-slate-400 outline-none ring-2 ring-primary/40" defaultValue="+48 600 " />
+            <div className="mono text-[11px] text-slate-400 mt-1">focused</div>
+          </div>
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Email <span className="text-rose-600">*</span></label>
+            <input className="flex h-10 w-full rounded-md border border-rose-300 bg-white px-3 py-2 text-sm focus:outline-none" defaultValue="anna@" />
+            <div className="flex items-center gap-1.5 mt-1 text-[12px] text-rose-600">
+              <span className="inline-block w-3.5 h-3.5 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-bold">!</span>
+              Wpisz poprawny adres email
+            </div>
+          </div>
+          <div>
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Ulica i numer</label>
+            <input className="flex h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400" defaultValue="—" disabled />
+            <div className="mono text-[11px] text-slate-400 mt-1">disabled</div>
+          </div>
+
+          <div className="col-span-2">
+            <label className="block text-[13px] font-medium text-slate-700 mb-1.5">Uwagi do zamówienia</label>
+            <textarea rows={3} className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="np. bez cebuli, proszę zadzwonić przy bramie" />
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* CARDS / TILES */}
+      <Section kicker="Cards" title="Karty — wzorce powtarzalne">
+        <div className="grid grid-cols-3 gap-5">
+          {/* KPI tile */}
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer">
+            <div className="flex items-center gap-2 text-slate-500 text-[13px]">
+              <span className="w-4 h-4 rounded bg-primary/10 flex items-center justify-center">
+                <span className="block w-2 h-2 rounded-full bg-primary" />
+              </span>
+              Nowe dzisiaj
+            </div>
+            <div className="mt-3 text-[44px] font-semibold leading-none text-slate-900 tracking-tight mono">12</div>
+            <div className="mt-3 text-[12px] text-emerald-700 font-medium">+3 vs wczoraj</div>
+          </div>
+
+          {/* Product card */}
+          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5">
+            <div className="aspect-[4/3] ph-stripes flex items-center justify-center">
+              <div className="mono text-[11px] text-slate-400">product shot · 4:3</div>
+            </div>
+            <div className="p-4">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="font-semibold text-slate-900">Margherita DOP</div>
+                <div className="font-semibold text-slate-900 whitespace-nowrap">od 39 zł</div>
+              </div>
+              <p className="text-[13px] text-slate-500 mt-1 leading-snug">Passata z San Marzano, mozzarella fior di latte, świeża bazylia.</p>
+            </div>
+          </div>
+
+          {/* Order list row as card */}
+          <div className="rounded-lg border border-slate-200 bg-white shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <div className="mono text-[20px] font-semibold text-slate-900">2026‑00123</div>
+              <Badge variant="warning">W przygotowaniu</Badge>
+            </div>
+            <div className="mt-2 text-[13px] text-slate-500">12 min temu · Anna Kowalska · 3 pozycje</div>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-[13px] text-slate-500">Dostawa · ul. Marszałkowska 12</div>
+              <div className="font-semibold text-slate-900 mono">127 zł</div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* TOGGLES / RADIO / CHECKBOX */}
+      <Section kicker="Controls" title="Toggle · radio · checkbox · select tile">
+        <div className="grid grid-cols-2 gap-8">
+          {/* Fulfilment tiles */}
+          <div>
+            <div className="mono text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-3">Typ realizacji — radio tiles</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border-2 border-primary bg-primary/5 p-4 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-slate-900">Dostawa</div>
+                  <div className="w-4 h-4 rounded-full border-2 border-primary flex items-center justify-center">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                  </div>
+                </div>
+                <div className="text-[12px] text-slate-500 mt-1">Dowieziemy pod drzwi</div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-4 cursor-pointer hover:border-slate-300">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-slate-900">Odbiór osobisty</div>
+                  <div className="w-4 h-4 rounded-full border-2 border-slate-300" />
+                </div>
+                <div className="text-[12px] text-slate-500 mt-1">~25 min od złożenia</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Switch + checkbox */}
+          <div>
+            <div className="mono text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-3">Switch i checkbox</div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 p-3">
+                <div>
+                  <div className="text-[14px] font-medium text-slate-900">Aktywny w menu</div>
+                  <div className="text-[12px] text-slate-500">Widoczny dla klientów</div>
+                </div>
+                <div className="w-10 h-6 rounded-full bg-primary relative">
+                  <div className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-white shadow" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-slate-200 p-3">
+                <div>
+                  <div className="text-[14px] font-medium text-slate-900">Chwilowo niedostępny</div>
+                  <div className="text-[12px] text-slate-500">Karta wyszarzona na menu</div>
+                </div>
+                <div className="w-10 h-6 rounded-full bg-slate-200 relative">
+                  <div className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow" />
+                </div>
+              </div>
+              <label className="flex items-start gap-2.5 text-[13px] text-slate-700 cursor-pointer">
+                <span className="w-4 h-4 rounded border border-primary bg-primary text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span>Akceptuję <span className="underline decoration-slate-300">regulamin</span> i politykę prywatności</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* EMPTY / LOADING / TOAST */}
+      <Section kicker="States" title="Stany: pusty · loading · toast">
+        <div className="grid grid-cols-3 gap-5">
+          {/* Empty */}
+          <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+            <div className="mx-auto w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-3">
+              <div className="w-4 h-4 rounded-sm border border-slate-400" />
+            </div>
+            <div className="text-[14px] font-semibold text-slate-800">Brak zamówień</div>
+            <div className="text-[12px] text-slate-500 mt-1 leading-snug">
+              Gdy klient złoży zamówienie przez stronę,<br/>pojawi się tutaj.
+            </div>
+          </div>
+
+          {/* Skeleton */}
+          <div className="rounded-lg border border-slate-200 bg-white p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-5 w-28 rounded bg-slate-100 animate-pulse" />
+              <div className="h-5 w-20 rounded-full bg-slate-100 animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-3 w-full rounded bg-slate-100 animate-pulse" />
+              <div className="h-3 w-5/6 rounded bg-slate-100 animate-pulse" />
+              <div className="h-3 w-2/3 rounded bg-slate-100 animate-pulse" />
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+              <div className="h-5 w-16 rounded bg-slate-100 animate-pulse" />
+            </div>
+          </div>
+
+          {/* Toast */}
+          <div className="relative">
+            <div className="rounded-lg bg-slate-900 text-white p-4 shadow-lg flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-emerald-400/90 text-slate-900 flex items-center justify-center text-[12px] font-bold flex-shrink-0 mt-0.5">✓</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-semibold">Zapisano zmiany</div>
+                <div className="text-[12px] text-slate-300 mt-0.5">Kolor marki zaktualizowany.</div>
+              </div>
+              <button className="text-slate-400 hover:text-white text-[18px] leading-none">×</button>
+            </div>
+            <div className="mono text-[10px] tracking-[0.18em] uppercase text-slate-400 mt-2">toast · sonner</div>
+          </div>
+        </div>
+      </Section>
+
+      <Divider />
+
+      {/* PANI KASIA — primary CTA anatomy */}
+      <Section kicker="Zasada pani kasi" title="Anatomia primary CTA w szczegółach zamówienia">
+        <div className="grid grid-cols-[1fr_1fr] gap-6">
+          <div className="rounded-lg border border-slate-200 bg-white p-6">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400">Zamówienie</div>
+                <div className="mono text-[40px] font-semibold text-slate-900 leading-none mt-1">2026‑00123</div>
+                <div className="text-[13px] text-slate-500 mt-2">Złożone 12 min temu · Dostawa</div>
+              </div>
+              <Badge variant="info">Potwierdzone</Badge>
+            </div>
+
+            <button className="w-full h-14 rounded-md bg-primary text-white text-[17px] font-semibold flex items-center justify-center gap-2 hover:brightness-95 shadow-sm">
+              Rozpocznij przygotowanie →
+            </button>
+            <div className="text-[12px] text-slate-500 mt-2.5 text-center leading-relaxed">
+              Po tym kroku status zmieni się na: <span className="font-semibold text-slate-900">W przygotowaniu</span>.<br/>
+              Następnie będzie: Gotowe do odbioru.
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button className="h-10 px-4 rounded-md border border-slate-300 bg-white text-[14px] font-medium text-slate-800 hover:bg-slate-50 inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-500" /> Ustaw ETA
+              </button>
+              <button className="h-10 px-4 rounded-md border border-rose-200 bg-white text-[14px] font-medium text-rose-600 hover:bg-rose-50 inline-flex items-center gap-2 ml-auto">
+                Anuluj zamówienie
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-[13px] text-slate-600 leading-relaxed">
+            <div>
+              <div className="font-semibold text-slate-900 text-[14px] mb-1">1 · Numer zamówienia duży</div>
+              Widoczny z 2 metrów. <span className="mono text-[12px]">mono · 40px · 600</span>. Pani Kasia woła numer przez salę bez pochylania się nad ekranem.
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900 text-[14px] mb-1">2 · Primary CTA = konkretna czynność</div>
+              Nie <span className="mono">„Zmień status"</span>. Nie dropdown. Przycisk który mówi dokładnie co się stanie: <span className="font-semibold">„Rozpocznij przygotowanie →"</span>.
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900 text-[14px] mb-1">3 · Micro-helper pod CTA</div>
+              Pokazuje trzy kroki w przód. Rozwiązuje problem „nie wiem co będzie po tym kroku". Dyskretny, <span className="mono">text-[12px] text-slate-500</span>.
+            </div>
+            <div>
+              <div className="font-semibold text-slate-900 text-[14px] mb-1">4 · Destruktywne = outline, nie solid</div>
+              Anulowanie jest wyraźnie dostępne ale wizualnie drugorzędne. Zawsze przez modal z potwierdzeniem, powodem i checkboxem.
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      <div className="h-8" />
+    </div>
+  );
+};
+
+// ─────────── Tracking / UX accents preview ───────────
+const TrackingArtboard = () => {
+  const steps = [
+    { label: 'Przyjęte', done: true },
+    { label: 'Potwierdzone', done: true },
+    { label: 'W przygotowaniu', done: false, active: true },
+    { label: 'Gotowe', done: false },
+    { label: 'W drodze', done: false },
+    { label: 'Dostarczone', done: false },
+  ];
+  return (
+    <div className="bg-white w-[1000px]">
+      <div className="px-8 py-10 border-b border-slate-200">
+        <div className="mono text-[11px] tracking-[0.2em] uppercase text-slate-400">Wzorzec UX · tracking</div>
+        <h1 className="text-[32px] leading-[1.08] font-semibold text-slate-900 tracking-tight mt-2">Timeline statusów — publiczny tracking</h1>
+        <p className="text-[14px] text-slate-500 mt-2">Klient musi zapamiętać ten ekran. Jeden motyw: spokojnie pulsujący primary na aktywnym kroku, pozostałe emerald + slate.</p>
+      </div>
+
+      <div className="px-8 py-10">
+        <div className="flex items-start justify-between relative">
+          <div className="absolute top-4 left-8 right-8 h-px bg-slate-200" />
+          <div className="absolute top-4 left-8 h-px bg-emerald-500" style={{ width: 'calc((100% - 64px) * 0.30)' }} />
+          {steps.map((s, i) => (
+            <div key={s.label} className="relative flex flex-col items-center w-[140px]">
+              <div className="relative">
+                {s.active && <div className="absolute inset-0 rounded-full dot-pulse" style={{ '--color-primary': '255 107 53' }} />}
+                <div className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-bold ${
+                  s.done ? 'bg-emerald-500 text-white' :
+                  s.active ? 'bg-primary text-white' :
+                  'bg-white border border-slate-200 text-slate-400'
+                }`}>
+                  {s.done ? '✓' : (s.active ? '•' : i+1)}
+                </div>
+              </div>
+              <div className={`text-[12px] mt-3 text-center ${s.active ? 'font-semibold text-slate-900' : s.done ? 'text-slate-600' : 'text-slate-400'}`}>
+                {s.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 grid grid-cols-2 gap-5">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-6">
+            <div className="mono text-[11px] tracking-[0.18em] uppercase text-slate-400">Przewidywany czas</div>
+            <div className="mt-1 flex items-baseline gap-3">
+              <div className="mono text-[44px] font-semibold text-slate-900 leading-none tracking-tight">18:45</div>
+              <div className="text-[13px] text-slate-500">za ~17 minut</div>
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-6 flex items-center justify-between">
+            <div>
+              <div className="text-[14px] font-semibold text-slate-900">Masz pytanie?</div>
+              <div className="text-[13px] text-slate-500 mt-0.5">Zadzwoń do restauracji</div>
+            </div>
+            <Btn variant="outline">+48 22 123 45 67</Btn>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────── Mount on the design canvas ───────────
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="foundations" title="Fundamenty" subtitle="Tokens, typografia, siatka">
+        <DCArtboard id="foundations-main" label="Foundations · colors, type, spacing, motion" width={1200} height={2680}>
+          <FoundationsArtboard />
+        </DCArtboard>
+      </DCSection>
+      <DCSection id="components" title="Komponenty" subtitle="Buttons, badges, inputs, cards, states">
+        <DCArtboard id="components-main" label="Components · base library" width={1200} height={2100}>
+          <ComponentsArtboard />
+        </DCArtboard>
+      </DCSection>
+      <DCSection id="patterns" title="Wzorce UX" subtitle="Accenty specyficzne dla produktu">
+        <DCArtboard id="tracking" label="Tracking timeline — klient" width={1000} height={520}>
+          <TrackingArtboard />
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
