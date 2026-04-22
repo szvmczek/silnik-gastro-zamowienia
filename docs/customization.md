@@ -45,7 +45,7 @@ edytuj pliki migracji Flyway przed pierwszym startem:
 
 ### `backend/src/main/resources/db/migration/V100__seed_demo.sql`
 Wstawia pojedynczy rekord `RestaurantSettings` (marka "Pizza Demo",
-adres warszawski, telefon, email, primary color `#E11D48`). Podmien:
+adres warszawski, telefon, email, primary color `#FF6B35`). Podmien:
 - `name`, `tagline`, `primary_color`, `logo_url`
 - `address_street`, `address_city`, `address_postal_code`
 - `phone`, `email`

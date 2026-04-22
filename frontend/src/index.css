@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: 225 29 72; /* #E11D48 — nadpisywane przez ThemeBootstrap po fetch /public/settings */
+  --color-primary: 255 107 53; /* #FF6B35 — nadpisywane przez ThemeBootstrap po fetch /public/settings */
 }
 
 html, body, #root {
