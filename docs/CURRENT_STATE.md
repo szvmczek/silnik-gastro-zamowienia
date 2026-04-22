@@ -5,6 +5,60 @@ Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 ## Faza aktualnie w toku
 Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
 
+## Redesign progress (post-MVP, docs/design/MIGRATION_PLAN.md)
+
+- [x] Grupa 1: Fundamenty (2026-04-22, branch `design/g1-foundations`)
+  - **Primary color swap `#E11D48` → `#FF6B35`** (Decyzja #1): V100
+    seed, `index.css` fallback, `index.html` theme-color, `manifest.json`
+    theme_color, `docs/customization.md` przykład. Flyway checksum
+    dla V100 zmienia się — istniejące DB wymagają `flyway repair` lub
+    clean recreate.
+  - **Tailwind design tokens** (`tailwind.config.ts`): `fontFamily.mono`,
+    `transitionTimingFunction.smooth`, `transitionDuration.{fast,base,slow}`,
+    `keyframes.dotpulse`, `animation.dotpulse`. Inter weight 800
+    dodany do Google Fonts URL (wymagany przez Display `text-[56px]`).
+  - **Kicker** jako utility `.kicker` w `@layer components` (Decyzja #7 —
+    nie komponent).
+  - **Button**: nowe warianty `outline`, `dangerOutline`; nowy size
+    `xl` (`h-16 px-7 text-[17px] font-semibold` — 64px pod flagship
+    CTA ekran 12). Istniejące warianty/rozmiary bez zmian (addition-only).
+  - **Input/Textarea**: focus ring alpha `/40`, `focus:border-primary`,
+    opcjonalny prop `error?: boolean` (border-rose-300 + aria-invalid).
+  - **Label**: `text-sm` → `text-[13px] font-medium mb-1.5`
+    (components.md §Label).
+  - **Dialog/Sheet**: overlay `bg-slate-900/60 backdrop-blur` →
+    `bg-slate-900/40`, content `shadow-xl` → `shadow-lg`; Sheet
+    side=bottom dostał `rounded-t-xl` (mobile bottom sheet).
+  - **Select/Checkbox/Switch/RadioGroup/Tabs**: focus ring alpha
+    `/40` (spójność); Table audit-passed bez zmian.
+  - **Nowe primitives**: `Skeleton` (bazowy klocek `animate-pulse
+    rounded bg-slate-100`), `EmptyState` (kontener `border-dashed
+    slate-300 bg-slate-50 p-8` z ikona/title/description/action).
+    Niezużywane jeszcze — konsumenci w G4/G5/G7 podepną się sami.
+  - **Zero zmian** w API, encjach, DTO, serwisach, routingu, query
+    keys, mutation keys, Zustand, Zod, hookach TanStack, logice
+    biznesowej, interceptorach. `ThemeBootstrap` / `themeLoader` —
+    format CSS var `R G B` zachowany.
+  - **Smoke automatyczny**: `npm run build` zielone (tsc + vite,
+    1.99s, 722 kB bundle — bez regresji bundle size'u vs baseline
+    690 kB). Grep audit: `#E11D48`/`225 29 72` zostały tylko w
+    historii (CURRENT_STATE linie 28, 478), w tekście planu
+    (MIGRATION_PLAN linie 267, 309) i w `SettingsPage.tsx:93` RHF
+    default fallback (ms-flicker przed fetch; scope G9, nie G1).
+  - **Smoke manualny do zrobienia przez usera**: `./gradlew build`
+    (wymaga clean DB pod V100 re-run albo akceptacja że istniejące
+    DB używają wartości z rekordu), audit 6 ekranów
+    (Login/Landing/Menu/CartDrawer/Checkout/OrderDetail), DoD Faz 1-5
+    smoke z PHASES.md.
+- [ ] Grupa 6: Admin shell + Login + Dashboard (następna sesja)
+- [ ] Grupa 2 + 3: Public shell + Landing
+- [ ] Grupa 4: Menu + Modal + Cart
+- [ ] Grupa 5: Checkout + Confirmation + Tracking
+- [ ] Grupa 7: Admin Orders (flagship, screenshoty before/after)
+- [ ] Grupa 8: Admin Menu CRUD
+- [ ] Grupa 9: Admin Settings
+- [ ] Grupa 10: Polish przekrojowy
+
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
   - Pliki konstytucyjne: /CLAUDE.md, /docs/*.md
