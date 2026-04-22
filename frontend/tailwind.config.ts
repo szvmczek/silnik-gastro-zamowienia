@@ -9,6 +9,24 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+      transitionTimingFunction: {
+        smooth: "cubic-bezier(0.2, 0.7, 0.3, 1)",
+      },
+      transitionDuration: {
+        fast: "120ms",
+        base: "180ms",
+        slow: "260ms",
+      },
+      keyframes: {
+        dotpulse: {
+          "0%": { boxShadow: "0 0 0 0 rgb(var(--color-primary) / 0.45)" },
+          "100%": { boxShadow: "0 0 0 10px rgb(var(--color-primary) / 0)" },
+        },
+      },
+      animation: {
+        dotpulse: "dotpulse 1.8s ease-out infinite",
       },
     },
   },
