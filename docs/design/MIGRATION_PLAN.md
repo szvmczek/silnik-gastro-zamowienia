@@ -272,7 +272,9 @@ zgodne**. Zero ingerencji.
 
 ### shadcn `components.json`
 
-Nie istnieje w repo (**Decyzja #6**). Pozostaje bez zmian.
+components.json usunięty w G1 verify (commit `ed2ae2d`) — był szczątkiem
+Fazy 0 bootstrap z błędnymi aliases, shadcn CLI nie jest w użyciu
+(**Decyzja #6** pre-G1).
 
 ## 3. shadcn/ui — rekonfiguracja
 

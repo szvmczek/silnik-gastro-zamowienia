@@ -8,7 +8,7 @@ INSERT INTO restaurant_settings (
     1,
     'Pizza Demo',
     'Autentyczna włoska pizza prosto z pieca',
-    '#E11D48',
+    '#FF6B35',
     '+48 600 100 200',
     'kontakt@pizza-demo.local',
     'ul. Smakowita 10',
