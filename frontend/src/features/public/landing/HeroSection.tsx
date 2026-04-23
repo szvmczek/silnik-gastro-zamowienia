@@ -62,7 +62,7 @@ export function HeroSection({ hero, settings }: Props) {
               <img
                 src={imageUrl}
                 alt={title}
-                className="aspect-[4/5] w-full rounded-2xl object-cover shadow-sm md:aspect-[5/6]"
+                className="aspect-[16/10] w-full rounded-2xl object-cover shadow-sm md:aspect-[4/5]"
                 loading="eager"
               />
             </div>
