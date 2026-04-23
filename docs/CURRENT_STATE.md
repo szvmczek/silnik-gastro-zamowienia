@@ -50,7 +50,73 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
     DB używają wartości z rekordu), audit 6 ekranów
     (Login/Landing/Menu/CartDrawer/Checkout/OrderDetail), DoD Faz 1-5
     smoke z PHASES.md.
-- [ ] Grupa 6: Admin shell + Login + Dashboard (następna sesja)
+- [x] Grupa 6: Admin shell + Login + Dashboard (2026-04-23, branch
+  `design/g6-admin-shell`)
+  - **AdminLayout rebuild** (commit `dbc8a8b`): split shell into
+    `AdminLayout` (orchestrator + single `useAdminOrderFeed` mount
+    point) + new `AdminSidebar.tsx` + new `AdminTopbar.tsx`. Desktop:
+    fixed `w-60` sidebar on `md:+` with brand section (kicker "Panel"
+    + admin displayName), NavLink list (active `bg-primary/10
+    text-primary font-medium`, idle `text-slate-600 hover:bg-slate-100`,
+    `h-10 px-3 rounded-md`), footer with user-initials tile. Mobile
+    (`<md`): sidebar moved to radix `Sheet side="left" w-60`, triggered
+    by hamburger in topbar; `onNavClick` auto-closes. Topbar
+    `h-[72px] px-4 md:px-8`: restaurant name from `usePublicSettings`
+    as title + localized PL weekday/date as subtitle,
+    `SoundToggle` + `Wyloguj` in right slot. `<main>` wrapper gains
+    `p-4 md:p-8` so feature pages render with consistent padding
+    (previously depended on AdminLayout's `md:gap-6 md:px-6 md:py-6`
+    container). `SoundToggle` restyled to icon-only h-9 w-9 rounded-md
+    button spec matching the topbar — logic untouched.
+  - **LoginPage rebuild** (commit `62a8238`): 420px centered column,
+    mono kicker "Panel administracyjny" + restaurant name above the
+    card (from `usePublicSettings`, public endpoint — no auth needed
+    pre-login), card `rounded-2xl border bg-white p-8 shadow-sm`,
+    H1 `text-[22px]`, inputs with local `className="h-11"` override on
+    the G1 `Input` primitive (see **TODO G9** in
+    `docs/design/MIGRATION_PLAN.md §Grupa 9` for the threshold at which
+    we add a `size` prop to Input instead), primary CTA `variant=
+    "primary" size="xl" w-full` (64px G1 button), "← Wróć na stronę"
+    back-link to `/`. Stopped using `Card*` subcomponents because the
+    spec diverges on radius (`rounded-2xl`) and header semantics. All
+    behavior kept: auto-redirect when already authenticated, mutation
+    success/error toasts with `extractProblem`, RHF+Zod schema.
+  - **DashboardPage + KpiTile** (commit `2affb28`): H1 scaled to
+    `text-[28px] font-semibold tracking-tight`, `space-y-8`, new
+    "Dziś" kicker (shared `.kicker` utility from G1) introduces the
+    KPI grid, grid gap bumped to `gap-5`. KpiTile: `rounded-lg border
+    bg-white shadow-sm p-6 hover:shadow-md` with highlight variant
+    (`border-primary/30 bg-primary/[0.03]`) applied only for
+    `accent="primary"` (Nowe dziś); icon square `w-6 h-6 rounded-md
+    bg-{accent}/10` wrapping inner 2×2 dot; value `font-mono
+    text-[44px] font-semibold leading-none tracking-tight
+    text-slate-900` (was `text-4xl tabular-nums`); ChevronRight click
+    affordance top-right; focus ring moved to outer `Link` for full
+    rounded-lg focus paint. Bundle "ostatnie zamówienia" table
+    intentionally NOT added — G6 stops at 3 KPI tiles; orders table
+    styling lives in G7.
+  - **Zero zmian**: `useAdminOrderFeed` hook, `authStore`,
+    `ProtectedRoute`, `router.tsx`, query keys (`["admin","dashboard",
+    "summary"]`, `["admin","orders",*]`, `["public","settings"]`),
+    mutation keys, Zustand shape, Zod schemas, Bean Validation, DTO
+    shape, endpointy backend (zero linii Java dotknięte),
+    SSE stream auth / query param handling, `soundPrefs` logika.
+    `Input`/`Button`/`Card`/`Sheet`/`Label` shared primitives **nie
+    modyfikowane** (używane, addition-only via className).
+  - **SSE mount stability**: `useAdminOrderFeed()` invoked at the
+    same top-level position in `AdminLayout` as before (line 47 vs
+    previous line 22 — same logical "before return JSX" slot). The
+    hook's `useEffect([queryClient])` dep is stable because providers
+    were untouched. Sheet portal, sidebar state, and mobile drawer
+    state are local to AdminLayout and do not re-mount the hook
+    consumer. **Must-verify manualnie (see smoke §SSE stability).**
+  - **Smoke automatyczny**: `npm run build` zielone (tsc + vite, 2.05s,
+    725.93 kB bundle — +3 kB vs G1 baseline 722 kB: `Menu` +
+    `ChevronRight` lucide icons + new layout components, acceptable).
+    `./gradlew build` zielone (backend unchanged, sanity ran).
+  - **Smoke manualny do zrobienia przez usera** — patrz sekcja raportu
+    "G6 acceptance" oraz "Regresja Faz 1-5" poniżej.
+
 - [ ] Grupa 2 + 3: Public shell + Landing
 - [ ] Grupa 4: Menu + Modal + Cart
 - [ ] Grupa 5: Checkout + Confirmation + Tracking
