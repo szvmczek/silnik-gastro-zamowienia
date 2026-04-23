@@ -22,12 +22,12 @@ export function DashboardPage() {
     : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">
+        <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">
           Witaj, {user?.displayName ?? "Administrator"}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-[14px] text-slate-500">
           Przegląd aktualnych zamówień. Klik w kafelek otwiera listę z
           odpowiednim filtrem.
         </p>
@@ -39,32 +39,35 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <KpiTile
-          to="/admin/orders?status=NEW"
-          label="Nowe dziś"
-          value={summary?.newToday ?? 0}
-          isLoading={isLoading}
-          accent="primary"
-          hint="Status NEW, złożone dzisiaj"
-        />
-        <KpiTile
-          to="/admin/orders?status=IN_PREPARATION"
-          label="W przygotowaniu"
-          value={summary?.inPreparation ?? 0}
-          isLoading={isLoading}
-          accent="amber"
-          hint="CONFIRMED + IN_PREPARATION"
-        />
-        <KpiTile
-          to="/admin/orders?status=READY"
-          label="Do dostawy"
-          value={summary?.awaitingFulfillment ?? 0}
-          isLoading={isLoading}
-          accent="sky"
-          hint="READY + OUT_FOR_DELIVERY"
-        />
-      </div>
+      <section>
+        <div className="kicker mb-4">Dziś</div>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <KpiTile
+            to="/admin/orders?status=NEW"
+            label="Nowe dziś"
+            value={summary?.newToday ?? 0}
+            isLoading={isLoading}
+            accent="primary"
+            hint="Status NEW, złożone dzisiaj"
+          />
+          <KpiTile
+            to="/admin/orders?status=IN_PREPARATION"
+            label="W przygotowaniu"
+            value={summary?.inPreparation ?? 0}
+            isLoading={isLoading}
+            accent="amber"
+            hint="CONFIRMED + IN_PREPARATION"
+          />
+          <KpiTile
+            to="/admin/orders?status=READY"
+            label="Do dostawy"
+            value={summary?.awaitingFulfillment ?? 0}
+            isLoading={isLoading}
+            accent="sky"
+            hint="READY + OUT_FOR_DELIVERY"
+          />
+        </div>
+      </section>
     </div>
   );
 }

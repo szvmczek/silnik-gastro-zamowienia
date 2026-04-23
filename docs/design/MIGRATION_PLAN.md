@@ -539,6 +539,12 @@ walidacja `open<close`, tabs HERO/ABOUT, mutation invalidate.
 **Done:** wizualne matching ekrany 16, 17, 18; primary color swap
 end-to-end landing refresh.
 
+**TODO (carry-over z G6):** LoginPage (G6) używa lokalnego
+`className="h-11"` override na Input. Jeśli G9 lub kolejna grupa pojawia
+drugi konsument z tą samą potrzebą — refactor Input do addition prop
+`size="sm" | "md" | "lg"` (default `"md"` = h-10, `"sm"` = h-9, `"lg"` =
+h-11), zamiast rozmnażać lokalne overrides.
+
 ### Grupa 10 — Polish przekrojowy
 
 **Cel:**
