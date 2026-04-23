@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { Location } from "react-router-dom";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { useAuth } from "@/shared/auth/useAuth";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Label } from "@/shared/components/ui/Label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/Card";
+import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 
 const schema = z.object({
   email: z.string().min(1, "Email jest wymagany").email("Nieprawidłowy email"),
@@ -29,6 +29,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, setSession } = useAuth();
+  const settings = usePublicSettings();
+  const restaurantName = settings.data?.name ?? "Panel";
 
   const redirectTo = (location.state as LocationState | null)?.from?.pathname ?? "/admin";
 
@@ -66,15 +68,27 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Panel administratora</CardTitle>
-          <CardDescription>Zaloguj się, aby zarządzać restauracją.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="w-full max-w-[420px]">
+        <div className="mb-7 text-center">
+          <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
+            Panel administracyjny
+          </div>
+          <div className="mt-1 truncate text-[24px] font-semibold tracking-tight text-slate-900">
+            {restaurantName}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
+            Zaloguj się
+          </h1>
+          <p className="mt-1 text-[13px] text-slate-500">
+            Panel dostępny dla uprawnionych pracowników.
+          </p>
+
           <form
             onSubmit={handleSubmit((values) => mutation.mutate(values))}
-            className="space-y-4"
+            className="mt-6 space-y-4"
             noValidate
           >
             <div>
@@ -84,10 +98,12 @@ export function LoginPage() {
                 type="email"
                 autoComplete="email"
                 disabled={mutation.isPending}
+                error={Boolean(errors.email)}
+                className="h-11"
                 {...register("email")}
               />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-[12px] text-rose-600">{errors.email.message}</p>
               )}
             </div>
             <div>
@@ -97,23 +113,35 @@ export function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 disabled={mutation.isPending}
+                error={Boolean(errors.password)}
+                className="h-11"
                 {...register("password")}
               />
               {errors.password && (
-                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-[12px] text-rose-600">{errors.password.message}</p>
               )}
             </div>
             <Button
               type="submit"
-              size="lg"
+              variant="primary"
+              size="xl"
               className="w-full"
               disabled={mutation.isPending}
             >
               {mutation.isPending ? "Logowanie…" : "Zaloguj się"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="mt-5 text-center">
+          <Link
+            to="/"
+            className="text-[12px] text-slate-400 transition-colors hover:text-slate-700"
+          >
+            ← Wróć na stronę
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
