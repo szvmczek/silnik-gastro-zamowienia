@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
-import { Button } from "@/shared/components/ui/Button";
 import { getSoundEnabled, setSoundEnabled, playBeep } from "./soundPrefs";
 
 export function SoundToggle() {
@@ -18,15 +17,14 @@ export function SoundToggle() {
   };
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="sm"
       onClick={toggle}
       aria-label={enabled ? "Wyłącz dźwięk powiadomień" : "Włącz dźwięk powiadomień"}
       title={enabled ? "Dźwięk: włączony" : "Dźwięk: wyłączony"}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40"
     >
       {enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-    </Button>
+    </button>
   );
 }
