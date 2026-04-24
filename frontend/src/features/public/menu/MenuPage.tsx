@@ -37,11 +37,14 @@ export function MenuPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <PublicNav active="menu" onOpenCart={() => setCartOpen(true)} />
 
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 md:pb-16">
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Menu</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Wybierz kategorię i kliknij produkt, aby zobaczyć szczegóły.
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-10 md:pb-16 md:pt-14">
+        <div className="mb-8 md:mb-12">
+          <div className="kicker mb-3">Nasze menu</div>
+          <h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.02em] text-slate-900 md:text-[56px] md:leading-[1.02]">
+            Menu
+          </h1>
+          <p className="mt-4 max-w-[580px] text-[16px] leading-relaxed text-slate-500">
+            Wybierz kategorię i kliknij produkt, aby dopasować wariant i dodatki.
           </p>
         </div>
 
@@ -62,7 +65,7 @@ export function MenuPage() {
         {activeCategories.length > 0 ? (
           <>
             <CategoryTabs tabs={tabs} sectionIds={sectionIds} />
-            <div className="mt-6 space-y-10">
+            <div className="mt-10 space-y-14">
               {activeCategories.map((category) => (
                 <section
                   key={category.id}
@@ -70,15 +73,19 @@ export function MenuPage() {
                   aria-labelledby={`${categoryAnchorId(category.slug)}-title`}
                   className="scroll-mt-28"
                 >
-                  <div className="mb-4">
+                  <div className="mb-6">
+                    <div className="kicker mb-2">
+                      {category.name} · {category.products.length}{" "}
+                      {category.products.length === 1 ? "pozycja" : "pozycji"}
+                    </div>
                     <h2
                       id={`${categoryAnchorId(category.slug)}-title`}
-                      className="text-xl font-semibold text-slate-900"
+                      className="text-[24px] font-semibold tracking-tight text-slate-900 md:text-[28px]"
                     >
                       {category.name}
                     </h2>
                     {category.description ? (
-                      <p className="mt-1 text-sm text-slate-600">{category.description}</p>
+                      <p className="mt-1.5 text-[14px] text-slate-500">{category.description}</p>
                     ) : null}
                   </div>
                   {category.products.length === 0 ? (
@@ -86,7 +93,7 @@ export function MenuPage() {
                       Brak produktów w tej kategorii.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                       {category.products.map((product) => (
                         <ProductCard
                           key={product.id}
