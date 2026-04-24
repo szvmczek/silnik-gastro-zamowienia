@@ -52,8 +52,8 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
   };
 
   return (
-    <div className="sticky top-14 z-10 -mx-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:top-16 sm:mx-0 sm:rounded-md sm:border">
-      <nav className="flex gap-2 overflow-x-auto py-2 scrollbar-none">
+    <div className="sticky top-14 z-10 -mx-4 border-b border-slate-200 bg-white/85 px-4 backdrop-blur sm:top-16 sm:mx-0 sm:rounded-md sm:border">
+      <nav className="flex items-center gap-2 overflow-x-auto py-3 scrollbar-none">
         {tabs.map((tab, i) => {
           const sectionId = sectionIds[i];
           const isActive = sectionId === activeId;
@@ -63,10 +63,10 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-medium transition-colors",
                 isActive
-                  ? "bg-primary text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  ? "bg-primary/10 text-primary"
+                  : "text-slate-600 hover:bg-slate-100"
               )}
             >
               {tab.name}

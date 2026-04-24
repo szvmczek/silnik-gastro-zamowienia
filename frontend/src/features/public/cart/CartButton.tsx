@@ -16,7 +16,7 @@ export function CartButton({ onClick }: Props) {
     >
       <ShoppingCart className="h-5 w-5" />
       {count > 0 ? (
-        <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold leading-none text-white">
+        <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold leading-none text-white ring-2 ring-white">
           {count > 99 ? "99+" : count}
         </span>
       ) : null}
