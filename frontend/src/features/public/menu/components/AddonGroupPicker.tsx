@@ -22,22 +22,22 @@ export function AddonGroupPicker({ group, selected, onToggle, currency }: Props)
   const invalid = selected.size < group.minSelect;
 
   return (
-    <fieldset className="space-y-2">
-      <legend className="mb-1 flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-900">
+    <fieldset>
+      <div className="mb-2 flex items-baseline justify-between gap-2">
+        <legend className="text-[13px] font-semibold text-slate-900">
           {group.name}
           {group.required ? <span className="ml-1 text-rose-600">*</span> : null}
-        </span>
+        </legend>
         <span
           className={cn(
-            "text-xs font-medium",
-            invalid ? "text-rose-600" : "text-slate-500"
+            "text-[11px]",
+            invalid ? "font-medium text-rose-600" : "text-slate-500"
           )}
         >
           {rangeLabel(group)}
         </span>
-      </legend>
-      <div className="space-y-1.5">
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {group.addons.map((addon) => {
           const checked = selected.has(addon.id);
           const disabled = !checked && hitMax;
@@ -45,25 +45,33 @@ export function AddonGroupPicker({ group, selected, onToggle, currency }: Props)
             <label
               key={addon.id}
               className={cn(
-                "flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm transition-colors",
+                "flex items-center justify-between gap-3 rounded-md border p-3 text-[13px] transition-colors",
                 checked
                   ? "border-primary bg-primary/5"
                   : "border-slate-200 hover:border-slate-300",
-                disabled && "cursor-not-allowed opacity-50"
+                disabled && "cursor-not-allowed opacity-50",
+                !disabled && "cursor-pointer"
               )}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 <Checkbox
                   checked={checked}
                   disabled={disabled}
                   onCheckedChange={() => onToggle(group.id, addon.id)}
                 />
-                <span className="font-medium text-slate-800">{addon.name}</span>
+                <span
+                  className={cn(
+                    "text-slate-800",
+                    checked && "font-medium text-slate-900"
+                  )}
+                >
+                  {addon.name}
+                </span>
               </span>
-              <span className="text-sm font-semibold text-slate-900">
+              <span className="whitespace-nowrap text-[12px] text-slate-500">
                 {Number(addon.price) === 0
                   ? "gratis"
-                  : `+ ${formatPrice(addon.price, currency)}`}
+                  : `+${formatPrice(addon.price, currency)}`}
               </span>
             </label>
           );
