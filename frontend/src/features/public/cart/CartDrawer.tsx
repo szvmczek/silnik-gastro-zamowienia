@@ -1,12 +1,15 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Edit3, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/Sheet";
+import { Button } from "@/shared/components/ui/Button";
+import { EmptyState } from "@/shared/components/ui/EmptyState";
+import { cn } from "@/shared/lib/cn";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { lineTotal, useCartStore, useCartTotal, type CartItem } from "./cartStore";
@@ -14,9 +17,26 @@ import { lineTotal, useCartStore, useCartTotal, type CartItem } from "./cartStor
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onEdit?: (item: CartItem) => void;
+  onBrowseMenu?: () => void;
 }
 
-export function CartDrawer({ open, onOpenChange }: Props) {
+const MOBILE_QUERY = "(max-width: 767px)";
+
+function useIsMobileViewport() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(MOBILE_QUERY).matches : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(MOBILE_QUERY);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
+export function CartDrawer({ open, onOpenChange, onEdit, onBrowseMenu }: Props) {
   const items = useCartStore((s) => s.items);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -24,32 +44,75 @@ export function CartDrawer({ open, onOpenChange }: Props) {
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
   const navigate = useNavigate();
+  const isMobile = useIsMobileViewport();
 
   const handleCheckout = () => {
     onOpenChange(false);
     navigate("/checkout");
   };
 
+  const handleBrowseMenu = () => {
+    onOpenChange(false);
+    if (onBrowseMenu) onBrowseMenu();
+    else navigate("/menu");
+  };
+
+  const handleRemove = (item: CartItem) => {
+    removeItem(item.lineKey);
+    toast.success(`Usunięto: ${item.productName}`);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Twój koszyk</SheetTitle>
-          <SheetDescription>
-            {items.length === 0
-              ? "Twój koszyk jest pusty."
-              : `Pozycje: ${items.length}`}
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        showClose={false}
+        className={cn(
+          "flex flex-col gap-0 p-0",
+          isMobile
+            ? "max-h-[92vh] rounded-t-xl"
+            : "sm:max-w-[440px]"
+        )}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-5">
+          <div>
+            <SheetTitle className="text-[17px] font-semibold text-slate-900">
+              Twój koszyk
+            </SheetTitle>
+            {items.length > 0 ? (
+              <p className="mt-0.5 text-[12px] text-slate-500">
+                {items.length}{" "}
+                {items.length === 1 ? "pozycja" : items.length < 5 ? "pozycje" : "pozycji"}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Zamknij koszyk"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
         {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center py-10 text-center text-slate-500">
-            <ShoppingCart className="mb-3 h-10 w-10 text-slate-300" />
-            <p className="text-sm">Dodaj coś z menu, żeby rozpocząć zamówienie.</p>
+          <div className="flex flex-1 items-center justify-center p-6">
+            <EmptyState
+              icon={<ShoppingBag className="h-5 w-5" />}
+              title="Twój koszyk jest pusty"
+              description="Wybierz coś z menu — nasze pizze wyjeżdżają z pieca w ~90 sekund."
+              action={
+                <Button variant="primary" onClick={handleBrowseMenu}>
+                  Przeglądaj menu
+                </Button>
+              }
+              className="w-full max-w-[360px]"
+            />
           </div>
         ) : (
           <>
-            <div className="-mx-6 mt-4 flex-1 overflow-y-auto px-6">
+            <div className="flex-1 overflow-y-auto px-6">
               <ul className="divide-y divide-slate-100">
                 {items.map((item) => (
                   <CartLineRow
@@ -58,25 +121,28 @@ export function CartDrawer({ open, onOpenChange }: Props) {
                     currency={currency}
                     onIncrement={() => updateQuantity(item.lineKey, item.quantity + 1)}
                     onDecrement={() => updateQuantity(item.lineKey, item.quantity - 1)}
-                    onRemove={() => removeItem(item.lineKey)}
+                    onRemove={() => handleRemove(item)}
+                    onEdit={onEdit ? () => onEdit(item) : undefined}
                   />
                 ))}
               </ul>
             </div>
-            <div className="shrink-0 border-t border-slate-200 pt-4">
-              <div className="flex items-center justify-between text-base">
-                <span className="font-medium text-slate-700">Razem</span>
-                <span className="text-lg font-bold text-slate-900">
+            <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <div className="mb-4 flex items-baseline justify-between">
+                <span className="text-[13px] text-slate-500">Podsuma</span>
+                <span className="font-mono text-[16px] font-semibold text-slate-900">
                   {formatPrice(total, currency)}
                 </span>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="primary"
+                size="xl"
+                className="w-full"
                 onClick={handleCheckout}
-                className="mt-4 w-full rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                Przejdź do checkout
-              </button>
+                Przejdź do kasy →
+              </Button>
             </div>
           </>
         )}
@@ -91,74 +157,89 @@ interface RowProps {
   onIncrement: () => void;
   onDecrement: () => void;
   onRemove: () => void;
+  onEdit?: () => void;
 }
 
-function CartLineRow({ item, currency, onIncrement, onDecrement, onRemove }: RowProps) {
+function formatLineMeta(item: CartItem): string {
+  const parts: string[] = [];
+  if (item.variantName) parts.push(item.variantName);
+  if (item.addons.length > 0) {
+    parts.push(item.addons.map((a) => `+${a.name}`).join(", "));
+  }
+  return parts.join(" · ");
+}
+
+function CartLineRow({ item, currency, onIncrement, onDecrement, onRemove, onEdit }: RowProps) {
+  const meta = formatLineMeta(item);
   return (
     <li className="flex gap-3 py-4">
       {item.imageUrl ? (
         <img
           src={item.imageUrl}
           alt=""
-          className="h-16 w-16 shrink-0 rounded-md object-cover"
+          className="h-20 w-20 shrink-0 rounded-lg object-cover"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
         />
       ) : (
-        <div className="h-16 w-16 shrink-0 rounded-md bg-slate-100" />
+        <div className="h-20 w-20 shrink-0 rounded-lg bg-slate-100" />
       )}
       <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900">{item.productName}</p>
-            {item.variantName ? (
-              <p className="text-xs text-slate-500">{item.variantName}</p>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={onRemove}
-            aria-label="Usuń pozycję"
-            className="-mr-2 -mt-1 flex h-11 w-11 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-rose-600 sm:h-9 sm:w-9"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="truncate text-[14px] font-semibold text-slate-900">
+            {item.productName}
+          </p>
+          <span className="whitespace-nowrap font-mono text-[14px] font-semibold text-slate-900">
+            {formatPrice(lineTotal(item), currency)}
+          </span>
         </div>
-
-        {item.addons.length > 0 ? (
-          <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-            {item.addons.map((a) => (
-              <li key={a.addonId}>+ {a.name}</li>
-            ))}
-          </ul>
+        {meta ? (
+          <p className="mt-0.5 text-[11px] leading-snug text-slate-500">{meta}</p>
         ) : null}
 
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2.5 flex items-center justify-between">
           <div className="flex items-center rounded-md border border-slate-200">
             <button
               type="button"
               onClick={onDecrement}
               aria-label="Zmniejsz ilość"
-              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-9 sm:w-9"
+              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-8 sm:w-8"
             >
-              <Minus className="h-4 w-4" />
+              <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="w-10 text-center text-sm font-semibold sm:w-8">
+            <span className="w-8 text-center font-mono text-[12px] font-semibold">
               {item.quantity}
             </span>
             <button
               type="button"
               onClick={onIncrement}
               aria-label="Zwiększ ilość"
-              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-9 sm:w-9"
+              className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 sm:h-8 sm:w-8"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
-          <span className="text-sm font-semibold text-slate-900">
-            {formatPrice(lineTotal(item), currency)}
-          </span>
+          <div className="flex items-center gap-1">
+            {onEdit ? (
+              <button
+                type="button"
+                onClick={onEdit}
+                aria-label={`Edytuj: ${item.productName}`}
+                className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 sm:h-8 sm:w-8"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label={`Usuń: ${item.productName}`}
+              className="flex h-11 w-11 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 sm:h-8 sm:w-8"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
     </li>
