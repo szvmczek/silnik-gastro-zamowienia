@@ -204,7 +204,162 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
   - **Smoke manualny do zrobienia przez usera** — patrz sekcja raportu
     "G2+G3 acceptance" oraz "Regresja G1/G6/Faz 1-5" w chat.
 
-- [ ] Grupa 4: Menu + Modal + Cart
+- [x] Grupa 4: Menu + Modal + Cart (2026-04-24, branch
+  `design/g4-menu-cart-modal`)
+  - **MenuPage hero + CategoryTabs** (commit `9ebf1cf`): mono kicker
+    "Nasze menu" + Display H1 `text-[40px] md:text-[56px]
+    tracking-[-0.02em]` + tagline `max-w-[580px]`; per-section kicker
+    mono `"{name} · {n} pozycja|pozycje|pozycji"` (PL declension) nad
+    H2 `text-[24px] md:text-[28px]`; grid gap 4 → 6, vertical rhythm
+    space-y-10 → space-y-14. CategoryTabs active `bg-primary/10
+    text-primary font-medium`, idle plain `text-slate-600
+    hover:bg-slate-100`, `h-9 px-4 text-[13px] rounded-full`. **Sticky
+    offset `top-14 sm:top-16` NIETKNIĘTY** (flaga z raportu G2+G3 —
+    matchuje `PublicNav h-14 mobile / h-16 desktop`). IntersectionObserver
+    + programmatic scrollTo bez zmian.
+  - **ProductCard** (commit `d7d1654`): major rebuild — `rounded-xl
+    overflow-hidden border shadow-sm`, `hover:-translate-y-1
+    hover:shadow-lg` (silniejszy lift vs poprzedniego -0.5), image
+    `aspect-[4/3]` + `group-hover:scale-[1.03] duration-300`. Title
+    `text-[17px] font-semibold tracking-tight` + cena `text-[15px]
+    font-semibold whitespace-nowrap` **same baseline**
+    (`flex items-baseline justify-between`). Desc `text-[13px]
+    text-slate-500 leading-snug line-clamp-2`. Unavailable: `opacity-60`
+    na całej karcie + absolute overlay `bg-white/70` z G1 Badge
+    "Chwilowo niedostępne" centered over image (bundle pattern).
+    Usunięty corner badge "Niedostępne" + dolny hint "Zobacz →" (bundle
+    nie ma, hover lift wystarcza jako affordance).
+  - **ProductModal** (commit `9b1bbbf`): major rebuild — desktop
+    `sm:max-w-[760px] sm:rounded-2xl` override G1 Dialog defaults via
+    twMerge. **Mobile bottom sheet via CSS-only responsive**:
+    `max-sm:` override pozycji (`bottom-0 translate reset`), width
+    (`w-full max-w-none`), border (`rounded-t-xl`) i animacji
+    (`data-[state=open]:slide-in-from-bottom` + reset
+    `zoom-in-100/zoom-out-100` żeby nadpisać default Dialog
+    `zoom-in-95`). Zero nowych hooków, zero dual-render — single Dialog
+    z Tailwind breakpointami. Hero `aspect-[16/9]` zachowany (bundle
+    21/9 blisko, nie re-kadruję Unsplash). Title `text-[22px] sm:text-
+    [28px] font-semibold tracking-tight`, desc `text-[14px]
+    leading-relaxed`. Sticky footer przebudowany wokół G1 Button
+    `variant="primary" size="xl" className="flex-1"` z inline price
+    label `Dodaj do koszyka — {total}` (bundle pattern; zastąpił
+    poprzednie 2 wiersze "Cena jednostkowa" + split button). Stepper
+    h-12 kontener z h-11 w-11 touch-target +/- (M13 Fazy 3 44px
+    preserved). **NEW optional prop `defaults?: { variantId, addonIds,
+    quantity } | null`** + `buildSelected` helper — używane przez
+    edit-pencil flow (commit 8). Addition-only, backward compat;
+    LandingPage konsument bez defaults działa jak wcześniej.
+  - **VariantPicker** (commit `532d869`): tile `border-2` always
+    (idle + active) → zapobiega 1px height jump przy zmianie selekcji;
+    active `border-primary bg-primary/5`, idle `border-slate-200
+    hover:border-slate-300`. Custom radio dot `w-4 h-4 rounded-full
+    border-2` (idle slate-300 / active primary z inner `w-2 h-2
+    bg-primary`). Native `<input type="radio" className="sr-only">`
+    zachowany dla keyboard nav / screen reader. Header: legend
+    "Rozmiar" + right-aligned hint "Wybierz jeden" text-[11px]
+    slate-500. Signature propsów bez zmian.
+  - **AddonGroupPicker** (commit `0d24772`): addonsy w `grid-cols-1
+    sm:grid-cols-2` (bundle desktop pattern). Tile `border p-3 rounded-md
+    text-[13px]`, active `border-primary bg-primary/5`. G1 Checkbox
+    primitive konsumowany bez zmian (data-[state=checked] already
+    renders bg-primary + Check ikonkę). Range hint `text-[11px]`
+    (rose-600 gdy invalid). Price "+X,YY PLN" whitespace-nowrap lub
+    "gratis" dla 0-zł.
+  - **CartDrawer** (commit `bdb40f5`): major rebuild — responsive
+    side picked per viewport via inline `useIsMobileViewport()`
+    (window.matchMedia `"(max-width: 767px)"`) — **bez nowego
+    shared hooka / dependency**, tylko lokalne window API. Desktop
+    slide-in-right `sm:max-w-[440px]`; mobile bottom sheet
+    `rounded-t-xl max-h-[92vh]`. Header: title text-[17px] +
+    PL-deklinowane "pozycja/pozycje/pozycji" + custom X (showClose
+    =false na SheetContent żeby uniknąć duplikacji). Body `px-6
+    divide-y`. **CartLineRow**: miniatura `w-20 h-20 rounded-lg`
+    (bump z w-16), title + cena mono baseline, **meta zagregowane
+    inline** `"{variant} · +addon1, +addon2"` text-[11px] slate-500
+    (zastępuje poprzednią `<ul>` listę bullet-per-addon — bundle
+    pattern), stepper `h-11 w-11 mobile / h-8 w-8 desktop` (44px
+    touch preserved), **edit pencil** (lucide `Edit3`) obok trash —
+    renderowany tylko gdy `onEdit` prop podany. Footer `bg-slate-50
+    px-6 py-4 border-t` z "Podsuma" label + mono price + G1 Button
+    `size="xl" w-full` "Przejdź do kasy →". **Empty state** via G1
+    `EmptyState` primitive (`ShoppingBag` ikonka + "Twój koszyk jest
+    pusty" + opis + CTA "Przeglądaj menu"). Trash: toast `"Usunięto:
+    {name}"` (bez undo — poza G4 scope). **NEW optional props**
+    `onEdit?: (item) => void`, `onBrowseMenu?: () => void` —
+    addition-only, LandingPage konsument (bez onEdit) po prostu nie
+    renderuje edit pencil. cartStore.buildLineKey (AD-014) / persist
+    key / action API NIETKNIĘTE.
+  - **CartButton + MobileCartBar** (commit `a20992d`): CartButton
+    badge `ring-2 ring-white` dla kontrastu na kolorowych tłach (hero,
+    photo); -right-1 -top-1 offset pod ring. MobileCartBar custom
+    `<button>` → G1 Button `variant="primary" size="xl"
+    className="w-full justify-between"` (justify-between override
+    defaultowego justify-center via twMerge). Mono total dla
+    alignment z cart drawer + modal. `count === 0 → null` + `md:hidden`
+    zachowane.
+  - **Edit pencil flow w MenuPage** (commit `fb90a15`): new state
+    `editDefaults: ProductModalDefaults | null`, handler
+    `handleEditCartItem(item)` — find PublicProductDto w usePublicMenu
+    cache po productId, gdy missing/unavailable toast error i bail
+    (bez mutacji cartStore); w happy path: setEditDefaults z item
+    (variantId + addonIds map z CartAddon[] + quantity), setSelected
+    (product), **removeItem(item.lineKey)**, setCartOpen(false) —
+    modal zastępuje drawer (brak z-index stacking). `handleOpenProduct`
+    dla ProductCard kliknięcia resetuje editDefaults (żeby nie leak'ować
+    do fresh add flow). `handleModalOpenChange` resetuje selected +
+    editDefaults na close. **AD-014 line key zachowany**: edit = remove
+    old + modal z pre-fill → user klika "Dodaj" → nowa linia whose
+    key zależy od nowego `(productId, variantId, sortedAddonIds)` tuple
+    (może scalić się z inną identyczną konfiguracją lub utworzyć fresh).
+  - **Zero zmian**: backend (Java, Flyway, DTO, services, Bean
+    Validation), router.tsx, providers.tsx, ThemeBootstrap,
+    themeLoader, usePublicSettings, authStore, PublicNav /
+    PublicFooter (G2+G3), LandingPage sekcje (G3), CheckoutPage /
+    OrderConfirmationPage / TrackingPage (G5 scope), admin/* (G6 +
+    Faza 4), G1 shared primitives (Button, Input, Sheet, Dialog,
+    Checkbox, RadioGroup, Label, Card, EmptyState, Skeleton —
+    konsumuję bez modyfikacji), hooki usePublicMenu / useMenuPrice
+    (signature + return shape) / cartStore (`buildLineKey` AD-014
+    tuple + `addItem`/`updateQuantity`/`removeItem`/`clear` + persist
+    key `pizza-showcase-cart` + MAX_QUANTITY_PER_LINE 99), query keys
+    `["public","menu"]`, mutation keys, Zod schemas, AD-010 URL
+    zdjęć, AD-014 line key, AD-016 server-side totals, PaymentMethod
+    enum (G5 scope), CreateOrderItemRequest payload shape
+    `addonIds: Long[]` (weryfikowane w CheckoutPage.tsx:205-210 —
+    CartItem.addons[].addonId pole nietknięte).
+  - **Smoke automatyczny**: `npm run build` zielone (tsc + vite,
+    1.66s ostatni commit, bundle 736.46 kB — +6.65 kB vs G2+G3
+    baseline 729.81 kB: nowe lucide icony Edit3/ShoppingBag/X,
+    rebuilt ProductModal + CartDrawer JSX, matchMedia wrapper,
+    akceptowalne).
+  - **Smoke manualny do zrobienia przez usera**:
+    - **G4 acceptance (375 + 1280)**: MenuPage hero + kicker, grid
+      produktów w nowym styl (hover lift + shadow), CategoryTabs
+      pill primary/10 sticky (nie chowa się pod PublicNav), klik
+      produkt → ProductModal (desktop centered rounded-2xl, mobile
+      bottom-sheet rounded-t-xl), wariant 30/40cm → cena w sticky
+      footer CTA aktualizuje live, addon toggle → cena update,
+      stepper + Button xl "Dodaj do koszyka — X,YY PLN"; klik
+      CartButton → CartDrawer (desktop slide-in right, mobile bottom
+      sheet), line item miniatura w-20 + meta inline + stepper
+      h-11/h-8 + edit pencil + trash, **AD-014 kleje**: dodaj
+      Margherita 30cm + addon A → zamknij → ponownie identyczna
+      konfiguracja → CartDrawer pokazuje JEDNĄ linię qty=2;
+      **edit pencil**: klik edit → drawer zamyka, modal otwiera
+      z pre-filled variant/addons/qty, stara linia usunięta;
+      modyfikuj → Dodaj → AD-014 merge lub nowa linia;
+      empty state: clear → EmptyState z CTA "Przeglądaj menu";
+      MobileCartBar: count>0 widoczny, count=0 null, md:hidden;
+      CTA "Przejdź do kasy →" → /checkout (G5 stare UI).
+    - **Regresja G1 / G6 / G2+G3 / Faz 1-5**: Landing (G2+G3) bez
+      zmian wizualnych; Admin (G6 + Faza 4) bez zmian; SSE admin
+      1 połączenie, bez reconnect; theme swap primary color
+      propaguje do CategoryTabs/ProductCard/CartDrawer po refresh;
+      `POST /api/public/orders` pełny payload (warianty + addonIds
+      Long[]) → 201 z orderNumber + trackingToken (kontrakt backend
+      niezmieniony); Checkout → OrderConfirmation → Tracking 15s
+      polling + terminal guard nienaruszone.
+
 - [ ] Grupa 5: Checkout + Confirmation + Tracking
 - [ ] Grupa 7: Admin Orders (flagship, screenshoty before/after)
 - [ ] Grupa 8: Admin Menu CRUD
