@@ -13,8 +13,11 @@ export function VariantPicker({ variants, selectedId, onChange, currency }: Prop
   if (!variants.length) return null;
 
   return (
-    <fieldset className="space-y-2">
-      <legend className="mb-2 text-sm font-semibold text-slate-900">Wariant</legend>
+    <fieldset>
+      <div className="mb-2 flex items-baseline justify-between">
+        <legend className="text-[13px] font-semibold text-slate-900">Rozmiar</legend>
+        <span className="text-[11px] text-slate-500">Wybierz jeden</span>
+      </div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {variants.map((variant) => {
           const active = variant.id === selectedId;
@@ -22,22 +25,38 @@ export function VariantPicker({ variants, selectedId, onChange, currency }: Prop
             <label
               key={variant.id}
               className={cn(
-                "flex cursor-pointer items-center justify-between rounded-md border px-3 py-2 text-sm transition-colors",
+                "flex cursor-pointer items-center justify-between rounded-md border-2 p-3.5 text-[14px] transition-colors",
                 active
-                  ? "border-primary bg-primary/5 text-slate-900"
-                  : "border-slate-200 text-slate-700 hover:border-slate-300"
+                  ? "border-primary bg-primary/5"
+                  : "border-slate-200 hover:border-slate-300"
               )}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-3">
                 <input
                   type="radio"
                   name="variant"
                   value={variant.id}
                   checked={active}
                   onChange={() => onChange(variant.id)}
-                  className="h-4 w-4 text-primary focus:ring-primary"
+                  className="sr-only"
                 />
-                <span className="font-medium">{variant.name}</span>
+                <span
+                  className={cn(
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                    active ? "border-primary" : "border-slate-300"
+                  )}
+                  aria-hidden="true"
+                >
+                  {active ? <span className="h-2 w-2 rounded-full bg-primary" /> : null}
+                </span>
+                <span
+                  className={cn(
+                    "text-slate-800",
+                    active && "font-semibold text-slate-900"
+                  )}
+                >
+                  {variant.name}
+                </span>
               </span>
               <span className="font-semibold text-slate-900">
                 {formatPrice(variant.price, currency)}
