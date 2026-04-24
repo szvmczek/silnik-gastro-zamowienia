@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { usePublicMenu } from "./hooks/usePublicMenu";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { CategoryTabs } from "./components/CategoryTabs";
 import { ProductCard } from "./components/ProductCard";
 import { ProductModal } from "./components/ProductModal";
-import { CartButton } from "@/features/public/cart/CartButton";
 import { CartDrawer } from "@/features/public/cart/CartDrawer";
 import { MobileCartBar } from "@/features/public/cart/MobileCartBar";
+import { PublicNav } from "@/features/public/shared/PublicNav";
+import { PublicFooter } from "@/features/public/shared/PublicFooter";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 
 function categoryAnchorId(slug: string) {
@@ -35,28 +35,7 @@ export function MenuPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/" className="flex items-center gap-2">
-            {settings?.logoUrl ? (
-              <img
-                src={settings.logoUrl}
-                alt={settings?.name ?? "Logo"}
-                className="h-8 w-8 rounded object-cover"
-              />
-            ) : null}
-            <span className="text-lg font-semibold text-slate-900">
-              {settings?.name ?? "Restauracja"}
-            </span>
-          </Link>
-          <nav className="flex items-center gap-2 text-sm font-medium text-slate-600 sm:gap-4">
-            <Link to="/" className="hidden hover:text-primary sm:inline">
-              Strona główna
-            </Link>
-            <CartButton onClick={() => setCartOpen(true)} />
-          </nav>
-        </div>
-      </header>
+      <PublicNav active="menu" onOpenCart={() => setCartOpen(true)} />
 
       <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 md:pb-16">
         <div className="mb-4">
@@ -124,6 +103,8 @@ export function MenuPage() {
           </>
         ) : null}
       </main>
+
+      <PublicFooter />
 
       <ProductModal
         product={selected}

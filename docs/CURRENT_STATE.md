@@ -117,7 +117,93 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
   - **Smoke manualny do zrobienia przez usera** — patrz sekcja raportu
     "G6 acceptance" oraz "Regresja Faz 1-5" poniżej.
 
-- [ ] Grupa 2 + 3: Public shell + Landing
+- [x] Grupa 2 + 3: Public shell + Landing (2026-04-23, branch
+  `design/g2-g3-public-landing`)
+  - **PublicNav + PublicFooter extraction** (commit `2cb5c26`): new
+    `features/public/shared/PublicNav.tsx` + `PublicFooter.tsx` —
+    shared between LandingPage and MenuPage. PublicNav desktop `md:h-16`
+    (NOT bundle `h-[72px]`) to match existing `CategoryTabs sticky
+    top-16` offset — touching CategoryTabs is G4 scope. Mobile `h-14`
+    matches `CategoryTabs sm:top-14`. Sheet side=left `w-72` off-canvas
+    drawer for mobile nav (pattern from AdminSidebar mobile, G6).
+    PublicFooter: copyright + Regulamin/PP placeholders + discrete
+    admin link `text-slate-400 text-[12px]`. Both consume
+    `usePublicSettings` internally — no prop drilling. Primary CTAs
+    rendered as `<Link>` with inline button classes (not `<Button>`)
+    because G1 Button has no `asChild` prop and G1 surface stays closed.
+  - **LandingPage orchestrator** (commit `72d0d5f`): inline header/footer
+    replaced with `<PublicNav active="home"/>` + `<PublicFooter/>`.
+    Section components mount untouched — ThemeBootstrap (providers.tsx),
+    CartDrawer, MobileCartBar mount points unchanged. Zero SSE / theme /
+    cart re-mount risk.
+  - **MenuPage shell alignment** (commit `bad19e1`): same pattern —
+    `<PublicNav active="menu"/>` replaces inline header + `<PublicFooter/>`
+    dopięty. `CategoryTabs` / `ProductCard` / `ProductModal` / grid
+    layout / scroll-mt anchors — **NIE dotknięte** (G4 scope).
+    Transitional visual state: new shell + old product cards do G4.
+  - **HeroSection rebuild** (commit `5364897`): asymmetric 12-col grid,
+    text `col-span-5` left / photo `col-span-7` right (`rounded-2xl
+    aspect-[5/6]`). Typography Display scale text-[40px] mobile /
+    md:text-[56px] / lg:text-[72px] — mono kicker
+    text-primary (only hero kicker is orange per bundle; other sections
+    slate-400). Primary `h-16` "Zamów online →" + ghost `h-16` "Zobacz
+    menu" CTAs as `<Link>` elements. Meta-bar under CTAs: Clock icon +
+    dynamic "Dziś otwarte do HH:MM" / "Dziś zamknięte" (from
+    `useIsRestaurantOpen` — M6/2 Faza 5, read-only consumer) + Truck
+    icon + **static** "Dostawa w ~35 min" (DB has no delivery ETA
+    source; bundle also static; zone calculator = Faza 7 post-MVP).
+    CTA **NOT** disabled when closed — that logic lives in CheckoutPage,
+    hero meta-bar is informational only.
+  - **AboutSection rebuild** (commit `ee43bb6`): cream tint
+    `bg-[#faf7f2]` (arbitrary, direct from bundle "warm sand"
+    signature — not added to tailwind.config.ts, 1-use). Two-column
+    editorial grid: photo col-span-5 `aspect-[4/5]`, text col-span-6
+    col-start-7. H2 `text-[28px] md:text-[40px]`, body
+    `text-[16px] leading-[1.75] max-w-[540px]` with
+    `whitespace-pre-line`. Bundle stat blocks NOT imported (no DB
+    source; would violate CLAUDE.md §8 "zero hardcoded content").
+  - **ContactSection rebuild** (commit `e49f97b`): two-column grid —
+    left col-span-5 = kicker + H2 "Znajdziesz nas" + 3 ContactTile
+    rows (MapPin / Phone / Mail) with `w-10 h-10 rounded-full
+    bg-slate-100` icon circles; right col-span-7 = OSM iframe in
+    `rounded-2xl overflow-hidden` container, `aspect-[4/3]`. **Nominatim
+    geocoding pipeline preserved 1:1** — `useAddressGeocode` hook +
+    bbox/marker/layer iframe URL structure (M6/3 Faza 5, commit
+    `37cb160`) intact. Dashed fallback when geocode.data null or no
+    address set. Correction vs MIGRATION_PLAN §G3 text ("kafle
+    slate-50"): bundle actually uses bg-slate-100 icon circles, not
+    slate-50 tile containers — bundle JSX wins as source of truth.
+  - **OpeningHoursSection rebuild** (commit `f0e806f`): 2-col grid
+    (day name left, hours right-aligned mono+tabular-nums),
+    `md:max-w-[460px]`. Active day = primary bullet
+    `w-1.5 h-1.5 rounded-full bg-primary` before label +
+    `DZIŚ` mono badge `text-primary` + `font-semibold text-slate-900`
+    row styling. Today resolved inline via
+    `Intl.DateTimeFormat timeZone "Europe/Warsaw" weekday:"long"` +
+    local DAY_MAP — duplicates 5 lines from `useIsRestaurantOpen`,
+    but extending that hook's surface is out of G3 scope (plan §8).
+  - **ThemeBootstrap audit**: format `--color-primary: R G B`
+    zachowany, kompatybilny z G1 tokens, zero modyfikacji (G2 scope).
+    Potwierdzone: `themeLoader.ts:12` emituje `${r} ${g} ${b}` plain
+    space-separated string, Tailwind `rgb(var(--color-primary) /
+    <alpha-value>)` consumer w `tailwind.config.ts` bez zmian od G1.
+  - **Zero zmian**: backend (Java/Flyway), router.tsx, providers.tsx,
+    ErrorBoundary, SeoHead, `fetchPublicSettings` /
+    `fetchPublicPageContent` / `fetchPublicOpeningHours` /
+    `useAddressGeocode` / `useIsRestaurantOpen` /
+    `usePublicSettings` hook signatures, CartDrawer / CartButton /
+    MobileCartBar / ProductCard / ProductModal / CategoryTabs (G4 scope),
+    shared UI primitives (Button/Input/Sheet/Card — G1 closed),
+    query keys (`["public","settings"|"page-content"|"opening-hours"|
+    "menu"]`), cartStore persist key `pizza-showcase-cart`,
+    authStore, Zod schemas, Bean Validation, DTO shape.
+  - **Smoke automatyczny**: `npm run build` zielone (tsc + vite,
+    1.69s ostatni commit, bundle 729.81 kB — +3.88 kB vs G6 baseline
+    725.93 kB: PublicNav + PublicFooter + 3 new lucide icons
+    (Clock, Truck, Menu) + rebuilt section JSX — akceptowalne).
+  - **Smoke manualny do zrobienia przez usera** — patrz sekcja raportu
+    "G2+G3 acceptance" oraz "Regresja G1/G6/Faz 1-5" w chat.
+
 - [ ] Grupa 4: Menu + Modal + Cart
 - [ ] Grupa 5: Checkout + Confirmation + Tracking
 - [ ] Grupa 7: Admin Orders (flagship, screenshoty before/after)

@@ -1,4 +1,5 @@
 import type { DayOfWeek, OpeningHoursDto } from "@/shared/api/openingHoursApi";
+import { cn } from "@/shared/lib/cn";
 
 const DAY_ORDER: DayOfWeek[] = [
   "MONDAY",
@@ -18,6 +19,24 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
   SATURDAY: "Sobota",
   SUNDAY: "Niedziela",
 };
+const EN_DAY_MAP: Record<string, DayOfWeek> = {
+  Monday: "MONDAY",
+  Tuesday: "TUESDAY",
+  Wednesday: "WEDNESDAY",
+  Thursday: "THURSDAY",
+  Friday: "FRIDAY",
+  Saturday: "SATURDAY",
+  Sunday: "SUNDAY",
+};
+
+function resolveTodayInWarsaw(): DayOfWeek | null {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Warsaw",
+    weekday: "long",
+  }).formatToParts(new Date());
+  const weekday = parts.find((p) => p.type === "weekday")?.value;
+  return weekday ? EN_DAY_MAP[weekday] ?? null : null;
+}
 
 interface Props {
   hours: OpeningHoursDto[] | undefined;
@@ -25,29 +44,63 @@ interface Props {
 
 export function OpeningHoursSection({ hours }: Props) {
   const byDay = new Map((hours ?? []).map((h) => [h.dayOfWeek, h]));
+  const today = resolveTodayInWarsaw();
 
   return (
-    <section id="hours" className="bg-white py-16">
-      <div className="mx-auto max-w-3xl px-4">
-        <h2 className="text-3xl font-semibold text-slate-900">Godziny otwarcia</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Zapraszamy w wybrane dni tygodnia.
-        </p>
-        <ul className="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200">
+    <section id="hours" className="border-t border-slate-200 bg-white py-16 md:py-24">
+      <div className="mx-auto max-w-6xl px-4 md:px-8">
+        <div className="mb-8 md:mb-10">
+          <div className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
+            Godziny otwarcia
+          </div>
+          <h2 className="text-[28px] font-semibold leading-[1.1] tracking-tight text-slate-900 md:text-[40px] md:leading-[1.05]">
+            Kiedy zapraszamy
+          </h2>
+        </div>
+        <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2.5 text-[14px] md:max-w-[460px]">
           {DAY_ORDER.map((day) => {
             const entry = byDay.get(day);
+            const isToday = today === day;
+            const isClosed = !entry || entry.closed;
             return (
-              <li key={day} className="flex items-center justify-between px-4 py-3">
-                <span className="font-medium text-slate-700">{DAY_LABELS[day]}</span>
-                <span className="text-sm text-slate-600">
-                  {!entry || entry.closed
+              <div key={day} className="contents">
+                <div
+                  className={cn(
+                    "flex items-center gap-2",
+                    isToday
+                      ? "font-semibold text-slate-900"
+                      : "text-slate-600"
+                  )}
+                >
+                  {isToday ? (
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary"
+                    />
+                  ) : null}
+                  <span>{DAY_LABELS[day]}</span>
+                  {isToday ? (
+                    <span className="ml-1 font-mono text-[11px] font-medium tracking-[0.18em] text-primary">
+                      DZIŚ
+                    </span>
+                  ) : null}
+                </div>
+                <div
+                  className={cn(
+                    "text-right font-mono text-[13px] tabular-nums",
+                    isToday
+                      ? "font-semibold text-slate-900"
+                      : "text-slate-500"
+                  )}
+                >
+                  {isClosed
                     ? "Zamknięte"
                     : `${entry.openTime} – ${entry.closeTime}`}
-                </span>
-              </li>
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
       </div>
     </section>
   );
