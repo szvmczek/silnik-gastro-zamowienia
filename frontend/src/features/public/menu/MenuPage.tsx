@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { usePublicMenu } from "./hooks/usePublicMenu";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { CategoryTabs } from "./components/CategoryTabs";
 import { ProductCard } from "./components/ProductCard";
-import { ProductModal } from "./components/ProductModal";
+import { ProductModal, type ProductModalDefaults } from "./components/ProductModal";
 import { CartDrawer } from "@/features/public/cart/CartDrawer";
 import { MobileCartBar } from "@/features/public/cart/MobileCartBar";
 import { PublicNav } from "@/features/public/shared/PublicNav";
 import { PublicFooter } from "@/features/public/shared/PublicFooter";
+import { useCartStore, type CartItem } from "@/features/public/cart/cartStore";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 
 function categoryAnchorId(slug: string) {
@@ -18,7 +20,9 @@ export function MenuPage() {
   const { data: menu, isLoading, isError } = usePublicMenu();
   const { data: settings } = usePublicSettings();
   const [selected, setSelected] = useState<PublicProductDto | null>(null);
+  const [editDefaults, setEditDefaults] = useState<ProductModalDefaults | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const removeItem = useCartStore((s) => s.removeItem);
 
   const activeCategories = useMemo(
     () => (menu?.categories ?? []).filter((c) => c.active),
@@ -32,6 +36,47 @@ export function MenuPage() {
   const sectionIds = useMemo(() => activeCategories.map((c) => categoryAnchorId(c.slug)), [activeCategories]);
 
   const currency = settings?.currency ?? "PLN";
+
+  const findProductById = useCallback(
+    (productId: number): PublicProductDto | null => {
+      if (!menu) return null;
+      for (const category of menu.categories) {
+        for (const product of category.products) {
+          if (product.id === productId) return product;
+        }
+      }
+      return null;
+    },
+    [menu]
+  );
+
+  const handleOpenProduct = (product: PublicProductDto) => {
+    setEditDefaults(null);
+    setSelected(product);
+  };
+
+  const handleEditCartItem = (item: CartItem) => {
+    const product = findProductById(item.productId);
+    if (!product || !product.available) {
+      toast.error(`Produkt "${item.productName}" jest obecnie niedostępny`);
+      return;
+    }
+    setEditDefaults({
+      variantId: item.variantId,
+      addonIds: item.addons.map((a) => a.addonId),
+      quantity: item.quantity,
+    });
+    setSelected(product);
+    removeItem(item.lineKey);
+    setCartOpen(false);
+  };
+
+  const handleModalOpenChange = (open: boolean) => {
+    if (!open) {
+      setSelected(null);
+      setEditDefaults(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -99,7 +144,7 @@ export function MenuPage() {
                           key={product.id}
                           product={product}
                           currency={currency}
-                          onClick={setSelected}
+                          onClick={handleOpenProduct}
                         />
                       ))}
                     </div>
@@ -116,13 +161,16 @@ export function MenuPage() {
       <ProductModal
         product={selected}
         open={selected !== null}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
+        onOpenChange={handleModalOpenChange}
         currency={currency}
+        defaults={editDefaults}
       />
 
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        onEdit={handleEditCartItem}
+      />
       <MobileCartBar onOpenCart={() => setCartOpen(true)} />
     </div>
   );
