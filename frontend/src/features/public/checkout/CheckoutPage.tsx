@@ -1,16 +1,22 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ChevronDown,
+  ShoppingBag,
+  Truck,
+} from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Label } from "@/shared/components/ui/Label";
 import { Textarea } from "@/shared/components/ui/Textarea";
-import { RadioGroup, RadioGroupItem } from "@/shared/components/ui/RadioGroup";
+import { cn } from "@/shared/lib/cn";
 import { extractProblem } from "@/shared/api/client";
 import { placeOrder, type CreateOrderRequest } from "@/shared/api/orderApi";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
@@ -137,6 +143,7 @@ export function CheckoutPage() {
   const currency = settings?.currency ?? "PLN";
   const { isOpen: restaurantIsOpen } = useIsRestaurantOpen();
   const orderPlacedRef = useRef(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     if (items.length === 0 && !orderPlacedRef.current) {
@@ -216,20 +223,69 @@ export function CheckoutPage() {
     return null;
   }
 
+  const submitCtaLabel = mutation.isPending
+    ? "Składanie zamówienia…"
+    : !restaurantIsOpen
+      ? "Restauracja zamknięta"
+      : `Złóż zamówienie — ${formatPrice(total, currency)}`;
+  const submitDisabled = mutation.isPending || !restaurantIsOpen;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/menu" className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-primary">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-10">
+          <Link
+            to="/menu"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-600 hover:text-slate-900"
+          >
             <ArrowLeft className="h-4 w-4" />
             Wróć do menu
           </Link>
-          <span className="text-lg font-semibold">{settings?.name ?? "Restauracja"}</span>
+          <span className="text-[15px] font-semibold">
+            {settings?.name ?? "Restauracja"}
+          </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 lg:pb-16">
-        <h1 className="mb-6 text-2xl font-bold sm:text-3xl">Złóż zamówienie</h1>
+      <div className="md:hidden border-b border-slate-200 bg-white">
+        <button
+          type="button"
+          onClick={() => setSummaryOpen((v) => !v)}
+          aria-expanded={summaryOpen}
+          className="flex w-full items-center justify-between px-4 py-3 text-left"
+        >
+          <div>
+            <div className="text-[12px] text-slate-500">Podsumowanie</div>
+            <div className="text-[15px] font-semibold text-slate-900">
+              {formatPrice(total, currency)}{" "}
+              <span className="text-[12px] font-normal text-slate-500">
+                · {items.length} {itemsNoun(items.length)}
+              </span>
+            </div>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-5 w-5 text-slate-400 transition-transform duration-base",
+              summaryOpen && "rotate-180"
+            )}
+          />
+        </button>
+        {summaryOpen ? (
+          <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+            <SummaryCardContents
+              items={items}
+              total={total}
+              currency={currency}
+              compact
+            />
+          </div>
+        ) : null}
+      </div>
+
+      <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 md:px-10 md:pb-16 md:pt-10">
+        <h1 className="mb-6 text-[28px] font-semibold tracking-tight text-slate-900 md:mb-8 md:text-[36px]">
+          Zamówienie
+        </h1>
 
         {!restaurantIsOpen ? (
           <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -237,32 +293,44 @@ export function CheckoutPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid gap-5 md:gap-8 lg:grid-cols-[1fr_420px]">
           <form
             id="checkout-form"
             onSubmit={handleSubmit(onSubmit)}
             noValidate
-            className="space-y-6 lg:order-1 order-2"
+            className="space-y-5"
           >
-            <Section title="Dane kontaktowe">
-              <Field label="Imię i nazwisko" htmlFor="customerName" error={errors.customerName?.message}>
-                <Input
-                  id="customerName"
-                  autoComplete="name"
-                  disabled={mutation.isPending}
-                  {...register("customerName")}
-                />
-              </Field>
-              <Field label="Telefon" htmlFor="customerPhone" error={errors.customerPhone?.message}>
-                <Input
-                  id="customerPhone"
-                  type="tel"
-                  autoComplete="tel"
-                  placeholder="+48500600700"
-                  disabled={mutation.isPending}
-                  {...register("customerPhone")}
-                />
-              </Field>
+            <Section kicker="1 · Dane kontaktowe">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="Imię i nazwisko"
+                  htmlFor="customerName"
+                  error={errors.customerName?.message}
+                >
+                  <Input
+                    id="customerName"
+                    autoComplete="name"
+                    disabled={mutation.isPending}
+                    error={!!errors.customerName}
+                    {...register("customerName")}
+                  />
+                </Field>
+                <Field
+                  label="Telefon"
+                  htmlFor="customerPhone"
+                  error={errors.customerPhone?.message}
+                >
+                  <Input
+                    id="customerPhone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="+48500600700"
+                    disabled={mutation.isPending}
+                    error={!!errors.customerPhone}
+                    {...register("customerPhone")}
+                  />
+                </Field>
+              </div>
               <Field
                 label="Email (opcjonalny)"
                 htmlFor="customerEmail"
@@ -273,38 +341,56 @@ export function CheckoutPage() {
                   type="email"
                   autoComplete="email"
                   disabled={mutation.isPending}
+                  error={!!errors.customerEmail}
                   {...register("customerEmail")}
                 />
               </Field>
             </Section>
 
-            <Section title="Sposób realizacji">
+            <Section kicker="2 · Typ realizacji">
               <Controller
                 control={control}
                 name="fulfillmentType"
                 render={({ field }) => (
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setValue(
-                        "paymentMethod",
-                        value === "DELIVERY" ? "CASH_ON_DELIVERY" : "CASH_ON_PICKUP",
-                        { shouldValidate: true }
-                      );
-                    }}
+                  <div
+                    role="radiogroup"
+                    aria-label="Typ realizacji"
                     className="grid gap-3 sm:grid-cols-2"
                   >
-                    <RadioCard value="DELIVERY" title="Dostawa" subtitle="Pod wskazany adres" />
-                    <RadioCard value="PICKUP" title="Odbiór osobisty" subtitle="W lokalu" />
-                  </RadioGroup>
+                    <FulfillmentTile
+                      value="DELIVERY"
+                      selected={field.value === "DELIVERY"}
+                      icon={<Truck className="h-5 w-5" />}
+                      title="Dostawa"
+                      subtitle="~35 min pod Twoje drzwi"
+                      onSelect={() => {
+                        field.onChange("DELIVERY");
+                        setValue("paymentMethod", "CASH_ON_DELIVERY", {
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                    <FulfillmentTile
+                      value="PICKUP"
+                      selected={field.value === "PICKUP"}
+                      icon={<ShoppingBag className="h-5 w-5" />}
+                      title="Odbiór osobisty"
+                      subtitle="~25 min od złożenia"
+                      onSelect={() => {
+                        field.onChange("PICKUP");
+                        setValue("paymentMethod", "CASH_ON_PICKUP", {
+                          shouldValidate: true,
+                        });
+                      }}
+                    />
+                  </div>
                 )}
               />
             </Section>
 
             {isDelivery ? (
-              <Section title="Adres dostawy">
-                <div className="grid gap-3 sm:grid-cols-[1fr_140px_140px]">
+              <Section kicker="3 · Adres dostawy">
+                <div className="grid gap-4 sm:grid-cols-[1fr_140px_140px]">
                   <Field
                     label="Ulica"
                     htmlFor="street"
@@ -314,6 +400,7 @@ export function CheckoutPage() {
                       id="street"
                       autoComplete="address-line1"
                       disabled={mutation.isPending}
+                      error={!!errors.deliveryAddress?.street}
                       {...register("deliveryAddress.street")}
                     />
                   </Field>
@@ -325,6 +412,7 @@ export function CheckoutPage() {
                     <Input
                       id="buildingNumber"
                       disabled={mutation.isPending}
+                      error={!!errors.deliveryAddress?.buildingNumber}
                       {...register("deliveryAddress.buildingNumber")}
                     />
                   </Field>
@@ -336,11 +424,12 @@ export function CheckoutPage() {
                     <Input
                       id="apartmentNumber"
                       disabled={mutation.isPending}
+                      error={!!errors.deliveryAddress?.apartmentNumber}
                       {...register("deliveryAddress.apartmentNumber")}
                     />
                   </Field>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-[140px_1fr]">
+                <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
                   <Field
                     label="Kod pocztowy"
                     htmlFor="postalCode"
@@ -351,6 +440,7 @@ export function CheckoutPage() {
                       placeholder="00-000"
                       autoComplete="postal-code"
                       disabled={mutation.isPending}
+                      error={!!errors.deliveryAddress?.postalCode}
                       {...register("deliveryAddress.postalCode")}
                     />
                   </Field>
@@ -363,6 +453,7 @@ export function CheckoutPage() {
                       id="city"
                       autoComplete="address-level2"
                       disabled={mutation.isPending}
+                      error={!!errors.deliveryAddress?.city}
                       {...register("deliveryAddress.city")}
                     />
                   </Field>
@@ -376,120 +467,85 @@ export function CheckoutPage() {
                     id="addressNotes"
                     placeholder="np. domofon, piętro"
                     disabled={mutation.isPending}
+                    error={!!errors.deliveryAddress?.notes}
                     {...register("deliveryAddress.notes")}
                   />
                 </Field>
               </Section>
             ) : null}
 
-            <Section title="Sposób płatności">
-              <p className="mb-2 text-xs text-slate-500">
-                {isDelivery
-                  ? "Płacisz gotówką u kuriera w momencie dostawy."
-                  : "Płacisz gotówką przy odbiorze w lokalu."}
-              </p>
+            <Section kicker={isDelivery ? "4 · Metoda płatności" : "3 · Metoda płatności"}>
               <Controller
                 control={control}
                 name="paymentMethod"
                 render={({ field }) => (
-                  <RadioGroup
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    className="grid gap-3"
-                  >
-                    {isDelivery ? (
-                      <RadioCard
-                        value="CASH_ON_DELIVERY"
-                        title="Gotówka u kuriera"
-                        subtitle="Przygotuj odliczoną kwotę"
-                      />
-                    ) : (
-                      <RadioCard
-                        value="CASH_ON_PICKUP"
-                        title="Gotówka przy odbiorze"
-                        subtitle="Płacisz w lokalu"
-                      />
-                    )}
-                  </RadioGroup>
+                  <PaymentTile
+                    selected={
+                      field.value ===
+                      (isDelivery ? "CASH_ON_DELIVERY" : "CASH_ON_PICKUP")
+                    }
+                    title={isDelivery ? "Gotówka przy dostawie" : "Gotówka przy odbiorze"}
+                    subtitle={
+                      isDelivery
+                        ? "Kurier wyda resztę."
+                        : "Płacisz w lokalu przy odbiorze."
+                    }
+                    onSelect={() =>
+                      field.onChange(
+                        isDelivery ? "CASH_ON_DELIVERY" : "CASH_ON_PICKUP"
+                      )
+                    }
+                  />
                 )}
               />
               {errors.paymentMethod ? (
-                <p className="mt-1 text-xs font-medium text-rose-600">
-                  {errors.paymentMethod.message}
-                </p>
+                <InlineError message={errors.paymentMethod.message!} />
               ) : null}
             </Section>
 
-            <Section title="Uwagi do zamówienia (opcjonalne)">
-              <Field label="" htmlFor="customerNotes" error={errors.customerNotes?.message}>
-                <Textarea
-                  id="customerNotes"
-                  placeholder="np. bez cebuli, dzwonek nie działa"
-                  disabled={mutation.isPending}
-                  {...register("customerNotes")}
-                />
-              </Field>
+            <Section kicker={isDelivery ? "5 · Uwagi do zamówienia" : "4 · Uwagi do zamówienia"}>
+              <Label htmlFor="customerNotes">
+                Uwagi{" "}
+                <span className="font-normal text-slate-500">· opcjonalne</span>
+              </Label>
+              <Textarea
+                id="customerNotes"
+                rows={2}
+                placeholder="np. bez cebuli na całym zamówieniu"
+                disabled={mutation.isPending}
+                error={!!errors.customerNotes}
+                {...register("customerNotes")}
+              />
+              {errors.customerNotes ? (
+                <InlineError message={errors.customerNotes.message!} />
+              ) : null}
             </Section>
-
-            <div className="hidden lg:block">
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={mutation.isPending || !restaurantIsOpen}
-              >
-                {mutation.isPending
-                  ? "Składanie zamówienia…"
-                  : !restaurantIsOpen
-                  ? "Restauracja zamknięta"
-                  : `Zamów i zapłać ${formatPrice(total, currency)}`}
-              </Button>
-            </div>
           </form>
 
-          <aside className="lg:order-2 order-1 lg:sticky lg:top-20 lg:h-fit">
-            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-semibold">Podsumowanie</h2>
-              <ul className="mt-4 divide-y divide-slate-100">
-                {items.map((item) => (
-                  <li key={item.lineKey} className="py-3 text-sm">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-900">
-                          {item.productName}
-                          {item.variantName ? (
-                            <span className="font-normal text-slate-500">
-                              {" "}
-                              · {item.variantName}
-                            </span>
-                          ) : null}
-                        </p>
-                        {item.addons.length > 0 ? (
-                          <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
-                            {item.addons.map((a) => (
-                              <li key={a.addonId}>+ {a.name}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        <p className="mt-1 text-xs text-slate-500">
-                          {item.quantity} × {formatPrice(item.unitPrice + item.addons.reduce((acc, a) => acc + a.price, 0), currency)}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-semibold text-slate-900">
-                        {formatPrice(lineTotal(item), currency)}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-                <span className="text-sm font-medium text-slate-700">Razem</span>
-                <span className="text-lg font-bold text-slate-900">
-                  {formatPrice(total, currency)}
-                </span>
+          <aside className="hidden lg:block">
+            <div className="sticky top-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-6 py-5">
+                <div className="text-[15px] font-semibold text-slate-900">
+                  Podsumowanie
+                </div>
+              </div>
+              <SummaryCardContents items={items} total={total} currency={currency} />
+              <div className="p-5">
+                <Button
+                  type="submit"
+                  form="checkout-form"
+                  variant="primary"
+                  size="xl"
+                  className="w-full"
+                  disabled={submitDisabled}
+                >
+                  {submitCtaLabel}
+                </Button>
+                <p className="mt-3 text-center text-[11px] text-slate-400">
+                  Klikając potwierdzasz, że Twoje dane są poprawne.
+                </p>
               </div>
             </div>
-
           </aside>
         </div>
       </main>
@@ -498,15 +554,12 @@ export function CheckoutPage() {
         <Button
           type="submit"
           form="checkout-form"
-          size="lg"
+          variant="primary"
+          size="xl"
           className="w-full"
-          disabled={mutation.isPending || !restaurantIsOpen}
+          disabled={submitDisabled}
         >
-          {mutation.isPending
-            ? "Składanie zamówienia…"
-            : !restaurantIsOpen
-            ? "Restauracja zamknięta"
-            : `Zamów i zapłać ${formatPrice(total, currency)}`}
+          {submitCtaLabel}
         </Button>
       </div>
     </div>
@@ -514,15 +567,17 @@ export function CheckoutPage() {
 }
 
 interface SectionProps {
-  title: string;
+  kicker: string;
   children: React.ReactNode;
 }
 
-function Section({ title, children }: SectionProps) {
+function Section({ kicker, children }: SectionProps) {
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-base font-semibold">{title}</h2>
-      <div className="space-y-3">{children}</div>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
+      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">
+        {kicker}
+      </div>
+      <div className="space-y-4">{children}</div>
     </section>
   );
 }
@@ -537,33 +592,181 @@ interface FieldProps {
 function Field({ label, htmlFor, error, children }: FieldProps) {
   return (
     <div>
-      {label ? (
-        <Label htmlFor={htmlFor} className="mb-1 block">
-          {label}
-        </Label>
-      ) : null}
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {error ? <p className="mt-1 text-xs font-medium text-rose-600">{error}</p> : null}
+      {error ? <InlineError message={error} /> : null}
     </div>
   );
 }
 
-interface RadioCardProps {
-  value: string;
-  title: string;
-  subtitle: string;
+function InlineError({ message }: { message: string }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-[12px] font-medium text-rose-600">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      <span>{message}</span>
+    </p>
+  );
 }
 
-function RadioCard({ value, title, subtitle }: RadioCardProps) {
+interface FulfillmentTileProps {
+  value: string;
+  selected: boolean;
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  onSelect: () => void;
+}
+
+function FulfillmentTile({
+  selected,
+  icon,
+  title,
+  subtitle,
+  onSelect,
+}: FulfillmentTileProps) {
   return (
-    <Label
-      className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 bg-white p-3 transition-colors hover:border-primary has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:p-5",
+        selected
+          ? "border-2 border-primary bg-primary/5"
+          : "border border-slate-200 bg-white hover:border-slate-300"
+      )}
     >
-      <RadioGroupItem value={value} className="mt-0.5" />
-      <span className="flex flex-col">
-        <span className="text-sm font-semibold text-slate-900">{title}</span>
-        <span className="text-xs text-slate-500">{subtitle}</span>
+      <span
+        className={cn(
+          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+          selected ? "border-primary" : "border-slate-300"
+        )}
+      >
+        {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
       </span>
-    </Label>
+      <span className="flex flex-col">
+        <span className="flex items-center gap-2 text-slate-900">
+          <span className={selected ? "text-primary" : "text-slate-700"}>{icon}</span>
+          <span className="text-[14px] font-semibold">{title}</span>
+        </span>
+        <span className="mt-0.5 text-[12px] text-slate-500">{subtitle}</span>
+      </span>
+    </button>
   );
+}
+
+interface PaymentTileProps {
+  selected: boolean;
+  title: string;
+  subtitle: string;
+  onSelect: () => void;
+}
+
+function PaymentTile({ selected, title, subtitle, onSelect }: PaymentTileProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        selected
+          ? "border-2 border-primary bg-primary/5"
+          : "border border-slate-200 bg-white hover:border-slate-300"
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
+          selected ? "border-primary" : "border-slate-300"
+        )}
+      >
+        {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[14px] font-semibold text-slate-900">{title}</span>
+        <span className="mt-0.5 text-[12px] text-slate-500">{subtitle}</span>
+      </span>
+    </button>
+  );
+}
+
+interface SummaryCardContentsProps {
+  items: ReturnType<typeof useCartStore.getState>["items"];
+  total: string | number;
+  currency: string;
+  compact?: boolean;
+}
+
+function SummaryCardContents({
+  items,
+  total,
+  currency,
+  compact,
+}: SummaryCardContentsProps) {
+  return (
+    <>
+      <ul
+        className={cn(
+          "divide-y divide-slate-100",
+          compact ? "px-0" : "px-6"
+        )}
+      >
+        {items.map((item) => {
+          const unit =
+            item.unitPrice + item.addons.reduce((acc, a) => acc + a.price, 0);
+          return (
+            <li
+              key={item.lineKey}
+              className="flex items-start justify-between gap-3 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-[14px] font-medium text-slate-900">
+                  <span className="text-slate-500">{item.quantity}× </span>
+                  {item.productName}
+                </p>
+                {(item.variantName || item.addons.length > 0) && (
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    {[
+                      item.variantName,
+                      ...item.addons.map((a) => `+${a.name}`),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {item.quantity} × {formatPrice(unit, currency)}
+                </p>
+              </div>
+              <span className="shrink-0 text-[14px] font-semibold text-slate-900">
+                {formatPrice(lineTotal(item), currency)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <div
+        className={cn(
+          "flex items-center justify-between border-t border-slate-200 bg-slate-50",
+          compact ? "mt-3 rounded-md px-3 py-3" : "px-6 py-4"
+        )}
+      >
+        <span className="text-[14px] font-semibold text-slate-900">Razem</span>
+        <span className="text-[20px] font-semibold text-slate-900">
+          {formatPrice(total, currency)}
+        </span>
+      </div>
+    </>
+  );
+}
+
+function itemsNoun(n: number): string {
+  if (n === 1) return "pozycja";
+  const last = n % 10;
+  const lastTwo = n % 100;
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return "pozycje";
+  return "pozycji";
 }
