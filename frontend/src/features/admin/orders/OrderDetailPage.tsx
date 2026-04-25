@@ -6,14 +6,6 @@ import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/Card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/Dialog";
-import {
   fetchAdminOrderById,
   updateOrderEta,
   updateOrderStatus,
@@ -28,6 +20,7 @@ import { OrderStatusBadge, statusLabel } from "@/shared/components/OrderStatusBa
 import { OrderStatusActions } from "./components/OrderStatusActions";
 import { OrderStatusHistory } from "./components/OrderStatusHistory";
 import { EtaDialog } from "./components/EtaDialog";
+import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { computeEtaRelativeTime } from "./lib/etaRelativeTime";
 
 function formatCurrency(raw: string): string {
@@ -340,41 +333,19 @@ export function OrderDetailPage() {
         isSubmitting={etaMutation.isPending}
       />
 
-      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Anulować zamówienie?</DialogTitle>
-            <DialogDescription>
-              Klient zobaczy zmianę statusu na stronie śledzenia. Tej akcji
-              nie można cofnąć.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setCancelOpen(false)}
-              disabled={mutating}
-            >
-              Zachowaj zamówienie
-            </Button>
-            <Button
-              type="button"
-              variant="dangerOutline"
-              disabled={mutating}
-              onClick={() => {
-                setCancelOpen(false);
-                statusMutation.mutate({
-                  next: "CANCELED",
-                  version: order.version,
-                });
-              }}
-            >
-              {mutating ? "Anulowanie…" : "Anuluj zamówienie"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CancelOrderDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        orderNumber={order.orderNumber}
+        isSubmitting={mutating}
+        onConfirm={() => {
+          setCancelOpen(false);
+          statusMutation.mutate({
+            next: "CANCELED",
+            version: order.version,
+          });
+        }}
+      />
     </div>
   );
 }
