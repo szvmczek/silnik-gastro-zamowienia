@@ -23,6 +23,8 @@ import { formatTime } from "@/shared/lib/formatDate";
 import { cn } from "@/shared/lib/cn";
 import { OrderStatusBadge } from "@/shared/components/OrderStatusBadge";
 import { Skeleton } from "@/shared/components/ui/Skeleton";
+import { EmptyState } from "@/shared/components/ui/EmptyState";
+import { Inbox } from "lucide-react";
 import { OrderFilters, type OrderFiltersValue } from "./components/OrderFilters";
 
 const PAGE_SIZE = 20;
@@ -172,8 +174,27 @@ export function OrdersListPage() {
         {listQuery.isPending ? (
           <OrdersListSkeleton />
         ) : rows.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            Brak zamówień dla tych filtrów.
+          <div className="p-10">
+            <EmptyState
+              icon={<Inbox className="h-5 w-5" />}
+              title={
+                hasActiveFilters
+                  ? "Brak zamówień dla tych filtrów"
+                  : "Nie ma jeszcze żadnych zamówień"
+              }
+              description={
+                hasActiveFilters
+                  ? "Spróbuj zmienić zakres dat albo zdjąć status."
+                  : "Gdy klient złoży zamówienie przez stronę, pojawi się tutaj."
+              }
+              action={
+                hasActiveFilters ? (
+                  <Button variant="outline" size="sm" onClick={resetFilters}>
+                    Wyczyść filtry
+                  </Button>
+                ) : null
+              }
+            />
           </div>
         ) : (
           <Table>
