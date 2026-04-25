@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, type Query } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -52,6 +52,49 @@ function formatUpdatedAgo(ms: number): string {
 function toTelHref(phone: string | undefined | null): string {
   if (!phone) return "";
   return `tel:${phone.replace(/\s+/g, "")}`;
+}
+
+type EtaDisplay =
+  | { mode: "pending" }
+  | { mode: "legacy"; minutes: number }
+  | {
+      mode: "live";
+      clockLabel: string;
+      residualMinRounded: number;
+      progress: number;
+      overdue: boolean;
+    };
+
+const ETA_CLOCK_FORMAT = new Intl.DateTimeFormat("pl-PL", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+function computeEtaDisplay(
+  etaSetAt: string | null,
+  etaMinutes: number | null,
+  now: Date
+): EtaDisplay {
+  if (etaMinutes == null) return { mode: "pending" };
+  if (!etaSetAt) return { mode: "legacy", minutes: etaMinutes };
+  const setAt = new Date(etaSetAt).getTime();
+  const targetMs = setAt + etaMinutes * 60_000;
+  const elapsedMin = (now.getTime() - setAt) / 60_000;
+  const residualMin = Math.max(0, etaMinutes - elapsedMin);
+  return {
+    mode: "live",
+    clockLabel: ETA_CLOCK_FORMAT.format(new Date(targetMs)),
+    residualMinRounded: Math.max(1, Math.ceil(residualMin)),
+    progress: Math.min(1, Math.max(0, elapsedMin / etaMinutes)),
+    overdue: elapsedMin >= etaMinutes,
+  };
+}
+
+function pluralizeMinutes(n: number): string {
+  if (n === 1) return "minutę";
+  if (n >= 2 && n <= 4) return "minuty";
+  return "minut";
 }
 
 export function TrackingPage() {
@@ -176,6 +219,7 @@ export function TrackingPage() {
               <div className="grid gap-5 md:grid-cols-[1.2fr_1fr]">
                 <EtaCard
                   etaMinutes={order.etaMinutes}
+                  etaSetAt={order.etaSetAt}
                   fulfillmentType={order.fulfillmentType}
                   status={order.status}
                 />
@@ -276,43 +320,82 @@ export function TrackingPage() {
 
 interface EtaCardProps {
   etaMinutes: number | null;
+  etaSetAt: string | null;
   fulfillmentType: FulfillmentType;
   status: OrderStatus;
 }
 
-function EtaCard({ etaMinutes, fulfillmentType, status }: EtaCardProps) {
+function EtaCard({ etaMinutes, etaSetAt, fulfillmentType, status }: EtaCardProps) {
   const destination = fulfillmentType === "DELIVERY" ? "do dostawy" : "do odbioru";
-  const isPending = etaMinutes == null;
   const isReady = status === "READY" || status === "OUT_FOR_DELIVERY";
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    if (isReady) return;
+    if (etaMinutes == null || !etaSetAt) return;
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [isReady, etaMinutes, etaSetAt]);
+
+  const display = useMemo(
+    () => computeEtaDisplay(etaSetAt, etaMinutes, now),
+    [etaSetAt, etaMinutes, now]
+  );
 
   return (
     <section className="rounded-2xl bg-slate-900 p-6 text-white md:p-8">
       <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/50">
         Szacowany czas {destination}
       </div>
-      {isPending ? (
+      {isReady ? (
         <>
-          <div className="mt-3 font-mono text-[32px] font-semibold leading-none tracking-tight text-white md:text-[44px]">
-            ustalamy…
+          <div className="mt-3 font-mono text-[32px] font-semibold leading-none tracking-tight md:text-[44px]">
+            gotowe
           </div>
           <div className="mt-3 text-[13px] text-white/70">
-            Restauracja wyznaczy czas w ciągu kilku minut. Ta strona odświeża się
+            Zamówienie jest gotowe —{" "}
+            {fulfillmentType === "DELIVERY"
+              ? "kurier już w drodze."
+              : "możesz je odebrać w lokalu."}
+          </div>
+        </>
+      ) : display.mode === "pending" ? (
+        <>
+          <div className="mt-3 font-mono text-[24px] font-semibold leading-none tracking-tight md:text-[32px]">
+            Ustalamy czas…
+          </div>
+          <div className="mt-3 text-[13px] text-white/70">
+            Restauracja wkrótce poda szacowany czas. Strona odświeża się
             automatycznie co 15 sekund.
+          </div>
+        </>
+      ) : display.mode === "legacy" ? (
+        <>
+          <div className="mt-3 font-mono text-[40px] font-semibold leading-none tracking-tight">
+            ~{display.minutes} min
+          </div>
+          <div className="mt-3 text-[13px] text-white/70">
+            Czas oczekiwania {destination}
           </div>
         </>
       ) : (
         <>
-          <div className="mt-2 flex items-baseline gap-3">
-            <div className="font-mono text-[44px] font-semibold leading-none tracking-tight md:text-[64px]">
-              ~{etaMinutes}
-            </div>
-            <div className="text-[14px] text-white/70">minut {destination}</div>
+          <div className="mt-2 font-mono text-[40px] font-semibold leading-none tracking-tight md:text-[64px]">
+            {display.clockLabel}
           </div>
-          {isReady ? (
-            <div className="mt-4 text-[13px] text-white/70">
-              Zamówienie jest gotowe — {fulfillmentType === "DELIVERY" ? "kurier już w drodze." : "możesz je odebrać w lokalu."}
-            </div>
-          ) : null}
+          <div className="mt-3 text-[13px] text-white/70">
+            {display.overdue
+              ? "Powinno być gotowe lada moment"
+              : `za ~${display.residualMinRounded} ${pluralizeMinutes(display.residualMinRounded)} ${destination}`}
+          </div>
+          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full bg-white transition-[width] duration-500 ease-out"
+              style={{
+                width: `${(display.overdue ? 1 : display.progress) * 100}%`,
+              }}
+            />
+          </div>
         </>
       )}
     </section>
