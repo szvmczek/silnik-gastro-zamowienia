@@ -333,6 +333,7 @@ export function OrderDetailPage() {
         open={etaOpen}
         onOpenChange={setEtaOpen}
         currentEtaMinutes={order.etaMinutes}
+        currentEtaSetAt={order.etaSetAt}
         onSubmit={(minutesFromNow) =>
           etaMutation.mutate({ minutesFromNow, version: order.version })
         }
