@@ -125,6 +125,20 @@ Razem z Fazą 6 lub tuż po. Potwierdzenie zamówienia + zmiana statusu mailem.
 - PWA (offline menu, push notifications)
 - File upload zdjęć produktów (zamiast URL)
 
+## QoL improvements (post-MVP)
+
+Drobne usprawnienia panelu admina sygnalizowane przez bundle Claude
+Design ale skipnięte podczas redesignu G6-G9 jako poza scope (zwykle
+wymagają dodatkowego state managementu lub podejmowania decyzji UX).
+
+- **„Skopiuj godziny do…" w `/admin/opening-hours`** — bundle
+  pokazuje per-row hover button kopiujący godziny otwarcia danego dnia
+  do innych dni. Skipnięte w G9 (deferred D3=A) — wymaga ~30+ linii
+  state managementu (popover/menu z checkbox listą dni docelowych,
+  mass `setValue` na openTime/closeTime, focus return), a bundle nie
+  precyzuje exact UX. Sensowne dodać razem z G10 polishem albo jako
+  osobny mini-task.
+
 ## Tech debt świadomie odłożony
 
 Bugi wykryte w review fazy, nie-blockery dla akceptacji, ale do uprzątnięcia

@@ -97,9 +97,9 @@ export function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
+                size="lg"
                 disabled={mutation.isPending}
                 error={Boolean(errors.email)}
-                className="h-11"
                 {...register("email")}
               />
               {errors.email && (
@@ -112,9 +112,9 @@ export function LoginPage() {
                 id="password"
                 type="password"
                 autoComplete="current-password"
+                size="lg"
                 disabled={mutation.isPending}
                 error={Boolean(errors.password)}
-                className="h-11"
                 {...register("password")}
               />
               {errors.password && (

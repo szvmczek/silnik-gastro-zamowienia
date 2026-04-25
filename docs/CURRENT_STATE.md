@@ -880,7 +880,201 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
       polling 10s, SSE 1 połączenie stabilne (DevTools Network →
       EventStream).
 
-- [ ] Grupa 9: Admin Settings
+- [x] Grupa 9: Admin Settings (2026-04-25, branch `design/g9-admin-settings`)
+  - **Input + Textarea `size` prop** (commit `27a685a`): addition-only
+    `size?: "sm" | "md" | "lg"` na obu primitive (default `"md"` =
+    h-10, current behavior preserved). Native HTML `size` attribute
+    shadowed via `Omit<InputHTMLAttributes, "size">` — verified zero
+    existing consumers. **LoginPage migration**: `className="h-11"`
+    override z G6 → `size="lg"` (visually pixel-identyczny). Adres
+    TODO carry-over z G6: bundle G9 ma 8+ inputów h-11 = drugi
+    konsument, refactor at the right moment.
+  - **SettingsTabs + SettingsShell** (commit `56d75b4`): wspólny
+    sub-nav `Ogólne / Godziny otwarcia / Treści strony` (3 NavLinks
+    z `end` matcher, active `border-b-2 border-primary
+    font-medium text-slate-900`). `SettingsShell` wrapper z
+    kicker "Konfiguracja" + H1 "Ustawienia" + optional description +
+    SettingsTabs — używany przez wszystkie 3 strony zamiast
+    per-page H1+description. AdminSidebar nav items nietknięte
+    (3 osobne pozycje + tabs nav = świadomy duplikat per bundle
+    settings.jsx SettingsNav).
+  - **SettingsPage rebuild** (commit `b9dc431`): major rebuild
+    /admin/settings (ekran 16). Body restructured do 3 SectionCard
+    tiles z icon+title header (Utensils/Sparkles/Phone): "Informacje
+    o restauracji", "Kolor marki", "Kontakt i adres". Color picker:
+    HEX `Input size="lg" font-mono uppercase` + 11×11 swatch
+    display tile + 6 brand swatches `#FF6B35, #D4482F, #B8363B,
+    #9C5729, #4F6D3B, #2E5A4F` per bundle SettingsGeneral. Click
+    swatch → `setValue('primaryColor', ..., shouldDirty +
+    shouldValidate)`. Active swatch `border-slate-900 scale-105`.
+    **NEW `ColorPreviewCard`** (single consumer, ekstrahowany dla
+    czytelności): scoped live preview z Primary button, link, 2 badge,
+    mini product card — wszystko inline `style={{ backgroundColor: c
+    }}` / `style={{ color: c }}` driven by hex input value (regex
+    fallback `#FF6B35` jeśli invalid mid-type). Tinted badge przez
+    8-digit hex alpha `${c}1A` (~10%).
+  - **FIX BONUS (preview behavior)**: usunięto pre-G9 side-effect
+    gdzie typing hex globalnie aplikował primary color przed save
+    (`applyPrimaryColor` w useEffect na każdy keystroke). Teraz
+    live preview jest scoped do ColorPreviewCard inline-style,
+    propagacja globalna **dopiero po save** → invalidate →
+    ThemeBootstrap re-applies. Lepszy UX (admin nie widzi panelu
+    w nieoczekiwanym kolorze) + fix bug "leave bez save zostawia
+    zmieniony CSS var aż do następnego usePublicSettings refresh".
+  - **FIX (G6 TODO addressed)**: RHF `defaultValues.primaryColor`
+    fallback `#E11D48` → `#FF6B35` — flicker przed initial fetch
+    teraz matchuje brand zgodnie z V100 + index.css fallback z G1.
+  - **OpeningHoursPage restyle** (commit `db8b8da`): /admin/opening-
+    hours (ekran 17). SectionCard z Clock icon, 7 dni jako `<ul
+    divide-y -mx-2>` zamiast osobnych bordered rows per bundle.
+    Native `<input type="checkbox">` → G1 `Switch` przez RHF
+    Controller; `closed` boolean inverted at boundary (Switch
+    semantically "open", DTO contract preserved). Status text
+    "Otwarte"/"Zamknięte" (slate-900/slate-400) inline. Time inputs
+    `w-28 font-mono text-center` (h-10 default = matches bundle dla
+    time pickers). "Zamknięte cały dzień" placeholder gdy row
+    collapses. Info-banner sky-50 pod kartą "Tylko regularny tydzień.
+    Wyjątki świąteczne w kolejnej wersji panelu." (zgodne z ROADMAP).
+    Submit CTA → G1 Button `variant="primary"` + Check icon.
+  - **DEFERRED w OpeningHoursPage**: "Skopiuj godziny do…" QoL
+    button per bundle (D3=A). Bundle pokazuje per-row hover button
+    ale nie precyzuje target-day picker UX, scope >30 linii state
+    managementu = scope creep dla atomic G9. Dopisane do
+    `docs/ROADMAP.md §QoL improvements` jako post-MVP.
+  - **PageContentPage rebuild** (commit `a4ba1f7-tbc`): /admin/page-
+    content (ekran 18). Layout `lg:grid-cols-[1fr_400px]` z form
+    left + sticky preview right (`lg:sticky lg:top-6`); mobile
+    collapses do single column. SectionCard z Sparkles (HERO) /
+    MessageSquare (ABOUT) icon. HERO/ABOUT segmented control
+    rounded-md container z primary active pill zachowany. Form
+    fields → `size="lg"` per bundle (title + imageUrl + ctaLabel/
+    ctaHref). Live preview pane (NEW `HeroPreview` + `AboutPreview`
+    components):
+    - `HeroPreview` — image aspect-4/3 (stripe pattern fallback),
+      gradient overlay, white title (line-clamp-3), body
+      (line-clamp-5), primary CTA
+    - `AboutPreview` — image aspect-4/3 (stripe fallback), kicker
+      "O NAS", title, whitespace-pre-line body (line-clamp-8)
+    - Both fed by `useDebouncedValue(watch(), 300)` — no laggy
+      keystrokes; preview updates ~300ms po pause
+    - Pane labeled "PODGLĄD LIVE · UPROSZCZONA REPREZENTACJA" —
+      admin widzi core elementy, **NIE 1:1 z public HeroSection**
+      (Display typography, asymmetric grid). Fork od public landing
+      jest świadomy: HeroSection/AboutSection (G3) coupled z
+      `usePublicPageContent` hookiem, modyfikacja byłaby poza scope.
+  - **NEW shared utility** `useDebouncedValue<T>(value, delayMs)`
+    w [shared/hooks/useDebouncedValue.ts] — minimal `setTimeout`-
+    based debounce. Sąsiaduje z istniejącymi `useAddressGeocode` /
+    `useIsRestaurantOpen`.
+  - **Zero zmian**: backend (zero linii Java/SQL/Flyway), API
+    (`fetchAdminSettings` / `updateAdminSettings` /
+    `fetchAdminOpeningHours` / `updateAdminOpeningHours` /
+    `fetchAdminPageContent` / `updateAdminPageContent`) hook
+    signatures, query keys (`["admin","settings"]`, `["admin",
+    "opening-hours"]`, `["admin","page-content",section]`),
+    mutation keys, DTO shape, payload shape, Zod schemas
+    (`nullableOptional` helper, `.optional().transform()` Faza 3
+    hotfix preserved 1:1 we wszystkich 3 stronach), routing
+    (`/admin/settings`, `/admin/opening-hours`, `/admin/page-content`),
+    `ThemeBootstrap.tsx` + `themeLoader.ts` core (`applyPrimaryColor`
+    nadal wywoływany w `mutation.onSuccess`, tylko keystroke-time
+    invocation usunięte z SettingsPage), `usePublicSettings` /
+    public konsumenci, `useAdminOrderFeed` mount stability (G6 —
+    żadna G9 strona nie konsumuje SSE), public landing
+    `HeroSection`/`AboutSection`/`AboutPreview-public` (G3 closed),
+    AdminSidebar nav items, framer-motion (decyzja #5).
+  - **Bundle delta**: 763.34 → 773.26 kB JS = **+9.92 kB** (G7
+    baseline 751.62 → G8 763.22 → G9 773.26). Główni kontrybutorzy:
+    7 nowych lucide ikon (Utensils, Phone, Sparkles, Check, Clock,
+    Info, MessageSquare), `ColorPreviewCard` (~80 linii inline-
+    style preview), `HeroPreview` + `AboutPreview` mini-renderers
+    (~50 linii każdy), `SettingsTabs` + `SettingsShell` (~50 linii
+    razem), `useDebouncedValue` utility, RHF `Controller` import w
+    OpeningHoursPage. Marginalne przekroczenie G9 plan flag
+    (+8 kB) — 4 nowe widoki + 1 shared hook + 8 ikon, akceptowalne.
+  - **Smoke automatyczny**: `npm run build` zielony po każdym
+    commicie (a-e), TypeScript strict + Vite. Końcowy bundle
+    773.26 kB JS / ~55 kB CSS / 226 kB gzip JS. `./gradlew build`
+    nie ruszany (backend zero zmian).
+  - **Świadome decyzje pre-implementacyjne**:
+    - **D1=A `Input/Textarea size` prop** — addition-only, default
+      `"md"`=h-10 zachowuje obecne zachowanie. LoginPage migration
+      atomic w commit (a) przed użyciem w G9 stronach.
+    - **D2=A `SettingsTabs` sub-nav** — bundle pattern, lepszy IA
+      (jasne że to jedna sekcja). Sidebar 3 osobne pozycje
+      zachowane = świadomy duplikat dla nawigacji z poziomu admin
+      shell.
+    - **D3=A defer "Skopiuj godziny"** — flagged + dopisane do
+      `docs/ROADMAP.md §QoL improvements`.
+    - **HeroPreview/AboutPreview = uproszczone fork**, NIE
+      importujemy `HeroSection`/`AboutSection` z `features/public/
+      landing` — coupled z `usePublicPageContent` hookiem; modyfikacja
+      public landing byłaby poza G9. Disclaimer w preview header.
+    - **300ms debounce** dla page content live preview — comfortable
+      feedback bez lag na keystroke; timing matches bundle "po
+      paru znakach widać".
+    - **Color picker validation + preview safe-fallback**: hex
+      validacja regex `^#[0-9A-Fa-f]{6}$`; ColorPreviewCard
+      sprawdza regex przed inline-style (fallback `#FF6B35` jeśli
+      invalid mid-type, prevents CSS crash z partial hex jak `#FF`).
+  - **Smoke manualny do zrobienia przez usera** (5-min spot-check):
+    - **Color picker live preview**: `/admin/settings` → wpisz
+      `#3B82F6` w HEX input → ColorPreviewCard po prawej (Primary
+      button "Zamów online", link "Zobacz całe menu →", "Nowe"
+      badge, mini product "Margherita") staje się **niebieski
+      natychmiast**. CTA "Zapisz zmiany" + sidebar item "Ustawienia"
+      active **POZOSTAJĄ pomarańczowe** (nie save'd). Klik
+      "Przywróć" → wraca do oryginalnego koloru. Klik swatch
+      `#4F6D3B` (zielony) → input update + preview zielony. Klik
+      "Zapisz" → toast OK → cały admin shell przeskakuje na
+      zielony, /admin/orders CTA, /menu public CategoryTabs,
+      /landing hero CTA — wszystko zielone (regresja G1+
+      ThemeBootstrap).
+    - **Color picker leave-without-save**: wpisz hex → bez save
+      navigate na /admin/orders → CTA "Rozpocznij…" jest **stary
+      kolor** (nie pomarańczowy z hex). Wróć na /admin/settings →
+      input nadal pokazuje wpisany hex (RHF dirty). Klik "Przywróć"
+      → reset.
+    - **Fallback initial color**: `localStorage.removeItem` (force
+      no cache) → /admin/settings ms-flicker przed fetch =
+      `#FF6B35` (pomarańcz, nie róż). Po fetch primary z DB.
+    - **Opening hours**: `/admin/opening-hours` desktop → 7 wierszy
+      `divide-y` z Switch + status. Toggle Switch poniedziałku →
+      "Zamknięte cały dzień" placeholder. Edit time picker
+      "12:00" → "13:00" → "Przywróć" przywraca. Save z błędną
+      walidacją (otwarcie > zamknięcie poza północą) → 422 +
+      error inline. Save valid → toast OK + invalidate → /landing
+      hero meta-bar "Dziś otwarte do HH:MM" / "Dziś zamknięte"
+      (regresja G3 + Faza 5 M6/2). Info-banner sky-50 widoczny.
+      **„Skopiuj godziny" button = brak** (deferred, OK).
+    - **Page content HERO live preview**: `/admin/page-content` →
+      tab HERO aktywny. Wpisz w "Tytuł" "Test 123" → po ~300ms
+      preview po prawej pokazuje "Test 123" w gradient overlay.
+      Wpisz w "Podtytuł" → preview body update. Wklej Unsplash URL
+      do "URL zdjęcia" → preview image load. Tab ABOUT → preview
+      switches (kicker "O NAS" + line-clamp body). Save HERO →
+      toast OK + invalidate `["public","page-content"]` →
+      /landing Hero `title`/`body`/`imageUrl`/`ctaLabel`
+      aktualizowane (regresja Faza 1 + G3).
+    - **PageContent debounce verification**: typing fast → preview
+      NIE zmienia się przy każdym keystroke; pauza ~300ms →
+      preview update raz. Comfortable, no jank.
+    - **SettingsTabs**: klik "Godziny otwarcia" w sub-tab → URL
+      `/admin/opening-hours`, active border-b-2 border-primary
+      moves. Sidebar "Godziny otwarcia" item też active highlight
+      (świadomy duplicate).
+    - **LoginPage size=lg regression**: wyloguj + `/admin/login` →
+      visual identyczny z poprzednim (h-11 inputy email/password,
+      xl primary CTA "Zaloguj się"), `tabIndex` keyboard flow OK.
+    - **Mobile 375**: SettingsPage Cards stack vertical, swatches
+      flex-wrap, ColorPreviewCard pod formem (col-1 reset). Opening
+      hours rows `grid-cols-1 sm:grid-cols-[140px_180px_1fr]` —
+      mobile single column z dnia stack. PageContent layout single
+      column z preview pod formem.
+    - **Regresja G1-G8**: /admin/orders polling 10s + SSE 1
+      połączenie stable (DevTools Network → EventStream).
+      ThemeBootstrap propaguje primary color save end-to-end.
+
 - [ ] Grupa 10: Polish przekrojowy
 
 ## Fazy ukończone
