@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Layers3, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   deleteAdminAddonGroup,
   fetchAdminAddonGroups,
@@ -10,6 +10,16 @@ import {
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/Button";
+import { Badge } from "@/shared/components/ui/Badge";
+import { EmptyState } from "@/shared/components/ui/EmptyState";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/components/ui/Table";
 import { AddonGroupFormDialog } from "./AddonGroupFormDialog";
 
 export function AddonGroupsList() {
@@ -60,12 +70,12 @@ export function AddonGroupsList() {
   const groups = data ?? [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Grupy dodatków</h2>
-          <p className="text-sm text-slate-500">
-            Zestawy dodatków podpinane do produktów (np. „Dodatki pizzy”, „Sos”).
+          <h2 className="text-[17px] font-semibold text-slate-900">Grupy dodatków</h2>
+          <p className="mt-0.5 text-[13px] text-slate-500">
+            Zestawy dodatków podpinane do produktów (np. „Sos", „Dodatki pizzy").
           </p>
         </div>
         <Button onClick={openAdd}>
@@ -74,93 +84,102 @@ export function AddonGroupsList() {
       </div>
 
       {isLoading ? (
-        <div className="py-8 text-center text-sm text-slate-500">Ładowanie…</div>
+        <div className="rounded-lg border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
+          Ładowanie…
+        </div>
       ) : null}
+
       {isError ? (
-        <div className="py-8 text-center text-sm text-red-600">
+        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
           Nie udało się pobrać grup dodatków.
         </div>
       ) : null}
 
-      {groups.length === 0 && !isLoading && !isError ? (
-        <div className="rounded-lg border border-dashed border-slate-200 py-12 text-center text-sm text-slate-500">
-          Brak grup. Dodaj pierwszą grupę, żeby móc podpiąć ją do produktów.
-        </div>
+      {!isLoading && !isError && groups.length === 0 ? (
+        <EmptyState
+          icon={<Layers3 className="h-5 w-5" />}
+          title="Brak grup"
+          description="Dodaj pierwszą grupę, żeby móc podpinać ją do produktów."
+          action={
+            <Button size="sm" onClick={openAdd}>
+              <Plus className="h-4 w-4" /> Dodaj pierwszą grupę
+            </Button>
+          }
+        />
       ) : null}
 
       {groups.length > 0 ? (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3">Nazwa</th>
-                <th className="px-4 py-3 hidden md:table-cell">Zakres</th>
-                <th className="px-4 py-3 hidden sm:table-cell">Dodatki</th>
-                <th className="px-4 py-3 hidden md:table-cell">Wymagana</th>
-                <th className="px-4 py-3 hidden md:table-cell">Produkty</th>
-                <th className="px-4 py-3 text-right">Akcje</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+          <Table>
+            <colgroup>
+              <col />
+              <col className="w-[100px]" />
+              <col className="w-[100px]" />
+              <col className="w-[120px]" />
+              <col className="w-[100px]" />
+              <col className="w-[100px]" />
+            </colgroup>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-[11px]">Nazwa</TableHead>
+                <TableHead className="hidden text-[11px] md:table-cell">Zakres</TableHead>
+                <TableHead className="hidden text-[11px] sm:table-cell">Dodatki</TableHead>
+                <TableHead className="hidden text-[11px] md:table-cell">Wymagana</TableHead>
+                <TableHead className="hidden text-[11px] md:table-cell">Produkty</TableHead>
+                <TableHead className="text-right text-[11px]">Akcje</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {groups.map((group) => (
-                <tr key={group.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
+                <TableRow key={group.id}>
+                  <TableCell>
                     <button
                       type="button"
                       onClick={() => navigate(`/admin/menu/addon-groups/${group.id}`)}
-                      className="font-medium text-slate-900 hover:text-primary hover:underline"
+                      className="font-medium text-slate-900 hover:text-primary"
                     >
                       {group.name}
                     </button>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
+                  </TableCell>
+                  <TableCell className="hidden font-mono text-[13px] text-slate-600 md:table-cell">
                     {group.minSelect}–{group.maxSelect}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 hidden sm:table-cell">
+                  </TableCell>
+                  <TableCell className="hidden font-mono text-[13px] text-slate-600 sm:table-cell">
                     {group.addons.length}
-                  </td>
-                  <td className="px-4 py-3 hidden md:table-cell">
-                    <span
-                      className={
-                        group.required
-                          ? "inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
-                          : "inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
-                      }
-                    >
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    <Badge variant={group.required ? "warning" : "muted"}>
                       {group.required ? "Tak" : "Nie"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 hidden md:table-cell">
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden font-mono text-[13px] text-slate-600 md:table-cell">
                     {group.usedByProducts}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  </TableCell>
+                  <TableCell className="text-right">
                     <div className="inline-flex items-center gap-1">
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         onClick={() => openEdit(group)}
                         aria-label={`Edytuj grupę ${group.name}`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                       >
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      </button>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
                         onClick={() => onDelete(group)}
                         disabled={deleteMutation.isPending}
                         aria-label={`Usuń grupę ${group.name}`}
-                        className="text-red-600 hover:text-red-700"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : null}
 
