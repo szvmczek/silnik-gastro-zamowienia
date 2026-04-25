@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Check, Sparkles, Utensils, Phone } from "lucide-react";
 import {
   fetchAdminSettings,
   updateAdminSettings,
@@ -15,14 +16,21 @@ import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Label } from "@/shared/components/ui/Label";
 import { Textarea } from "@/shared/components/ui/Textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/Card";
 import { applyPrimaryColor } from "@/shared/theme/themeLoader";
+import { cn } from "@/shared/lib/cn";
+import { SettingsShell } from "./components/SettingsShell";
+import { ColorPreviewCard } from "./components/ColorPreviewCard";
+
+const SUGGESTED_SWATCHES = [
+  "#FF6B35",
+  "#D4482F",
+  "#B8363B",
+  "#9C5729",
+  "#4F6D3B",
+  "#2E5A4F",
+];
+
+const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
 
 const nullableOptional = (schema: z.ZodString) =>
   z
@@ -39,7 +47,7 @@ const schema = z.object({
     .transform((v) => (v && v.length > 0 ? v : undefined)),
   primaryColor: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, "Kolor musi być w formacie #RRGGBB"),
+    .regex(HEX_RE, "Kolor musi być w formacie #RRGGBB"),
   phone: nullableOptional(z.string().max(40)),
   email: nullableOptional(z.string().email("Nieprawidłowy email").max(200)),
   addressLine: nullableOptional(z.string().max(200)),
@@ -72,6 +80,37 @@ const toFormValues = (s: SettingsDto): FormValues => ({
   currency: s.currency,
 });
 
+function SectionCard({
+  title,
+  description,
+  icon,
+  children,
+}: {
+  title: string;
+  description?: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="mb-5 flex items-start gap-3">
+        <div className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold tracking-tight text-slate-900">
+            {title}
+          </h2>
+          {description && (
+            <p className="mt-0.5 text-[13px] text-slate-500">{description}</p>
+          )}
+        </div>
+      </header>
+      {children}
+    </section>
+  );
+}
+
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
@@ -84,13 +123,14 @@ export function SettingsPage() {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
       tagline: "",
-      primaryColor: "#E11D48",
+      primaryColor: "#FF6B35",
       phone: "",
       email: "",
       addressLine: "",
@@ -105,12 +145,7 @@ export function SettingsPage() {
     if (data) reset(toFormValues(data));
   }, [data, reset]);
 
-  const liveColor = watch("primaryColor");
-  useEffect(() => {
-    if (liveColor && /^#[0-9A-Fa-f]{6}$/.test(liveColor)) {
-      applyPrimaryColor(liveColor);
-    }
-  }, [liveColor]);
+  const liveColor = watch("primaryColor") ?? "";
 
   const mutation = useMutation({
     mutationFn: (payload: UpdateSettingsPayload) => updateAdminSettings(payload),
@@ -123,29 +158,31 @@ export function SettingsPage() {
     },
     onError: (error) => {
       const problem = extractProblem(error);
-      toast.error(problem?.detail ?? problem?.title ?? "Nie udało się zapisać ustawień");
+      toast.error(
+        problem?.detail ?? problem?.title ?? "Nie udało się zapisać ustawień"
+      );
     },
   });
 
   if (isLoading) {
-    return <div className="text-sm text-slate-500">Ładowanie ustawień…</div>;
+    return (
+      <SettingsShell>
+        <div className="text-sm text-slate-500">Ładowanie ustawień…</div>
+      </SettingsShell>
+    );
   }
   if (isError || !data) {
     return (
-      <div className="text-sm text-red-600">Nie udało się pobrać ustawień. Odśwież stronę.</div>
+      <SettingsShell>
+        <div className="text-sm text-rose-600">
+          Nie udało się pobrać ustawień. Odśwież stronę.
+        </div>
+      </SettingsShell>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Ustawienia restauracji</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Zmiany nazwy, kolorystyki i kontaktu pojawią się natychmiast na stronie
-          publicznej.
-        </p>
-      </div>
-
+    <SettingsShell description="Nazwa, dane kontaktowe i kolor marki widoczne na stronie publicznej.">
       <form
         onSubmit={handleSubmit((values) =>
           mutation.mutate({
@@ -161,107 +198,194 @@ export function SettingsPage() {
             currency: values.currency.toUpperCase(),
           })
         )}
-        className="space-y-6"
+        className="space-y-5"
         noValidate
       >
-        <Card>
-          <CardHeader>
-            <CardTitle>Dane podstawowe</CardTitle>
-            <CardDescription>Nazwa restauracji i opisowy tagline.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+        <SectionCard
+          title="Informacje o restauracji"
+          description="Nazwa i tagline pojawią się w hero, navbarze i emailach."
+          icon={<Utensils className="h-4 w-4" />}
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <Label htmlFor="name">Nazwa</Label>
-              <Input id="name" {...register("name")} />
-              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
+              <Input id="name" size="lg" error={Boolean(errors.name)} {...register("name")} />
+              {errors.name && (
+                <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
+              )}
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="tagline">Tagline</Label>
-              <Textarea id="tagline" rows={2} {...register("tagline")} />
+              <Textarea
+                id="tagline"
+                rows={2}
+                error={Boolean(errors.tagline)}
+                {...register("tagline")}
+              />
               {errors.tagline && (
-                <p className="mt-1 text-xs text-red-600">{errors.tagline.message as string}</p>
+                <p className="mt-1 text-[12px] text-rose-600">
+                  {errors.tagline.message as string}
+                </p>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Branding</CardTitle>
-            <CardDescription>
-              Kolor marki zmienia się na żywo — wpływa na przyciski i akcenty.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="primaryColor">Kolor główny</Label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  aria-label="Wybierz kolor"
-                  className="h-10 w-14 cursor-pointer rounded-md border border-slate-300"
-                  value={liveColor}
-                  onChange={(e) => {
-                    const v = e.target.value.toUpperCase();
-                    reset({ ...watch(), primaryColor: v }, { keepDirty: true, keepTouched: true });
-                  }}
-                />
-                <Input id="primaryColor" className="font-mono" {...register("primaryColor")} />
+        <SectionCard
+          title="Kolor marki"
+          description="Akcent CTA, badge'y, aktywne kroki. Zmiany widoczne globalnie po zapisaniu."
+          icon={<Sparkles className="h-4 w-4" />}
+        >
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+            <div className="space-y-5">
+              <div>
+                <Label htmlFor="primaryColor">Wartość HEX</Label>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="h-11 w-11 flex-none rounded-md border border-slate-200"
+                    style={{
+                      backgroundColor: HEX_RE.test(liveColor) ? liveColor : "#FF6B35",
+                    }}
+                    aria-hidden
+                  />
+                  <Input
+                    id="primaryColor"
+                    size="lg"
+                    className="font-mono uppercase"
+                    error={Boolean(errors.primaryColor)}
+                    {...register("primaryColor")}
+                  />
+                </div>
+                {errors.primaryColor ? (
+                  <p className="mt-1 text-[12px] text-rose-600">
+                    {errors.primaryColor.message}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-[12px] text-slate-500">
+                    Tak będzie wyglądać kolor marki na stronie klienta. Zmiana
+                    zapisze się po kliknięciu „Zapisz".
+                  </p>
+                )}
               </div>
-              {errors.primaryColor && (
-                <p className="mt-1 text-xs text-red-600">{errors.primaryColor.message}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="logoUrl">URL logo</Label>
-              <Input id="logoUrl" placeholder="https://…" {...register("logoUrl")} />
-              {errors.logoUrl && (
-                <p className="mt-1 text-xs text-red-600">{errors.logoUrl.message as string}</p>
-              )}
-            </div>
-            <div>
-              <Label htmlFor="currency">Waluta (ISO 4217)</Label>
-              <Input id="currency" maxLength={3} className="uppercase" {...register("currency")} />
-              {errors.currency && (
-                <p className="mt-1 text-xs text-red-600">{errors.currency.message}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Kontakt i adres</CardTitle>
-            <CardDescription>Pokazywane w sekcji Kontakt na landingu.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <div className="kicker mb-2">Sugerowane</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {SUGGESTED_SWATCHES.map((swatch) => {
+                    const active =
+                      liveColor.toUpperCase() === swatch.toUpperCase();
+                    return (
+                      <button
+                        key={swatch}
+                        type="button"
+                        aria-label={`Wybierz kolor ${swatch}`}
+                        onClick={() =>
+                          setValue("primaryColor", swatch, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        className={cn(
+                          "h-10 w-10 rounded-md border-2 transition-transform focus:outline-none focus:ring-2 focus:ring-primary/40",
+                          active
+                            ? "border-slate-900 scale-105"
+                            : "border-transparent hover:scale-105"
+                        )}
+                        style={{ backgroundColor: swatch }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <ColorPreviewCard color={liveColor} />
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Kontakt i adres"
+          description="Pokazywane w sekcji Kontakt na landingu oraz w stopce."
+          icon={<Phone className="h-4 w-4" />}
+        >
+          <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="phone">Telefon</Label>
-              <Input id="phone" {...register("phone")} />
+              <Input
+                id="phone"
+                size="lg"
+                className="font-mono text-[13px]"
+                {...register("phone")}
+              />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register("email")} />
+              <Input
+                id="email"
+                size="lg"
+                type="email"
+                error={Boolean(errors.email)}
+                {...register("email")}
+              />
               {errors.email && (
-                <p className="mt-1 text-xs text-red-600">{errors.email.message as string}</p>
+                <p className="mt-1 text-[12px] text-rose-600">
+                  {errors.email.message as string}
+                </p>
               )}
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="addressLine">Ulica i numer</Label>
-              <Input id="addressLine" {...register("addressLine")} />
+              <Input id="addressLine" size="lg" {...register("addressLine")} />
             </div>
             <div>
               <Label htmlFor="city">Miasto</Label>
-              <Input id="city" {...register("city")} />
+              <Input id="city" size="lg" {...register("city")} />
             </div>
             <div>
               <Label htmlFor="postalCode">Kod pocztowy</Label>
-              <Input id="postalCode" {...register("postalCode")} />
+              <Input
+                id="postalCode"
+                size="lg"
+                className="font-mono"
+                {...register("postalCode")}
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div className="sm:col-span-2">
+              <Label htmlFor="logoUrl">URL logo</Label>
+              <Input
+                id="logoUrl"
+                size="lg"
+                placeholder="https://…"
+                className="font-mono text-[13px]"
+                error={Boolean(errors.logoUrl)}
+                {...register("logoUrl")}
+              />
+              {errors.logoUrl && (
+                <p className="mt-1 text-[12px] text-rose-600">
+                  {errors.logoUrl.message as string}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="currency">Waluta (ISO 4217)</Label>
+              <Input
+                id="currency"
+                size="lg"
+                maxLength={3}
+                className="font-mono uppercase"
+                error={Boolean(errors.currency)}
+                {...register("currency")}
+              />
+              {errors.currency && (
+                <p className="mt-1 text-[12px] text-rose-600">
+                  {errors.currency.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </SectionCard>
 
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 pt-2">
           <Button
             type="button"
             variant="ghost"
@@ -270,11 +394,22 @@ export function SettingsPage() {
           >
             Przywróć
           </Button>
-          <Button type="submit" disabled={!isDirty || mutation.isPending}>
-            {mutation.isPending ? "Zapisywanie…" : "Zapisz zmiany"}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!isDirty || mutation.isPending}
+          >
+            {mutation.isPending ? (
+              "Zapisywanie…"
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Zapisz zmiany
+              </>
+            )}
           </Button>
         </div>
       </form>
-    </div>
+    </SettingsShell>
   );
 }
