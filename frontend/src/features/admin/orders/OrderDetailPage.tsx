@@ -16,7 +16,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
-import { OrderStatusBadge, statusLabel } from "./components/OrderStatusBadge";
+import { OrderStatusBadge, statusLabel } from "@/shared/components/OrderStatusBadge";
 import { OrderStatusActions } from "./components/OrderStatusActions";
 import { OrderStatusHistory } from "./components/OrderStatusHistory";
 import { EtaDialog } from "./components/EtaDialog";

@@ -20,7 +20,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
-import { OrderStatusBadge } from "./components/OrderStatusBadge";
+import { OrderStatusBadge } from "@/shared/components/OrderStatusBadge";
 import { OrderFilters, type OrderFiltersValue } from "./components/OrderFilters";
 
 const PAGE_SIZE = 20;

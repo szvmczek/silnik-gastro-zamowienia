@@ -1,6 +1,6 @@
 import type { AdminOrderStatusHistoryDto } from "@/shared/api/orderApi";
 import { formatDateTime } from "@/shared/lib/formatDate";
-import { statusLabel } from "./OrderStatusBadge";
+import { statusLabel } from "@/shared/components/OrderStatusBadge";
 
 interface OrderStatusHistoryProps {
   history: AdminOrderStatusHistoryDto[];

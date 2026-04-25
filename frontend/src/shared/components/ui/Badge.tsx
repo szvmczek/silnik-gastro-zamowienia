@@ -11,8 +11,11 @@ type BadgeVariant =
   | "danger"
   | "muted";
 
+type BadgeSize = "sm" | "lg";
+
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
+  size?: BadgeSize;
 }
 
 const variants: Record<BadgeVariant, string> = {
@@ -25,12 +28,18 @@ const variants: Record<BadgeVariant, string> = {
   muted: "bg-slate-100 text-slate-500",
 };
 
+const sizes: Record<BadgeSize, string> = {
+  sm: "px-2.5 py-0.5 text-xs",
+  lg: "px-3 py-1 text-[13px]",
+};
+
 export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
-  ({ className, variant = "default", ...props }, ref) => (
+  ({ className, variant = "default", size = "sm", ...props }, ref) => (
     <span
       ref={ref}
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center rounded-full font-medium",
+        sizes[size],
         variants[variant],
         className
       )}

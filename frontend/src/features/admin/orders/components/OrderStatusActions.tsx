@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/ui/Dialog";
 import type { FulfillmentType, OrderStatus } from "@/shared/api/orderApi";
 import { isTerminal, nextAllowedStatuses } from "../lib/transitions";
-import { statusLabel } from "./OrderStatusBadge";
+import { statusLabel } from "@/shared/components/OrderStatusBadge";
 
 interface OrderStatusActionsProps {
   currentStatus: OrderStatus;
