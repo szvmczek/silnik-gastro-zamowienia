@@ -127,18 +127,22 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edytuj grupę dodatków" : "Nowa grupa dodatków"}</DialogTitle>
-          <DialogDescription>
-            Grupa definiuje zakres wyboru (min/max) — np. „wybierz 1 z 3 sosów”.
+          <DialogTitle className="text-[18px]">
+            {editing ? "Edytuj grupę dodatków" : "Nowa grupa dodatków"}
+          </DialogTitle>
+          <DialogDescription className="text-[13px]">
+            Grupa definiuje zakres wyboru (min/max) — np. „wybierz 1 z 3 sosów".
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
-            <Label htmlFor="g-name">Nazwa</Label>
-            <Input id="g-name" {...register("name")} autoFocus />
+            <Label htmlFor="g-name">
+              Nazwa <span className="text-rose-600">*</span>
+            </Label>
+            <Input id="g-name" error={!!errors.name} {...register("name")} autoFocus />
             {errors.name ? (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
             ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -148,10 +152,11 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
                 id="g-min"
                 type="number"
                 min={0}
+                error={!!errors.minSelect}
                 {...register("minSelect", { valueAsNumber: true })}
               />
               {errors.minSelect ? (
-                <p className="mt-1 text-xs text-red-600">
+                <p className="mt-1 text-[12px] text-rose-600">
                   {errors.minSelect.message as string}
                 </p>
               ) : null}
@@ -162,30 +167,33 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
                 id="g-max"
                 type="number"
                 min={1}
+                error={!!errors.maxSelect}
                 {...register("maxSelect", { valueAsNumber: true })}
               />
               {errors.maxSelect ? (
-                <p className="mt-1 text-xs text-red-600">
+                <p className="mt-1 text-[12px] text-rose-600">
                   {errors.maxSelect.message as string}
                 </p>
               ) : null}
             </div>
           </div>
-          <div>
-            <Label htmlFor="g-required">Grupa wymagana</Label>
-            <div className="flex h-10 items-center gap-2">
-              <Switch
-                id="g-required"
-                checked={Boolean(required)}
-                onCheckedChange={(v) => setValue("required", v, { shouldDirty: true })}
-              />
-              <span className="text-sm text-slate-600">
+          <label className="flex items-center justify-between gap-4 rounded-md border border-slate-200 p-3">
+            <div>
+              <div className="text-[14px] font-medium text-slate-900">
+                Grupa wymagana
+              </div>
+              <div className="mt-0.5 text-[12px] text-slate-500">
                 {required
-                  ? "Tak — klient musi wybrać co najmniej 1"
-                  : "Nie — opcjonalnie"}
-              </span>
+                  ? "Klient musi wybrać co najmniej jeden dodatek z tej grupy."
+                  : "Wybór opcjonalny — klient może pominąć grupę."}
+              </div>
             </div>
-          </div>
+            <Switch
+              checked={Boolean(required)}
+              onCheckedChange={(v) => setValue("required", v, { shouldDirty: true })}
+              aria-label="Grupa wymagana"
+            />
+          </label>
 
           <DialogFooter>
             <Button
