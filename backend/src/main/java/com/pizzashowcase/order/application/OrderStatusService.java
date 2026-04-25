@@ -63,7 +63,7 @@ public class OrderStatusService {
             throw ApiException.unprocessable(
                     "ETA nie może być ustawione na zamówieniu w statusie terminalnym.");
         }
-        order.setEtaMinutes(request.minutesFromNow());
+        order.setEta(request.minutesFromNow());
         Order saved = orderRepository.saveAndFlush(order);
         return adminOrderQueryService.toDto(saved);
     }

@@ -360,7 +360,143 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
       niezmieniony); Checkout → OrderConfirmation → Tracking 15s
       polling + terminal guard nienaruszone.
 
-- [ ] Grupa 5: Checkout + Confirmation + Tracking
+- [x] Grupa 5: Checkout + Confirmation + Tracking (2026-04-24, branch
+  `design/g5-checkout-tracking`)
+  - **CheckoutPage rebuild** (commit `1748a63`): desktop `grid-cols-
+    [1fr_420px] gap-8` z sticky summary po prawej, mobile collapsible
+    summary bar u góry (`useState` driven, ChevronDown rotation,
+    expanded body pokazuje full item list) + sticky bottom CTA
+    zachowany. Sekcje jako `rounded-xl border bg-white p-5 md:p-6`
+    z numerowanymi mono kickerami `font-mono text-[10px] tracking-
+    [0.22em] uppercase text-slate-400` ("1 · Dane kontaktowe",
+    "2 · Typ realizacji", "3 · Adres dostawy" gdy DELIVERY,
+    "3/4 · Metoda płatności", "4/5 · Uwagi"). Fulfillment tiles jako
+    custom `<button role=radio aria-checked>` z lucide `Truck` /
+    `ShoppingBag` + static copy "~35 min pod Twoje drzwi" /
+    "~25 min od złożenia" (analogia Hero meta-bar — brak DB source).
+    Payment rendered jako single tile zależny od fulfillment
+    (enum logic nietkniety). Inline validation: dopiąłem G1
+    `Input.error` / `Textarea.error` do wszystkich pól + nowy
+    `InlineError` helper z `AlertCircle` + rose-600 message pod
+    polem. Zachowane 1:1: cartStore, placeOrder mutation, Zod
+    schema, `!restaurantIsOpen` banner + disabled CTA,
+    `items.length===0 → /menu` guard, location.state
+    `{ trackingToken, total }` shape dla confirmation navigate.
+    H1 28px mobile / 36px desktop.
+  - **OrderConfirmationPage rebuild** (commit `29925da`): centered
+    `w-full md:w-[580px]` card `rounded-2xl p-8/p-10 text-center`.
+    Success icon przerzucony z emerald-100 ring na primary-10
+    circle + `CircleCheck` w primary color (bundle spec: success
+    na tej stronie = primary, nie status-success green).
+    One-shot mount animacja via tw-animate-css `animate-in fade-in
+    zoom-in-50 duration-500` (nie infinite). Order number
+    w dedykowanym `inline-block rounded-xl bg-slate-50 border px-6
+    py-5` z mono kickerem "Numer zamówienia" + mono responsive
+    scale 28→32→40px (świadomie zjechałem z brief'u 64px — bundle
+    używa 32px, czytelne z 2m, bez dominowania nad CTA). Primary
+    CTA "Śledź zamówienie →" G1 `size="xl"`, full-width mobile /
+    auto desktop. Amber state-loss notice zachowany dla refresh
+    case. "← Wróć do menu" pojedynczy link (usunąłem redundant
+    "Strona główna"). Drugi summary card pominięty świadomie —
+    `OrderConfirmationDto` nie ma items, cart cleared on success,
+    a tracking page jest jeden klik dalej. PROSTSZE WYGRYWA.
+  - **TrackingTimeline extracted** (commit `c85fa1c`): nowy komponent
+    `features/public/order/components/TrackingTimeline.tsx`
+    renderujący oba layouty — `hidden lg:block` desktop horizontal
+    (absolute-positioned slate/emerald progress bar + flex column
+    per step) + `lg:hidden` mobile vertical `<ol>` (konektor via
+    absolute segment z done=emerald / future=slate). Per-status
+    icon mapping (lucide): `NEW → CircleCheck`,
+    `CONFIRMED → ClipboardCheck`, `IN_PREPARATION → Flame`,
+    `READY → PackageCheck`, `OUT_FOR_DELIVERY → Truck`,
+    `DELIVERED → Home`. Done steps override icon z `Check` na
+    emerald-500 fill. Active step ma trzy warstwy: G1
+    `animate-dotpulse` keyframe + Tailwind `animate-ping` halo
+    (`bg-primary/35`) + static `border-primary/40` inset ring.
+    Breakpoint `lg:` 1024px — tablet portrait 768-1023 dostaje
+    vertical layout (6 horizontal × 130px = 780px + card padding
+    clippowałoby na tablecie). `STATUS_LABELS` export dla
+    konsumenta TrackingPage. **Bez timestampów per krok** —
+    `OrderTrackingDto` ich nie zawiera (risk #1 plan §7,
+    akceptowane).
+  - **TrackingPage rebuild** (commit `808d583`): konsumuje
+    `TrackingTimeline`. Layout: header (mono kicker + mono 28/32/44px
+    number + sub "Złożone X temu · Dostawa do {address} |
+    Odbiór osobisty w lokalu" + top-right `RefreshCw` indicator
+    z `dataUpdatedAt` relatywnym czasem) → timeline (hidden when
+    CANCELED, zastąpiony rose-200 info card z `XCircle` +
+    klikalnym phone) → grid-md `1.2fr/1fr` z inline **dark ETA
+    card** + outline **phone support card** → fulfillment-detail
+    card → items card z totalem. **Lokalna STATUS_BADGE mapa
+    usunięta**, zastąpiona TrackingTimeline. Physical move
+    `OrderStatusBadge` do `shared/` odłożony do G7 (tam ma
+    konsumenta public+admin; G5 timeline badge'a nie używa).
+  - **ETA card — backend audit (read-only) + degraded implementation:**
+    `order.domain.Order.etaMinutes: Integer` nullable.
+    `OrderStatusService.updateEta` kopiuje literalnie
+    `UpdateOrderEtaRequest.minutesFromNow` do encji (bez transformacji,
+    bez `etaSetAt` kolumny). `PublicOrderQueryService` zwraca
+    `getEtaMinutes()` as-is. Net: `etaMinutes` = intent-snapshot
+    od ostatniego admin-update, bez reference timestamp. Ani
+    interpretacja (a) placedAt-offset ani (b) absolute countdown nie
+    da się zrekonstruować clientsided reliably. **Implementacja:**
+    duża mono `~${etaMinutes}` + "minut do dostawy/odbioru" subtitle
+    (bez wall-clock time, bez progress bar). Gdy `etaMinutes===null`:
+    "ustalamy…" + copy o 15s auto-refresh. Gdy status w
+    `{READY, OUT_FOR_DELIVERY}`: helper text pod liczbą.
+    Honest > pretty per plan §7 risk #2.
+  - **Phone CTA**: `usePublicSettings().phone` z `tel:` hrefem wokół
+    G1 outline Button z `Phone` ikoną, fallback disabled gdy phone
+    null.
+  - **Zero zmian**: backend (zero linii Java), router, DTO/API shape
+    (`CreateOrderRequest`, `OrderConfirmationDto`, `OrderTrackingDto`),
+    query/mutation keys (`["order","track",token]`), cartStore,
+    PaymentMethod enum, Zod schema, `refetchInterval` 15s + TERMINAL
+    guard, 404 handling, `extractProblem`, G1 shared primitives
+    (addition-only usage via className, zero modyfikacji
+    `Button`/`Input`/`Textarea`/`Label`/`RadioGroup`). OrderStatusBadge
+    admin konsumenci (`OrdersListPage`, `OrderDetailPage`,
+    `OrderStatusHistory`, `OrderStatusActions`) nietknięci.
+    `useIsRestaurantOpen`, `usePublicSettings`, `useAddressGeocode`
+    hook signatures bez zmian.
+  - **Smoke automatyczny**: `npm run build` zielone (tsc + vite,
+    742.69 kB — +12.88 kB vs G4 729.81: lucide icons Truck,
+    ShoppingBag, AlertCircle, ChevronDown, CircleCheck,
+    ClipboardCheck, Flame, PackageCheck, Home, Phone, RefreshCw,
+    XCircle, Check + TrackingTimeline component + rebuild JSX
+    trzech ekranów — akceptowalne). Grep audit: `STATUS_BADGE`
+    zero hitów, `OrderStatusBadge` tylko 4 admin consumers
+    (OrdersListPage, OrderDetailPage, OrderStatusHistory,
+    OrderStatusActions) — public zero.
+  - **Świadome pominięcia / flagi do G7/post-MVP**:
+    - Bundle checkbox "Akceptuję regulamin + PP" NIE dodany — brak
+      pola w DTO, brak linków regulamin/PP w produkcie. Post-MVP.
+    - Bundle second summary card na Confirmation NIE dodany — brak
+      items w `OrderConfirmationDto`, cart cleared; tracking page
+      ma pełne dane.
+    - Bundle mobile tracking active-step helper text "W toku —
+      pizza jest w piecu" NIE dodany — hardcoded content łamie
+      CLAUDE.md §8.
+    - Bundle timeline timestamps "18:12 / 18:13" per krok NIE
+      renderowane — brak `statusHistory[]` w `OrderTrackingDto`
+      (tylko admin DTO je ma, plan §8 stop trigger jeśli public
+      miałby to dostać — scope G5 nie).
+    - Bundle ETA absolute clock time "18:45" + progress bar NIE
+      renderowane — backend semantyka nie pozwala rekonstrukcji
+      reliably (patrz backend audit powyżej).
+    - OrderStatusBadge physical move do `shared/` odłożony do G7
+      (konsument public pojawi się tam).
+    - EtaCard + SupportCard — inline w TrackingPage, nie osobne
+      pliki (jedyni konsumenci; ekstrakcja przy drugim użyciu
+      w G7 jeśli admin chce reuse skinu).
+    - CancelOrderDialog (ekran 12b) + `dangerOutline` Anuluj na
+      OrderStatusActions (G7 scope per MIGRATION_PLAN §Grupa 7).
+  - **Smoke manualny do zrobienia przez usera** — 5-min spot-check
+    order flow e2e (`/menu` → cart → `/checkout` → submit →
+    `/order/confirmation/:n` → klik "Śledź zamówienie" → `/track/
+    {token}` → admin zmienia status → klient widzi w ≤15s →
+    DELIVERED → polling stops per Network tab).
+
 - [ ] Grupa 7: Admin Orders (flagship, screenshoty before/after)
 - [ ] Grupa 8: Admin Menu CRUD
 - [ ] Grupa 9: Admin Settings

@@ -123,6 +123,7 @@ public class AdminOrderQueryService {
                 order.getOrderNumber(),
                 order.getStatus(),
                 order.getEtaMinutes(),
+                order.getEtaSetAt(),
                 order.getFulfillmentType(),
                 order.getPaymentMethod(),
                 order.getCreatedAt(),
