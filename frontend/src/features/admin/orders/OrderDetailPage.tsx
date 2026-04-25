@@ -6,6 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/Card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/Dialog";
+import {
   fetchAdminOrderById,
   updateOrderEta,
   updateOrderStatus,
@@ -64,6 +72,7 @@ export function OrderDetailPage() {
   const id = idParam ? Number.parseInt(idParam, 10) : NaN;
   const queryClient = useQueryClient();
   const [etaOpen, setEtaOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const query = useQuery<AdminOrderDto>({
     queryKey: ["admin", "orders", "detail", id],
@@ -185,27 +194,16 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <OrderStatusActions
-          currentStatus={order.status}
-          fulfillmentType={order.fulfillmentType}
-          onChangeStatus={(next) =>
-            statusMutation.mutate({ next, version: order.version })
-          }
-          isSubmitting={mutating}
-        />
-        <div className="mt-3 border-t border-slate-100 pt-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEtaOpen(true)}
-            disabled={mutating}
-          >
-            Ustaw ETA
-          </Button>
-        </div>
-      </div>
+      <OrderStatusActions
+        currentStatus={order.status}
+        fulfillmentType={order.fulfillmentType}
+        onChangeStatus={(next) =>
+          statusMutation.mutate({ next, version: order.version })
+        }
+        onOpenEta={() => setEtaOpen(true)}
+        onOpenCancel={() => setCancelOpen(true)}
+        isSubmitting={mutating}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
@@ -340,6 +338,42 @@ export function OrderDetailPage() {
         }
         isSubmitting={etaMutation.isPending}
       />
+
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anulować zamówienie?</DialogTitle>
+            <DialogDescription>
+              Klient zobaczy zmianę statusu na stronie śledzenia. Tej akcji
+              nie można cofnąć.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCancelOpen(false)}
+              disabled={mutating}
+            >
+              Zachowaj zamówienie
+            </Button>
+            <Button
+              type="button"
+              variant="dangerOutline"
+              disabled={mutating}
+              onClick={() => {
+                setCancelOpen(false);
+                statusMutation.mutate({
+                  next: "CANCELED",
+                  version: order.version,
+                });
+              }}
+            >
+              {mutating ? "Anulowanie…" : "Anuluj zamówienie"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
