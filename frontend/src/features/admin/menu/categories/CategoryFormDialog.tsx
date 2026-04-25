@@ -126,51 +126,60 @@ export function CategoryFormDialog({ open, onOpenChange, category }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-lg">
         <DialogHeader>
-          <DialogTitle>{editing ? "Edytuj kategorię" : "Nowa kategoria"}</DialogTitle>
-          <DialogDescription>
-            Slug jest generowany automatycznie po nazwie (edycja slugów — post-MVP).
+          <DialogTitle className="text-[18px]">
+            {editing ? "Edytuj kategorię" : "Nowa kategoria"}
+          </DialogTitle>
+          <DialogDescription className="text-[13px]">
+            Slug generowany automatycznie po nazwie (edycja slugów — post-MVP).
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
-            <Label htmlFor="cat-name">Nazwa</Label>
-            <Input id="cat-name" {...register("name")} autoFocus />
+            <Label htmlFor="cat-name">
+              Nazwa <span className="text-rose-600">*</span>
+            </Label>
+            <Input id="cat-name" error={!!errors.name} {...register("name")} autoFocus />
             {errors.name ? (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
             ) : null}
           </div>
           <div>
             <Label htmlFor="cat-desc">Opis (opcjonalnie)</Label>
             <Textarea id="cat-desc" rows={3} {...register("description")} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="cat-order">Kolejność wyświetlania</Label>
+            <Input
+              id="cat-order"
+              type="number"
+              min={0}
+              error={!!errors.displayOrder}
+              {...register("displayOrder", { valueAsNumber: true })}
+            />
+            {errors.displayOrder ? (
+              <p className="mt-1 text-[12px] text-rose-600">
+                {errors.displayOrder.message as string}
+              </p>
+            ) : null}
+          </div>
+          <label className="flex items-center justify-between gap-4 rounded-md border border-slate-200 p-3">
             <div>
-              <Label htmlFor="cat-order">Kolejność</Label>
-              <Input
-                id="cat-order"
-                type="number"
-                min={0}
-                {...register("displayOrder", { valueAsNumber: true })}
-              />
-              {errors.displayOrder ? (
-                <p className="mt-1 text-xs text-red-600">
-                  {errors.displayOrder.message as string}
-                </p>
-              ) : null}
-            </div>
-            <div>
-              <Label htmlFor="cat-active">Widoczna publicznie</Label>
-              <div className="flex h-10 items-center gap-2">
-                <Switch
-                  id="cat-active"
-                  checked={Boolean(active)}
-                  onCheckedChange={(v) => setValue("active", v, { shouldDirty: true })}
-                />
-                <span className="text-sm text-slate-600">{active ? "Tak" : "Nie"}</span>
+              <div className="text-[14px] font-medium text-slate-900">
+                Widoczna publicznie
+              </div>
+              <div className="mt-0.5 text-[12px] text-slate-500">
+                {active
+                  ? "Kategoria pokazuje się klientom w menu."
+                  : "Ukryta — kategoria nie pojawi się w publicznym menu."}
               </div>
             </div>
-          </div>
+            <Switch
+              checked={Boolean(active)}
+              onCheckedChange={(v) => setValue("active", v, { shouldDirty: true })}
+              aria-label="Widoczna publicznie"
+            />
+          </label>
 
           <DialogFooter>
             <Button

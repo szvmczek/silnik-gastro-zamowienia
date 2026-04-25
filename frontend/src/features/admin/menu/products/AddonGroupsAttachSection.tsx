@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ExternalLink, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Layers3, Plus, Trash2 } from "lucide-react";
 import {
   attachAddonGroupToProduct,
   detachAddonGroupFromProduct,
@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/Select";
+import { EmptyState } from "@/shared/components/ui/EmptyState";
 
 interface Props {
   productId: number;
@@ -108,103 +109,115 @@ export function AddonGroupsAttachSection({ productId }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Grupy dodatków</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-[17px]">
+          <Layers3 className="h-4 w-4 text-slate-400" /> Grupy dodatków
+        </CardTitle>
         <CardDescription>
-          Podepnij do tego produktu istniejące grupy (stwórz je w zakładce „Grupy dodatków”).
+          Podepnij do tego produktu istniejące grupy (np. „Sos", „Dodatki pizzy").
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ul className="space-y-2">
+        <div className="space-y-2">
           {links.map((link) => (
-            <li
+            <div
               key={link.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-4 py-3"
+              className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50/50 p-3"
             >
-              <div className="flex flex-1 items-center gap-3">
-                <span className="font-medium text-slate-900">{link.addonGroupName}</span>
-                <span className="text-xs text-slate-500">
+              <div className="flex flex-1 items-center gap-4">
+                <span className="text-[14px] font-medium text-slate-900">
+                  {link.addonGroupName}
+                </span>
+                <span className="text-[11px] text-slate-500">
                   kolejność: {link.displayOrder}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
                   onClick={() => navigate(`/admin/menu/addon-groups/${link.addonGroupId}`)}
                   aria-label={`Otwórz grupę ${link.addonGroupName}`}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-700"
                 >
                   <ExternalLink className="h-4 w-4" />
-                </Button>
-                <Button
+                </button>
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
                   onClick={() => {
                     if (!window.confirm(`Odpiąć grupę "${link.addonGroupName}"?`)) return;
                     detachMutation.mutate(link.addonGroupId);
                   }}
                   disabled={detachMutation.isPending}
                   aria-label={`Odepnij grupę ${link.addonGroupName}`}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
 
         {links.length === 0 ? (
-          <div className="rounded-md border border-dashed border-slate-200 py-6 text-center text-sm text-slate-500">
-            Brak podpiętych grup dodatków.
-          </div>
+          <EmptyState
+            icon={<Layers3 className="h-5 w-5" />}
+            title="Brak podpiętych grup"
+            description="Wybierz grupę z listy poniżej, żeby udostępnić jej dodatki przy zamawianiu tego produktu."
+          />
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 border-t border-slate-200 pt-4 sm:grid-cols-[1fr_120px_auto]">
-          <div>
-            <Label>Grupa do podpięcia</Label>
-            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    availableGroups.length === 0
-                      ? "Brak wolnych grup"
-                      : "Wybierz grupę…"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {availableGroups.map((group) => (
-                  <SelectItem key={group.id} value={String(group.id)}>
-                    {group.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-3 border-t border-slate-200 pt-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px_auto] sm:items-end">
+            <div>
+              <Label htmlFor="pag-group">Grupa do podpięcia</Label>
+              <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                <SelectTrigger id="pag-group">
+                  <SelectValue
+                    placeholder={
+                      availableGroups.length === 0
+                        ? "Brak wolnych grup"
+                        : "Wybierz grupę…"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableGroups.map((group) => (
+                    <SelectItem key={group.id} value={String(group.id)}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="pag-order">Kolejność</Label>
+              <Input
+                id="pag-order"
+                type="number"
+                min={0}
+                value={displayOrder}
+                onChange={(e) => setDisplayOrder(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <Button
+                type="button"
+                onClick={onAttach}
+                disabled={
+                  attachMutation.isPending || !selectedGroupId || availableGroups.length === 0
+                }
+              >
+                <Plus className="h-4 w-4" />
+                {attachMutation.isPending ? "Podpinam…" : "Podepnij"}
+              </Button>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="pag-order">Kolejność</Label>
-            <Input
-              id="pag-order"
-              type="number"
-              min={0}
-              value={displayOrder}
-              onChange={(e) => setDisplayOrder(Number(e.target.value))}
-            />
-          </div>
-          <div className="flex items-end">
-            <Button
-              type="button"
-              onClick={onAttach}
-              disabled={
-                attachMutation.isPending || !selectedGroupId || availableGroups.length === 0
-              }
-            >
-              <Plus className="h-4 w-4" />
-              {attachMutation.isPending ? "Podpinam…" : "Podepnij"}
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/admin/menu?tab=addon-groups")}
+            className="text-[13px] text-primary hover:underline"
+          >
+            + Stwórz nową grupę dodatków →
+          </button>
         </div>
       </CardContent>
     </Card>

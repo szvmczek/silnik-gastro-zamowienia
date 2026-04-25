@@ -26,19 +26,37 @@ export function MenuOverviewPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Menu</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="kicker">Panel</p>
+        <h1 className="mt-2 text-[28px] font-semibold tracking-tight text-slate-900">
+          Menu
+        </h1>
+        <p className="mt-1 text-[14px] text-slate-500">
           Zarządzaj kategoriami, produktami i grupami dodatków.
         </p>
       </div>
 
-      <Tabs value={active} onValueChange={onChange} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="categories">Kategorie</TabsTrigger>
-          <TabsTrigger value="products">Produkty</TabsTrigger>
-          <TabsTrigger value="addon-groups">Grupy dodatków</TabsTrigger>
+      <Tabs value={active} onValueChange={onChange} className="space-y-6">
+        <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-slate-200 bg-transparent p-0">
+          <TabsTrigger
+            value="categories"
+            className="-mb-px rounded-none px-4 py-3 text-[14px] text-slate-500 hover:text-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
+          >
+            Kategorie
+          </TabsTrigger>
+          <TabsTrigger
+            value="products"
+            className="-mb-px rounded-none px-4 py-3 text-[14px] text-slate-500 hover:text-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
+          >
+            Produkty
+          </TabsTrigger>
+          <TabsTrigger
+            value="addon-groups"
+            className="-mb-px rounded-none px-4 py-3 text-[14px] text-slate-500 hover:text-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-slate-900 data-[state=active]:shadow-none"
+          >
+            Grupy dodatków
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="categories">

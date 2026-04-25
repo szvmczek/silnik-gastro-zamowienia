@@ -678,7 +678,208 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
     10. ✓ Confirmation friction na cancel — checkbox required +
         reason textarea (lokalny placeholder)
 
-- [ ] Grupa 8: Admin Menu CRUD
+- [x] Grupa 8: Admin Menu CRUD (2026-04-25, branch `design/g8-admin-menu`)
+  - **MenuOverviewPage** (commit `51123d5`): page header w G6/G7 admin
+    pattern — kicker mono "Panel" (G1 `.kicker` utility) + H1
+    `text-[28px] tracking-tight` "Menu" + sub `text-[14px] slate-500`.
+    Underline tab nav per bundle `menu-mgmt.jsx`: zamiast G1 default
+    pill (`bg-slate-100 p-1`) — `TabsList` className override
+    `bg-transparent p-0 h-auto rounded-none border-b border-slate-200`
+    + `TabsTrigger` override `data-[state=active]:bg-transparent
+    data-[state=active]:shadow-none data-[state=active]:border-b-2
+    data-[state=active]:border-primary -mb-px rounded-none px-4 py-3`.
+    twMerge przepuszcza defaults. Surface `<Tabs>` primitive
+    NIETKNIĘTY (G1 closed). `?tab=` query param + sub-component
+    composition zachowane.
+  - **CategoriesList** (commit `74915be`): shared `<Table>` primitive
+    (G7 OrdersListPage:178-207 wzorzec) z `<colgroup>` (64/auto/120/
+    180/120) i mono-caps `text-[11px]` headers. Kolumny: Lp. (mono
+    `01`/`02` text-slate-400), Nazwa + slug pod (mono text-[11px]
+    slate-400), Produkty (mono, hidden md:), Widoczna (G1 Switch +
+    "Tak"/"Nie" inline), Akcje (icon buttons, rose-50/rose-600 hover
+    dla trash). **NEW lokalny `visibilityMutation`** reusing
+    `updateAdminCategory` z full payload (version round-trip
+    preserved per AD-009 + Faza 2 hotfix). Invalidates `["admin",
+    "menu","categories"]` + `["public","menu"]` — public `/menu`
+    propaguje natychmiast po toggle. EmptyState primitive (G1) z
+    UtensilsCrossed ikonką + CTA "+ Dodaj pierwszą kategorię".
+  - **ProductsList** (commit `11536c0`): rebuild w admin-list table
+    pattern — toolbar (search input z Search ikonką h-10 client-side
+    filter na nazwie+slug, category Select server-side, NEW
+    availability Select client-side "Wszystkie/Dostępne/Niedostępne"),
+    table z `<colgroup>` 64/auto/140/110/100/180/100. Image cell:
+    40×40 button rounded-md ze stripe pattern background (inline
+    `repeating-linear-gradient` per `tokens.md` §Placeholder), `<img>`
+    on top z `onError={hide}` — fail = stripe widoczny przez. Klik
+    miniatury = navigate do edit. Cena mono right-align semibold,
+    Kategoria jako G1 `<Badge variant="default">`, Warianty z
+    PL-pluralized count. Switch availability inline + label
+    "Dostępny"/"Niedostępny" — istniejący `availabilityMutation`
+    (PATCH endpoint) + invalidate `["public","menu"]` 1:1. Wiersz
+    `opacity-70` gdy `!available`. EmptyState primitive z kontekstem
+    (filtry vs no-data). Pagination footer z "Pokazano X z Y" gdy
+    aktywny client-side filter.
+  - **ProductEditPage** (commit `98c2012`): major rebuild — header
+    back-link "← Produkty" + H1 `text-[24px] tracking-tight` + slug
+    mono `text-[12px]` pod tytułem. 4 G1 Cards (Dane podstawowe /
+    Cena bazowa / Zdjęcie / Dostępność) z lucide ikonami w CardTitle
+    (UtensilsCrossed/Wallet/ImageIcon/Tag), grid 2-col desktop. "Cena
+    bazowa" Input z `font-mono` + "zł" suffix span (relative w-48
+    wrapper). "Zdjęcie" Card: grid `1fr_220px`, lewo URL Input z
+    helperem rekomendującym Unsplash; prawo kicker "Podgląd" +
+    `aspect-[4/3]` kontener z stripe pattern background, `<img
+    key={previewUrl}>` on top z `onError={hide}` — `key` na URL
+    zapewnia fresh DOM node przy zmianie URL (no stale display:none).
+    "Dostępność" Card jako single bordered row z dynamicznym
+    explainerem. **NEW footer split**: dangerOutline "Usuń produkt"
+    lewo (przeniesiony inline `deleteAdminProduct` mutation —
+    poprzednio dostępny tylko z list) + ghost "Anuluj" + primary
+    "Zapisz zmiany" prawo. Stack flex-col-reverse na mobile. Container
+    `mx-auto max-w-[960px]` per bundle. Version round-trip 1:1.
+    AD-010 respected (URL only). VariantsSection +
+    AddonGroupsAttachSection renderują się self-contained pod
+    formularzem.
+  - **VariantsSection** (commit `9a6fb14`): CardTitle + Layers icon,
+    description reframed (base-price interaction). Idle row pattern
+    `rounded-md border-slate-200 bg-slate-50/50 p-3` z mono price
+    right-align. "Dodaj wariant" przeniesiony z CardHeader Button na
+    full-width dashed CTA (`h-11 border-dashed border-slate-300
+    hover:border-primary hover:text-primary`) pod listą. EmptyState
+    primitive zamiast inline border-dashed. Editor row zachowuje
+    RHF + Zod + version round-trip 1:1; Cena Input z mono + "zł"
+    suffix. Invalidations 1:1 (admin variants/product/products list +
+    `["public","menu"]`).
+  - **AddonGroupsAttachSection** (commit `7e2f7cb`): CardTitle +
+    Layers3 icon. Linked-group rows w VariantsSection idle pattern.
+    EmptyState primitive z helper copy. Attach form pod border-t z
+    grid `1fr_120px_auto`, NEW link "+ Stwórz nową grupę dodatków →"
+    pod selectem (`text-primary hover:underline`) → navigate do
+    `?tab=addon-groups`. Mutations + invalidate 1:1.
+  - **CategoryFormDialog + AddonGroupFormDialog** (commit `19588e8`):
+    DialogTitle bumped do text-[18px], DialogDescription text-[13px].
+    Asterisk text-rose-600 dla required name fields. Switch row
+    przerobiony z inline label-next-to-Switch na bundle bordered
+    pattern (`flex justify-between gap-4 rounded-md border p-3` z
+    title + dynamic explainer + Switch po prawej) — match z
+    "Dostępność" Card w ProductEditPage. Inputy podpięte do G1
+    `error` propa (border-rose-300 + aria-invalid). CategoryFormDialog
+    kolejność out-of-grid (single field po lifcie Switcha). Refinements
+    Zod (max≥min, required→min≥1) NIETKNIĘTE. Mutations + version
+    round-trip + invalidate 1:1.
+  - **AddonGroupsList + AddonGroupEditPage** (commit `089b73c`):
+    AddonGroupsList = shared Table z `<colgroup>` (auto/100/100/120/
+    100/100), kolumny Nazwa (button → navigate) / Zakres (mono `min–
+    max`) / Dodatki (mono) / Wymagana (G1 Badge variant warning|muted)
+    / Produkty (mono) / Akcje. EmptyState primitive z Layers3 icon +
+    "+ Dodaj pierwszą grupę" CTA. AddonGroupEditPage = container
+    `mx-auto max-w-[960px]`, back-link "← Grupy dodatków" + H1
+    `text-[24px]` + meta line z mono numbers. "Dodatki" Card z
+    Sparkles icon, addon rows w VariantsSection idle pattern (price
+    "gratis" dla 0 zł). "Dodaj dodatek" full-width dashed CTA.
+    EmptyState primitive. Mutations + version round-trip + invalidate
+    1:1.
+  - **Zero zmian**: backend (zero linii Java/SQL/Flyway), routing
+    (`/admin/menu`, `/admin/menu/products/:id|new`, `/admin/menu/
+    addon-groups/:id`, `?tab=` query param), query keys (`["admin",
+    "menu","categories"|"products"|"product"|"addon-groups"|"addon-
+    group"|"variants"|"product-addon-groups"]`) + mutation keys + DTO
+    shape + Zod schemas (minSelect/maxSelect refinements,
+    `priceStr` regex, `categoryId` coerce), version field round-trip
+    we wszystkich update mutations, AD-010 (URL input only),
+    `useAdminOrderFeed` mount stability (G6 — żadna G8 strona nie
+    konsumuje SSE, AdminLayout nietknięty), shared UI primitives G1
+    (Button/Card/Input/Label/Textarea/Switch/Select/Dialog/Badge/
+    Table/EmptyState/Skeleton — używane, addition-only via
+    className), framer-motion (decyzja #5).
+  - **Świadome pominięcia / decyzje pre-implementacyjne**:
+    - **Drag-and-drop reorder kategorii skipped** — `@dnd-kit` brak
+      w `frontend/package.json`, native HTML5 DnD wymagałby też
+      backendowego endpointu reorder (stop trigger). Mono kolejność
+      `01`/`02` w 1. kolumnie sygnalizuje porządek; edycja przez
+      `displayOrder` field w CategoryFormDialog (existing flow).
+      Visual drag handle z bundla pominięty (`cursor-grab` na
+      non-functional element = anti-pattern).
+    - **Status chip 3-stanowy "Aktywny / Niedostępny chwilowo /
+      Wyłączony" pominięty** — DB ma tylko `available: boolean`,
+      trzeci stan wymagał backendu (encja + Flyway + DTO + serwis +
+      endpoint = stop trigger). Bundle też pokazuje 2 stany.
+      2-state Switch + label "Dostępny"/"Niedostępny" wystarcza i
+      mapuje 1:1 do PATCH availability flow.
+    - **ProductEditPage "Chwilowo niedostępny" drugi Switch pominięty**
+      — bundle ma 2 row-y w "Dostępność" Card; DB nie ma drugiego
+      pola. Zachowany single row mapujący do `available`.
+    - **`<VariantsSection>` i `<AddonGroupsAttachSection>` zostają
+      self-contained Cards** — ProductEditPage NIE wrap-uje ich w
+      drugi outer Card; sąsiadują z 4 Card sekcjami formularza
+      bezpośrednio pod `</form>`.
+    - **Slug Input w ProductEditPage pominięty** — bundle ma slug
+      Input w "Podstawowe" sekcji, ale per AD-012 slug nie jest
+      edytowalny w MVP (auto-derive server-side). Zachowany jako
+      read-only `mono text-[12px]` paragraph pod H1.
+    - **Search input bez debounce** — client-side filter na <100 row
+      tablicy = instant, brak race conditions. Debounce dopiero gdy
+      backend dostanie search endpoint.
+    - **`+ Nowy produkt` button bez dropdownu kategorii** — bundle
+      pokazuje plain primary; jeśli admin nie ma kategorii, button
+      `disabled` + amber notice powyżej (zachowany z poprzedniej
+      implementacji).
+    - **Bundle size: 763.22 kB JS / 54.57 kB CSS / 224.34 kB gzip JS**
+      vs G7 baseline 751.62 kB = +11.6 kB JS. Główni kontrybutorzy:
+      8 nowych lucide-react ikon (Search, UtensilsCrossed, Wallet,
+      ImageIcon, Tag, Layers, Layers3, Sparkles), ProductEditPage
+      rebuild (+~3 kB), CategoriesList rebuild (+~2 kB).
+      Przekroczenie cap +5kB notatkowane (G7 też miało +7.44 kB) —
+      do refaktoringu w G10 jeśli stanie się problemem.
+  - **Smoke automatyczny**: `npm run build` zielony po każdym commicie
+    (a-h), TypeScript strict + Vite. Końcowy bundle 763.22 kB JS /
+    54.57 kB CSS / 224.34 kB gzip JS, build time ~3.3s. `./gradlew
+    build` nie ruszany (backend zero zmian).
+  - **Smoke manualny do zrobienia przez usera** (5-min spot-check):
+    - `/admin/menu` desktop: kicker "Panel" + H1 "Menu" + underline
+      taby z aktywnym `border-b-2 border-primary`. URL `?tab=` toggle.
+    - **CRUD kategoria**: dodaj kategorię (dialog) → tabela widzi nowy
+      wiersz, mono `01`/`02` kolejność, toggle "Widoczna" przełącza
+      mutację → invalidate `["public","menu"]`. Edytuj nazwę → zapis
+      OK. Usuń (z 0 produktów) → confirm + delete OK.
+    - **CRUD produkt z URL zdjęciem**: `/admin/menu?tab=products` →
+      "+ Nowy produkt" → wpisz nazwę + wybierz kategorię + wklej
+      URL Unsplash → preview `aspect-[4/3]` ładuje, podaj złą URL →
+      onError → stripe pattern + caption "product shot · 4:3"
+      widoczne. Submit → 201 + navigate do `/admin/menu/products/{id}`,
+      VariantsSection + AddonGroupsAttachSection pojawiają się.
+    - **Toggle dostępność z listy**: `/admin/menu?tab=products` →
+      Switch w kolumnie Dostępność → mutation → label zmienia się na
+      "Niedostępny" + wiersz `opacity-70`. Otwórz `/menu` w drugim
+      tabie + refresh → produkt wyszarzony / overlay "Chwilowo
+      niedostępne".
+    - **Variants + 409 test**: w ProductEditPage dodaj wariant "30 cm"
+      39.00 zł → row z mono ceną + dashed "+ Dodaj wariant" pod.
+      Edit pencil → editor row z border-primary bg-primary/5, zmień
+      cenę → 45.00 → Zapisz (network: `version: N` w PUT body).
+      Otwórz produkt w 2 tabach, edytuj wariant w A → save; w B
+      zmień cenę → save → toast "Nie udało się zapisać wariantu" +
+      ProblemDetail 409.
+    - **AddonGroups attach**: w ProductEditPage Select grupy + order +
+      "Podepnij" → mutation OK. Klik "+ Stwórz nową grupę dodatków →"
+      → navigate `?tab=addon-groups`. Detach trash z confirm.
+    - **AddonGroupFormDialog refinements**: max=0 + min=1 → error
+      "max musi być ≥ min". required=true + min=0 → error "Gdy grupa
+      jest wymagana, min musi być ≥ 1".
+    - **AddonGroupEditPage**: back-link → `?tab=addon-groups`. Card
+      "Dodatki" z inline editor, "Dodaj dodatek" dashed full-width.
+      Cena 0 → render "gratis".
+    - **Mobile 375**: każda strona scrollowalna, tabele
+      `overflow-x-auto`, toolbar Products `flex-col gap-3`,
+      ProductEditPage footer `flex-col-reverse` (primary CTA na
+      górze).
+    - **Theme swap**: w SettingsPage zmień primary color → refresh
+      `/admin/menu` → CTA "Zapisz", aktywne taby underline border-
+      primary, focus ring inputów, toggle Switch ON, dashed-add hover
+      wszystkie reagują.
+    - **Regresja G7**: `/admin/orders` lista + detail nietknięte,
+      polling 10s, SSE 1 połączenie stabilne (DevTools Network →
+      EventStream).
+
 - [ ] Grupa 9: Admin Settings
 - [ ] Grupa 10: Polish przekrojowy
 
