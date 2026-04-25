@@ -19,11 +19,14 @@ import {
   type SpringPage,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
-import { formatDateTime } from "@/shared/lib/formatDate";
+import { formatTime } from "@/shared/lib/formatDate";
+import { cn } from "@/shared/lib/cn";
 import { OrderStatusBadge } from "@/shared/components/OrderStatusBadge";
 import { OrderFilters, type OrderFiltersValue } from "./components/OrderFilters";
 
 const PAGE_SIZE = 20;
+const STAGGER_CAP = 12;
+const STAGGER_STEP_MS = 30;
 const STATUS_VALUES: OrderStatus[] = [
   "NEW",
   "CONFIRMED",
@@ -173,48 +176,31 @@ export function OrdersListPage() {
           </div>
         ) : (
           <Table>
+            <colgroup>
+              <col className="w-[148px]" />
+              <col className="w-[108px]" />
+              <col />
+              <col className="w-[84px]" />
+              <col className="w-[108px]" />
+              <col className="w-[160px]" />
+              <col className="w-[72px]" />
+              <col className="w-[96px]" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Numer</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Klient</TableHead>
-                <TableHead>Rodzaj</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Kwota</TableHead>
-                <TableHead className="w-24 text-right">Akcja</TableHead>
+                <TableHead className="text-[11px]">Numer</TableHead>
+                <TableHead className="text-[11px]">Złożone</TableHead>
+                <TableHead className="text-[11px]">Klient</TableHead>
+                <TableHead className="text-center text-[11px]">Pozycje</TableHead>
+                <TableHead className="text-[11px]">Typ</TableHead>
+                <TableHead className="text-[11px]">Status</TableHead>
+                <TableHead className="text-[11px]">ETA</TableHead>
+                <TableHead className="text-right text-[11px]">Kwota</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className="font-medium text-slate-900">
-                    {row.orderNumber}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-slate-600">
-                    {formatDateTime(row.placedAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-slate-900">{row.customerName}</div>
-                    <div className="text-xs text-slate-500">{row.customerPhone}</div>
-                  </TableCell>
-                  <TableCell className="text-slate-600">
-                    {fulfillmentLabel(row.fulfillmentType)}
-                  </TableCell>
-                  <TableCell>
-                    <OrderStatusBadge status={row.status} />
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right font-medium tabular-nums text-slate-900">
-                    {formatCurrency(row.total)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      to={`/admin/orders/${row.id}`}
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      Szczegóły →
-                    </Link>
-                  </TableCell>
-                </TableRow>
+              {rows.map((row, idx) => (
+                <OrderRow key={row.id} row={row} index={idx} />
               ))}
             </TableBody>
           </Table>
@@ -250,33 +236,96 @@ export function OrdersListPage() {
   );
 }
 
+function OrderRow({ row, index }: { row: AdminOrderListItemDto; index: number }) {
+  const isNew = row.status === "NEW";
+  const delayMs = Math.min(index, STAGGER_CAP - 1) * STAGGER_STEP_MS;
+  return (
+    <TableRow
+      className={cn(
+        "animate-in fade-in slide-in-from-bottom-1 duration-300",
+        isNew && "bg-primary/[0.03]"
+      )}
+      style={{ animationDelay: `${delayMs}ms` }}
+    >
+      <TableCell className="font-mono text-sm">
+        <Link
+          to={`/admin/orders/${row.id}`}
+          className="inline-flex items-center gap-2 font-medium text-slate-900 hover:text-primary"
+        >
+          {isNew && (
+            <span
+              aria-label="Nowe zamówienie"
+              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary"
+            />
+          )}
+          {row.orderNumber}
+        </Link>
+      </TableCell>
+      <TableCell className="font-mono text-xs text-slate-600">
+        {formatTime(row.placedAt)}
+      </TableCell>
+      <TableCell>
+        <div className="text-slate-900">{row.customerName}</div>
+        <div className="text-xs text-slate-500">{row.customerPhone}</div>
+      </TableCell>
+      <TableCell className="text-center font-mono text-slate-700">
+        {row.itemsCount}
+      </TableCell>
+      <TableCell className="text-slate-600">
+        {fulfillmentLabel(row.fulfillmentType)}
+      </TableCell>
+      <TableCell>
+        <OrderStatusBadge status={row.status} />
+      </TableCell>
+      <TableCell className="font-mono text-sm text-slate-700">
+        {row.etaMinutes !== null ? `${row.etaMinutes} min` : "—"}
+      </TableCell>
+      <TableCell className="text-right font-mono font-medium text-slate-900">
+        {formatCurrency(row.total)}
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function OrdersListSkeleton() {
   return (
     <Table>
+      <colgroup>
+        <col className="w-[148px]" />
+        <col className="w-[108px]" />
+        <col />
+        <col className="w-[84px]" />
+        <col className="w-[108px]" />
+        <col className="w-[160px]" />
+        <col className="w-[72px]" />
+        <col className="w-[96px]" />
+      </colgroup>
       <TableHeader>
         <TableRow>
-          <TableHead>Numer</TableHead>
-          <TableHead>Data</TableHead>
-          <TableHead>Klient</TableHead>
-          <TableHead>Rodzaj</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Kwota</TableHead>
-          <TableHead className="w-24 text-right">Akcja</TableHead>
+          <TableHead className="text-[11px]">Numer</TableHead>
+          <TableHead className="text-[11px]">Złożone</TableHead>
+          <TableHead className="text-[11px]">Klient</TableHead>
+          <TableHead className="text-center text-[11px]">Pozycje</TableHead>
+          <TableHead className="text-[11px]">Typ</TableHead>
+          <TableHead className="text-[11px]">Status</TableHead>
+          <TableHead className="text-[11px]">ETA</TableHead>
+          <TableHead className="text-right text-[11px]">Kwota</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {Array.from({ length: 5 }).map((_, idx) => (
           <TableRow key={idx}>
             <TableCell><div className="h-4 w-20 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell><div className="h-4 w-32 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell><div className="h-4 w-12 animate-pulse rounded bg-slate-200" /></TableCell>
             <TableCell>
               <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
               <div className="mt-1 h-3 w-20 animate-pulse rounded bg-slate-200" />
             </TableCell>
+            <TableCell><div className="mx-auto h-4 w-6 animate-pulse rounded bg-slate-200" /></TableCell>
             <TableCell><div className="h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
             <TableCell><div className="h-5 w-20 animate-pulse rounded-full bg-slate-200" /></TableCell>
+            <TableCell><div className="h-4 w-10 animate-pulse rounded bg-slate-200" /></TableCell>
             <TableCell className="text-right"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell className="text-right"><div className="ml-auto h-4 w-14 animate-pulse rounded bg-slate-200" /></TableCell>
           </TableRow>
         ))}
       </TableBody>
