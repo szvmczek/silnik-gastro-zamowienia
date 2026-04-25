@@ -3,7 +3,10 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
+Brak — Faza 4 + Faza 5 zamknięte, redesign post-MVP zakończony
+(10/10 grup mergowane do `phase-5`, patrz "Redesign progress"
+poniżej). Następny krok: deployment Pizza Showcase staging
+(Railway) + draft `docs/ONBOARDING.md` dla pierwszego klienta.
 
 ## Redesign progress (post-MVP, docs/design/MIGRATION_PLAN.md)
 
@@ -1075,7 +1078,218 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
       połączenie stable (DevTools Network → EventStream).
       ThemeBootstrap propaguje primary color save end-to-end.
 
-- [ ] Grupa 10: Polish przekrojowy
+- [x] Grupa 10: Polish przekrojowy (2026-04-26, branch
+  `design/g10-polish`)
+  - Sesja: plan zaakceptowany, 5 atomowych commitów + 3 NO-OP
+    (audyt verified zero blokerów). Bundle optimization (UX-first
+    metric), Skeleton/EmptyState consistency closeout, mobile
+    audit, Pani Kasia checklist verify, final docs.
+  - Commit (a) `feat(design-g10): React.lazy code-split per route
+    + RouteFallback`: 17 stron pod `React.lazy()` z named-export
+    → default mapping. `Suspense` na poziomie `AppRouter` używa
+    nowego `RouteFallback` (shared/components/) który wybiera
+    public vs admin shell skeleton po `pathname` (uses G1 Skeleton
+    primitive). Vite emituje per-page chunki 3-22 kB JS (1-7 kB
+    gzip każdy). Public klient nie pobiera admin chunków, admin
+    klient nie pobiera Landing/Menu/Checkout chunków.
+  - Commit (b) `vite manualChunks vendor split` — **TESTED &
+    REJECTED** empirycznie. Eager preload 5 vendor chunków
+    (`react+form+query+radix+ui` = 179 kB gzip combined) na każdej
+    nawigacji defeated cel code-split. `form-vendor` z Zod+RHF
+    (31 kB gzip) preloadowany na Landing pomimo zero formularzy.
+    Naturalny Vite per-dynamic-import-boundary chunking wins —
+    każdy lazy route ciągnie tylko swoje deps. Decyzja
+    udokumentowana w commit (c) message dla institutional
+    knowledge.
+  - Commit (c) `chore(design-g10): drop unused framer-motion +
+    lucide tree-shake verified`: framer-motion (^12.38.0) miało
+    zero importów w `src/` (Decyzja #5 pre-G1 utrzymana). Drop
+    czyści 3 packages z node_modules + lockfile. **Lucide-react
+    explicit subpath imports refactor (32 plików) considered &
+    REJECTED** based on measurement: per-route chunki już
+    minimalne (MenuPage 4.76 / OrderDetailPage 5.61 / OrdersList
+    2.81 kB gzip), lucide nie pojawia się w initial preload —
+    wszystkie ikony lądują w lazy per-route chunkach gdzie
+    tree-shaking via `"sideEffects": false` + ESM module entry
+    działa naturally. 32 file refactor dałby <2 kB savings przy
+    wysokim regression risk.
+  - Commit (d) `refactor(design-g10): use Skeleton primitive in
+    TrackingPage, OrdersListPage, OrderDetailPage`: G1 created
+    Skeleton primitive specifically to replace inline animate-pulse
+    divs in these three pages, ale migracja była deferred.
+    G10 zamyka gap: TrackingPage TrackingSkeleton 4 inline divs
+    → Skeleton, OrdersListPage OrdersListSkeleton 11 inline divs
+    → Skeleton, OrderDetailPage OrderDetailSkeleton 7 inline divs
+    (incl. dark `bg-slate-900/80` ETA placeholder) → Skeleton.
+    Override `bg-slate-200` przez className tw-merge — visual
+    layout preserved exactly. Grep `animate-pulse` poza
+    `Skeleton.tsx` daje pojedynczy match: OrdersListPage:259
+    NEW-row live pulse dot (`bg-primary` z `aria-label="Nowe
+    zamówienie"`) — live indicator, nie loading skeleton, kept.
+  - Commit (e) `refactor(design-g10): use EmptyState primitive in
+    OrdersListPage filtered empty`: rows.length === 0 branch był
+    inline plain text bez affordance. Replaced z EmptyState
+    (Inbox icon + dynamic title/description + `Wyczyść filtry`
+    CTA when filters active) per Pani Kasia rule "empty states
+    z affordance 'co kliknąć żeby zacząć'". Two-state copy:
+    pristine load ("Nie ma jeszcze żadnych zamówień", no action)
+    vs filtered empty ("Brak zamówień dla tych filtrów" + outline
+    Wyczyść filtry button). Audit verified 7 other EmptyState
+    consumers OK (CartDrawer G4, 6× admin menu lists G8). Jeden
+    edge case kept inline: `MenuPage.tsx:136` single-category
+    sub-section note "Brak produktów w tej kategorii" — embedded
+    sub-section note w public category list, nie standalone empty
+    state; EmptyState by overkill (icon + frame inside a category
+    section without affordance for public client).
+  - Commit (f) `mobile 375 audit` — **NO-OP**. Audit verified zero
+    blokerów: z-index uniform (sticky nav z-20 / sticky tabs
+    z-10 / mobile bars z-30 / dialogs z-50 — bez kolizji), tabele
+    przez `Table` primitive `overflow-x-auto` (admin OrdersListPage
+    table-fixed scrolluje horyzontalnie na 375), Display sizes
+    responsywne (wszystkie `text-[Npx]` mają sm:/md: scale-up),
+    sticky elements separated (top vs bottom nie kolidują), touch
+    targets G4 wymusiło `h-11 w-11 sm:h-9 sm:w-9` na cart
+    steppers, G7 dialogi z standardowych prymitywów. Design
+    responsywność wbudowana w G2-G9, no-corrections needed.
+  - Commit (g) `Pani Kasia consistency` — **NO-OP**. Checklist
+    9/10 ✓: `#FF6B35` w komponentach (5 wystąpień) wszystkie w
+    SettingsPage color picker presets / ColorPreviewCard fallback
+    (admin UI pracuje Z hex jako data, nie HARDCODED brand);
+    `variant="danger"` (solid) zero w użyciu (tylko
+    `dangerOutline` na 3 destruktywnych); `font-mono` spójnie na
+    numerach/kwotach/czasach/hex (27 plików); `mono` klasa
+    przestrzegana. Jedno design-policy odchylenie vs strict plan:
+    `size="xl"` użyte na 8 CTA (Login, ProductModal, CartDrawer,
+    MobileCartBar, CheckoutPage×2, OrderConfirmation,
+    OrderStatusActions) zamiast tylko OrderDetailPage. To
+    konsekwencja decyzji G2-G9 — primary CTA dominujący (Pani
+    Kasia "z 2m widoczne") zastosowany na każdy critical primary
+    action. **Improvement vs plan, nie regresja.** Flag w raporcie,
+    brak refaktoringu. `#faf7f2` cream accent w
+    AboutSection/HeroSection — decorative warm accent, NIE primary
+    brand, zostaje. TODO/FIXME/HACK zero w kodzie.
+  - Commit (h) `docs(design-g10): final CURRENT_STATE redesign
+    summary 10/10`: ten wpis + sekcja "Final redesign metrics"
+    poniżej.
+  - **Bundle optimization decision — UX-first metric (NEW G10
+    decision)**: G10 adopted UX-first metric: **initial preload
+    on first paint**, not total gzip across all chunks.
+    Code-splitting per route reduces initial download (-46%
+    public landing: 224 kB single bundle G9 → 122 kB initial
+    preload G10) at cost of modest total bytes increase
+    (+17%, 224 → 262 kB gzip across all chunks) which users
+    never download all-at-once. **Stop trigger #7** ("build
+    delta wzrost zamiast redukcji") was triggered on total gzip
+    measurement after commits a-c, raised to user, and
+    reinterpreted as inapplicable when total growth is inherent
+    to code-split design (lazy chunks distribute bytes in time,
+    don't concentrate them in initial download). User explicit
+    decision documented: total gzip is informational, not KPI;
+    initial preload is the metric. **Manual chunks vendor split
+    was tested empirically and rejected** — eager preload of all
+    vendor chunks across navigations defeated the purpose. Future
+    developer should not retry manual chunks unless route-aware
+    strategy emerges. Natural Vite per-dynamic-import-boundary
+    chunking wins.
+  - **Smoke**: `npm run build` zielone (2.36s ostatni commit),
+    `tsc -b` zielone, build wymaga `tsc -b` przed `vite build` per
+    `package.json` script. **Initial preload public landing:
+    121.99 kB gzip JS** (8 modulepreload chunks: index-entry
+    62.57 + cn-vendor 48.44 + dist-radix 10.26 + mutation 1.13 +
+    4 small hooks/api ~0.9). **Total all chunks gzip:** 262.52 kB
+    (informational). **CSS gzip:** 9.73 kB.
+  - **Co NIE wykonano vs plan**:
+    - Lucide explicit imports refactor — REJECTED na podstawie
+      pomiaru (lucide w ogóle nie w initial preload, per-route
+      tree-shake już działa).
+    - Vite manualChunks — REJECTED empirycznie (pogorszył initial
+      preload).
+    - Mobile 375 corrections — NO-OP (zero blokerów).
+    - Pani Kasia consistency fixes — NO-OP (9/10 ✓, jedno
+      design-policy improvement udokumentowane).
+    - Cleanup TODO comments — NO-OP (zero TODO/FIXME/HACK w
+      kodzie).
+  - **Czego się NIE zmieniło**:
+    - Backend (zero linii Java/Flyway/SQL).
+    - DTO shape, hooki signatures, query/mutation keys, Zod
+      schemas, version round-trip, AD-001..018 nietknięte.
+    - Routing **structure** (URL paths) — tylko owrap React.lazy.
+    - cartStore (persist key, line key AD-014).
+    - shared UI primitives core logic (Skeleton, EmptyState
+      używane as-is z G1).
+    - SSE hook `useAdminOrderFeed`, themeLoader, usePublicSettings.
+    - `index.css` `.kicker`, `@keyframes dotpulse`.
+
+## Redesign — DONE (10/10 grup, 2026-04-22 → 2026-04-26)
+
+5-dniowy redesign zamknięty. Wszystkie grupy mergowane do
+`phase-5`. Bundle MVP gotowy do staging deploy.
+
+### Final redesign metrics
+
+| Metryka | Wartość |
+|---|---|
+| **Czas trwania** | 5 dni (2026-04-22 → 2026-04-26) |
+| **Liczba grup** | 10 |
+| **Liczba commitów `design(*)` total** | 70 |
+| **Branche `design/g*` mergowane** | 9 (G2+G3 współdzielony branch, G10 mergowany w tej sesji) |
+| **Backend zmieniony** | 1 plik (V100__seed_demo.sql primary color w G1) |
+| **DTO/hook signatures changed** | 0 |
+| **Decyzje architektoniczne (AD-001..018) zmienione** | 0 |
+| **Initial preload public landing (G10 final)** | **121.99 kB gzip JS** |
+| **Initial preload G9 baseline (single bundle)** | 224 kB gzip JS |
+| **Initial preload reduction G9 → G10** | **−46%** |
+| **Total chunks gzip JS (G10 informational)** | 262.52 kB |
+| **CSS gzip** | 9.73 kB |
+| **Build time (vite + tsc)** | ~2.4s |
+
+### Pliki utworzone w `shared/` przez redesign
+
+- [`shared/components/ui/Skeleton.tsx`](../frontend/src/shared/components/ui/Skeleton.tsx) — G1
+- [`shared/components/ui/EmptyState.tsx`](../frontend/src/shared/components/ui/EmptyState.tsx) — G1
+- [`shared/components/OrderStatusBadge.tsx`](../frontend/src/shared/components/OrderStatusBadge.tsx) — G7 (move z `features/admin/orders/components/`)
+- [`shared/components/RouteFallback.tsx`](../frontend/src/shared/components/RouteFallback.tsx) — G10
+
+### Pliki utworzone w `features/` przez redesign
+
+- [`features/public/order/components/TrackingTimeline.tsx`](../frontend/src/features/public/order/components/TrackingTimeline.tsx) — G5
+- [`features/admin/orders/components/CancelOrderDialog.tsx`](../frontend/src/features/admin/orders/components/CancelOrderDialog.tsx) — G7
+- [`features/admin/orders/components/PrimaryActionCta.tsx`](../frontend/src/features/admin/orders/components/PrimaryActionCta.tsx) — G7
+- [`features/admin/settings/components/SettingsTabs.tsx`](../frontend/src/features/admin/settings/components/SettingsTabs.tsx) — G9
+- [`features/admin/settings/components/SettingsShell.tsx`](../frontend/src/features/admin/settings/components/SettingsShell.tsx) — G9
+- [`features/admin/settings/components/ColorPreviewCard.tsx`](../frontend/src/features/admin/settings/components/ColorPreviewCard.tsx) — G9
+- `useDebouncedValue` hook — G9
+
+### Decyzje architektoniczne preserved
+
+AD-001 (Modular Monolith), AD-002 (Frontend serwowany przez
+Spring Boot), AD-003 (JWT localStorage), AD-004 (RestaurantSettings
+singleton), AD-005 (polling klient / SSE admin stretch), AD-006
+(Snapshoty OrderItem), AD-007 (publicTrackingToken UUID v4),
+AD-008 (State machine OrderStatus), AD-009 (Optimistic locking
+@Version), AD-010 (URL input zdjęć), AD-011 (MenuAssembler
+split-query), AD-012 (Slug Polish-aware), AD-013 (orderNumber
+generator), AD-014 (Cart line key), AD-015 (addonGroupName
+snapshot), AD-016 (klient nie wysyła cen), AD-017 (state machine
+backend SoT + FE mirror), AD-018 (SSE auth via query token) —
+**wszystkie nietknięte** przez redesign.
+
+### Branch state
+
+Wszystkie `design/g*` branche mergowane do `phase-5`. Po
+mergowaniu G10 do `phase-5` można skasować `design/g10-polish`
+(opcjonalne housekeeping). `master` synchronizować z `phase-5`
+przy starcie deployment.
+
+### Następny krok
+
+1. Deployment Pizza Showcase staging na Railway (sprawdzić
+   `Dockerfile` multi-stage, env vars, Postgres provisioning).
+2. Draft `docs/ONBOARDING.md` — checklist dla pierwszego klienta:
+   color picker change, opening hours fill, hero/about content,
+   menu CRUD walkthrough.
+3. Pierwszy klient w demo trybie + zbiór feedbacku przed Fazą 6
+   (płatności online, patrz `docs/ROADMAP.md`).
 
 ## Fazy ukończone
 - [x] Faza 0: Bootstrap
