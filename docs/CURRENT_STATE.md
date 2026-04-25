@@ -497,7 +497,187 @@ Brak — Faza 4 zamknięta. Następna: Faza 5 (Polish + Deploy).
     {token}` → admin zmienia status → klient widzi w ≤15s →
     DELIVERED → polling stops per Network tab).
 
-- [ ] Grupa 7: Admin Orders (flagship, screenshoty before/after)
+- [x] Grupa 7: Admin Orders (2026-04-25, branch `design/g7-admin-orders`)
+  - **Pre-flight korekta**: poprzednia sesja flag-owała `AdminOrderDto.
+    etaSetAt` jako brakujące — weryfikacja `grep -r etaSetAt
+    backend/src/main/java` wykazała pole obecne na obu DTO
+    (`AdminOrderDto`, `OrderTrackingDto`) od V9. Dzięki temu dark ETA
+    card na detail page i panel "Aktualne ETA" w EtaDialog dostały
+    feature "ustawione X min temu" bez zmian w backendzie. Frontendowy
+    typ uzupełniony ADD-ONLY (commit `aee2a13`).
+  - **OrderStatusBadge → shared/components** (commit `7e25670`):
+    przeniesione z `features/admin/orders/components/` do
+    `shared/components/OrderStatusBadge.tsx` (decyzja #2 z pre-G1).
+    `Badge` primitive G1 dostał prop `size?: "sm" | "lg"`
+    (`sm` = obecny default `px-2.5 py-0.5 text-xs`,
+    `lg` = `px-3 py-1 text-[13px]` z `components.md`).
+    `OrderStatusBadge` przyjmuje ten sam prop, mapping status→intent
+    bez zmian (NEW=primary, CONFIRMED=info, IN_PREPARATION/
+    OUT_FOR_DELIVERY=warning, READY=success, DELIVERED=muted,
+    CANCELED=danger). 4 importerów zaktualizowane (OrdersListPage,
+    OrderDetailPage, OrderStatusActions, OrderStatusHistory).
+  - **OrdersListPage rebuild** (commit `cb75fee`): nowa 8-kolumnowa
+    tabela `<colgroup>` (148/108/fluid/84/108/160/72/96): Numer |
+    Złożone | Klient | Pozycje | Typ | Status | ETA | Kwota. NEW row
+    highlight: `bg-primary/[0.03]` + pulsująca kropka primary `w-2
+    h-2 rounded-full animate-pulse` w pierwszej komórce — operatora
+    oko trafia najpierw na zamówienia wymagające akcji. Mono na
+    numerze/czasie/itemsCount/eta/kwocie, kwota right-aligned, dawna
+    kolumna "Akcja" usunięta — sam orderNumber jest linkiem do
+    detail. Stagger entrance via `tw-animate-css` (`animate-in
+    fade-in slide-in-from-bottom-1 duration-300` z
+    `animationDelay: i*30ms`, capped na 12 rzędów żeby SSE
+    invalidate nie kaskadował na dużych listach).
+  - **OrderFilters chip toolbar** (commit `153dad1`): Select
+    dropdownsy zastąpione horyzontalnymi rzędami chipów — operator
+    skanuje wszystkie opcje status/typ jednym spojrzeniem zamiast
+    klikać i czytać. Aktywny chip inwertuje na `bg-slate-900
+    text-white`, nieaktywny `bg-white border-slate-200`. Date range
+    inline w trzecim rzędzie, "Wyczyść filtry" floats right gdy
+    cokolwiek aktywne. Single-select per oś (radio behavior)
+    zachowane bez zmian. Zero nowych npm deps.
+  - **OrderDetailPage rebuild** (commit `aee2a13`): mono header
+    `text-[40px] font-semibold tracking-tight` z numerem +
+    `OrderStatusBadge size="lg"` obok, meta line "Złożone {X temu} ·
+    {Dostawa|Odbiór} · {payment}" pod spodem. Layout grid `grid-cols-
+    1 lg:grid-cols-[1fr_420px] gap-6`: lewa kolumna = Pozycje +
+    Klient (z address inline gdy DELIVERY + "Otwórz w mapie" link
+    do `https://www.google.com/maps/search/?api=1&query=...`) +
+    Płatność, prawa = amber notes (conditional `customerNotes`) +
+    dark ETA card `rounded-lg bg-slate-900 text-white p-6` z mono
+    `text-[48px]` minutes + "ustawione X min temu" gdy `etaSetAt` +
+    Historia statusów. Nowy util
+    `features/admin/orders/lib/etaRelativeTime.ts` z
+    `computeEtaRelativeTime` — gałąź `>120 min → "ustawione dawno"`
+    sygnalizuje stale ETA (operator ma odświeżyć). Type
+    `AdminOrderDto.etaSetAt: string | null` dodany ADD-ONLY.
+  - **PrimaryActionCta lookup + dangerOutline cancel slot — flagship
+    Pani Kasia** (commit `533ee04`): `OrderStatusActions` przejmuje
+    cały actions block. Top: `<NextStepCta>` wrapper `border-2
+    border-primary/20 rounded-lg p-5` z kicker "NASTĘPNY KROK"
+    mono-caps 11px text-slate-500, primary Button `size="xl"` (h-16,
+    64px) z label z lookup table (status×fulfillmentType), info
+    ikona `lucide-react/Info` 14px + helper 12px text-slate-500
+    "Następnie: ...". Bottom secondary row `pt-9` z "Zmień ETA"
+    outline lg + "Anuluj zamówienie" dangerOutline lg. Terminal
+    status (DELIVERED/CANCELED) renderuje muted banner zamiast CTA.
+    Lookup zweryfikowany 1:1 vs `transitions.ts.canTransitionTo`,
+    runtime sanity check w DEV (console.warn na mismatch). Cancel +
+    ETA dialogs callbackami w OrderDetailPage.
+  - **OrderStatusHistory vertical timeline** (commit `f4d3b35`):
+    `<ol>` z `pl-5` + absolutną pionową linią konektora `bg-slate-200
+    w-px`. Najnowszy entry = primary dot `ring-2 ring-primary/30`,
+    starsze = emerald-500 dot. Reverse-chrono (najnowszy na górze).
+    `<time dateTime>` element dla a11y, `changedBy` zachowane.
+  - **EtaDialog presety + Aktualne ETA panel** (commit `080cf7c`):
+    presety `[10,20,30,45,60]` (z bundla; było `[15,30,45,60]`),
+    grid 5-col. Powyżej presets nowy panel `bg-slate-50 rounded p-3`:
+    "Aktualne ETA: {minutes} min" w mono + `text-slate-500`
+    "ustawione {relative_time(etaSetAt)}" gdy `etaSetAt` set.
+    Default selected = `currentEtaMinutes` jeśli match preset,
+    inaczej first preset (10). State resetuje się przy każdym
+    otwarciu. Re-render co 60s przez lokalny `setInterval` (tylko
+    podczas open) — relative time stays fresh w długo otwartym
+    dialogu bez wyciekania timerów.
+  - **CancelOrderDialog** (commit `16a36a6`): dialog 520px z header
+    `lucide-react/AlertTriangle` icon w rose-100/rose-600 + tytuł
+    "Anulować zamówienie {orderNumber}?" (mono na numerze). Body:
+    info paragraph "Klient zobaczy zmianę statusu na stronie
+    śledzenia. Tej akcji nie można cofnąć." + textarea 4 rows
+    "Powód anulowania (opcjonalny, tylko do Twoich notatek)" +
+    Checkbox required "Rozumiem, że ta akcja jest nieodwracalna"
+    (CTA disabled gdy unchecked). Footer: "Zachowaj zamówienie"
+    ghost + "Anuluj zamówienie" dangerOutline (rose border, NIE
+    solid red — bundle visual contradicted by components.md, plan
+    supersedes). **Reason field NIE przekazywany do API** —
+    `UpdateOrderStatusRequest` backend DTO ma tylko `{version,
+    status}`. Pole istnieje tylko po to, żeby operator zatrzymał
+    się i pomyślał. Komentarz w kodzie wyjaśnia wiring point gdy/
+    jeśli backend doda `cancellation_reason`. State resetuje się
+    przy każdym otwarciu.
+  - **Zero zmian**: backend (0 linii Java/SQL dotkniętych),
+    `useAdminOrderFeed` mount point i sygnatura,
+    `useUpdateOrderStatus`/`useUpdateOrderEta` mutations + 409
+    handling pattern (reused w OrderDetailPage),
+    `transitions.ts` (read-only consumer), routing, query keys
+    (`["admin","orders","list",query]` /
+    `["admin","orders","detail",id]` /
+    `["admin","dashboard","summary"]`), shared UI G1 prymitywy
+    (Button/Card/Sheet/Dialog) — addition only `size` prop na Badge,
+    framer-motion (decyzja #5 — używamy `tw-animate-css` only),
+    cartStore.
+  - **Świadome pominięcia / flagi**:
+    - **`reason` field local-only** w CancelOrderDialog — zostaje
+      pole, nie zostaje wartość. Per pre-flight korekta #2 backend
+      nie ma kolumny ani parametru. Decyzja: zachowujemy pole jako
+      friction-by-design + komentarz w kodzie.
+    - **Screenshoty before/after manual fallback per user decision**
+      — tooling pominięty w sesji, user wykona Snipping Tool
+      (Win+Shift+S) 6 zrzutów do `docs/design/before-after/` po
+      verify pass. Folder już zsetupowany w commit `948dd29`.
+    - **Bundle CancelOrderModal `variant="danger"` (red solid)
+      contradicts components.md `dangerOutline`** — plan supersedes
+      bundle, użyto `dangerOutline` (zachowuje hierarchię vs orange
+      primary).
+    - **Bundle size cap +5KB JS przekroczony o 2.44KB**: G7 koniec
+      751.62 kB vs G6 baseline 744.18 kB = +7.44 kB. Główni
+      kontrybutorzy: lucide-react ikony (`Info`, `AlertTriangle`),
+      CancelOrderDialog dialog (+1.81 kB), OrdersListPage rebuild
+      (+1.77 kB). Wszystkie justified — zero przypadkowego dead
+      code'u, ale przekroczenie odnotowane do uwagi w G8/G9.
+    - **`itemsCount` na list DTO** wykorzystany jak był na
+      `AdminOrderListItemDto` — nie dodawano nowych pól.
+    - **Mobile 375 layout** — OrdersListPage używa
+      `overflow-x-auto` z Table primitive (suma kolumn ~776px,
+      mobile = horizontal scroll, akceptowalne dla admin which is
+      desktop-primary). CancelOrderDialog `max-w-[520px]` z
+      auto-shrink na małym viewport.
+  - **Smoke automatyczny**: `npm run build` zielony po każdym
+    commicie (a-h), TypeScript strict + Vite. Końcowy bundle
+    751.62 kB JS / 53.36 kB CSS / 221.87 kB gzip JS, build time
+    ~2s. `./gradlew build` nie ruszany (backend zero zmian).
+  - **Smoke manualny do zrobienia przez usera** (5-10 min spot-check):
+    - DELIVERY full flow przez wszystkie status transitions: NEW →
+      CONFIRMED → IN_PREPARATION → READY → OUT_FOR_DELIVERY →
+      DELIVERED — weryfikacja CTA label + helper text per krok
+    - PICKUP full flow: NEW → CONFIRMED → IN_PREPARATION → READY →
+      DELIVERED (skip OUT_FOR_DELIVERY)
+    - Cancel flow: z każdego non-terminal status, reason field
+      przyjmuje tekst, checkbox blokuje submit, submit zmienia
+      status na CANCELED, lista invalidates
+    - ETA flow: open dialog, panel "Aktualne ETA" widoczny ze
+      względnym czasem, change preset + custom, submit, dark card
+      na detail page update
+    - 409 test: dwóch operatorów, jeden zmienia status, drugi
+      próbuje — toast "Ktoś inny zmienił zamówienie"
+    - SSE stability: drugi browser tworzy zamówienie, lista admin
+      pokazuje NEW row z dot pulse
+    - Mobile 375: OrdersListPage horizontal scroll, OrderDetailPage
+      stack, CancelOrderDialog auto-shrink
+    - Theme swap: zmiana `--primary` → wszystkie odwołania reagują
+      (NEW dot, primary CTA, NextStepCta border, badge intent
+      primary)
+  - **Pani Kasia checklist (10 punktów z pre-G1 zasady)**:
+    1. ✓ Jeden dominujący CTA per ekran — PrimaryActionCta `size=
+       "xl"` (h-16, 64px) jako jedyny solid primary na detail page
+    2. ✓ Konkretny label CTA — lookup status×fulfillmentType
+       ("Wydaj kurierowi →", nie "Zmień status")
+    3. ✓ Micro-helper pod CTA — 12px `text-slate-500` z `Info` icon,
+       "Następnie: ..."
+    4. ✓ Destruktywne jako outline — Anuluj = `dangerOutline` (rose
+       border), NIE solid red
+    5. ✓ Status badge widoczny w 2 miejscach — header `lg` + lista
+       `sm`
+    6. ✓ NEW row highlight optycznie wyróżnia świeże zamówienia —
+       dot pulse + bg-primary/[0.03]
+    7. ✓ Mono na numerach/czasach/kwotach — szybki scan oka
+    8. G1-default Theme tokens (primary `#FF6B35`) używane przez
+       semantyczny token, zero hardcoded hex
+    9. ✓ Mobile 375 audit — overflow-x-auto na liście, dialog
+       auto-shrink, CTA `w-full` w wrapperze
+    10. ✓ Confirmation friction na cancel — checkbox required +
+        reason textarea (lokalny placeholder)
+
 - [ ] Grupa 8: Admin Menu CRUD
 - [ ] Grupa 9: Admin Settings
 - [ ] Grupa 10: Polish przekrojowy
