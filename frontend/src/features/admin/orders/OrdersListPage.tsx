@@ -22,6 +22,7 @@ import { extractProblem } from "@/shared/api/client";
 import { formatTime } from "@/shared/lib/formatDate";
 import { cn } from "@/shared/lib/cn";
 import { OrderStatusBadge } from "@/shared/components/OrderStatusBadge";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
 import { OrderFilters, type OrderFiltersValue } from "./components/OrderFilters";
 
 const PAGE_SIZE = 20;
@@ -315,17 +316,17 @@ function OrdersListSkeleton() {
       <TableBody>
         {Array.from({ length: 5 }).map((_, idx) => (
           <TableRow key={idx}>
-            <TableCell><div className="h-4 w-20 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell><div className="h-4 w-12 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-20 bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-12 bg-slate-200" /></TableCell>
             <TableCell>
-              <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
-              <div className="mt-1 h-3 w-20 animate-pulse rounded bg-slate-200" />
+              <Skeleton className="h-4 w-28 bg-slate-200" />
+              <Skeleton className="mt-1 h-3 w-20 bg-slate-200" />
             </TableCell>
-            <TableCell><div className="mx-auto h-4 w-6 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell><div className="h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell><div className="h-5 w-20 animate-pulse rounded-full bg-slate-200" /></TableCell>
-            <TableCell><div className="h-4 w-10 animate-pulse rounded bg-slate-200" /></TableCell>
-            <TableCell className="text-right"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="mx-auto h-4 w-6 bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-16 bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-5 w-20 rounded-full bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-10 bg-slate-200" /></TableCell>
+            <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-16 bg-slate-200" /></TableCell>
           </TableRow>
         ))}
       </TableBody>

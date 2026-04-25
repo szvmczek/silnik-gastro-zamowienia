@@ -13,6 +13,7 @@ import { extractProblem } from "@/shared/api/client";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { Button } from "@/shared/components/ui/Button";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
 import {
   STATUS_LABELS,
   TrackingTimeline,
@@ -439,11 +440,11 @@ function SupportCard({ phone, phoneHref }: SupportCardProps) {
 function TrackingSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="h-20 animate-pulse rounded-lg bg-slate-200" />
-      <div className="h-40 animate-pulse rounded-lg bg-slate-200" />
+      <Skeleton className="h-20 rounded-lg bg-slate-200" />
+      <Skeleton className="h-40 rounded-lg bg-slate-200" />
       <div className="grid gap-5 md:grid-cols-[1.2fr_1fr]">
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
-        <div className="h-40 animate-pulse rounded-2xl bg-slate-200" />
+        <Skeleton className="h-40 rounded-2xl bg-slate-200" />
+        <Skeleton className="h-40 rounded-2xl bg-slate-200" />
       </div>
     </div>
   );

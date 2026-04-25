@@ -17,6 +17,7 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { OrderStatusBadge, statusLabel } from "@/shared/components/OrderStatusBadge";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
 import { OrderStatusActions } from "./components/OrderStatusActions";
 import { OrderStatusHistory } from "./components/OrderStatusHistory";
 import { EtaDialog } from "./components/EtaDialog";
@@ -406,21 +407,21 @@ function OrderDetailSkeleton() {
       <BackLink />
       <div className="space-y-2">
         <div className="flex flex-wrap items-baseline gap-4">
-          <div className="h-10 w-48 animate-pulse rounded bg-slate-200" />
-          <div className="h-7 w-24 animate-pulse rounded-full bg-slate-200" />
+          <Skeleton className="h-10 w-48 bg-slate-200" />
+          <Skeleton className="h-7 w-24 rounded-full bg-slate-200" />
         </div>
-        <div className="h-4 w-72 animate-pulse rounded bg-slate-200" />
+        <Skeleton className="h-4 w-72 bg-slate-200" />
       </div>
-      <div className="h-20 animate-pulse rounded-lg bg-slate-200" />
+      <Skeleton className="h-20 rounded-lg bg-slate-200" />
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
-          <div className="h-56 animate-pulse rounded-lg bg-slate-200" />
-          <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
-          <div className="h-24 animate-pulse rounded-lg bg-slate-200" />
+          <Skeleton className="h-56 rounded-lg bg-slate-200" />
+          <Skeleton className="h-48 rounded-lg bg-slate-200" />
+          <Skeleton className="h-24 rounded-lg bg-slate-200" />
         </div>
         <div className="space-y-6">
-          <div className="h-32 animate-pulse rounded-lg bg-slate-900/80" />
-          <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+          <Skeleton className="h-32 rounded-lg bg-slate-900/80" />
+          <Skeleton className="h-48 rounded-lg bg-slate-200" />
         </div>
       </div>
     </div>
