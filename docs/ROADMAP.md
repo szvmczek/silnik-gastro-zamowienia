@@ -12,6 +12,14 @@ paymentMethod rozszerzalny, service layer oddzielający API od persystencji.
 Nie zostawiamy pustych interfejsów PaymentProvider, DeliveryZoneCalculator
 itp. — to YAGNI.
 
+## Post-MVP — Backend additions
+
+- [ ] **Cancel order reason persistence** — `UpdateOrderStatusRequest`
+  + new column `order_status_history.reason VARCHAR(500) NULL` (Flyway
+  V10) + frontend send reason in PATCH /status payload + admin detail
+  page wyświetla reason w timeline historii statusów. Identified G7
+  verify (commit f4fa7ca).
+
 ## Faza 6: Płatności online
 
 ### Kiedy najwcześniej sensownie

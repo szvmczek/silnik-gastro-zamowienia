@@ -16,10 +16,12 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
-import { OrderStatusBadge, statusLabel } from "./components/OrderStatusBadge";
+import { OrderStatusBadge, statusLabel } from "@/shared/components/OrderStatusBadge";
 import { OrderStatusActions } from "./components/OrderStatusActions";
 import { OrderStatusHistory } from "./components/OrderStatusHistory";
 import { EtaDialog } from "./components/EtaDialog";
+import { CancelOrderDialog } from "./components/CancelOrderDialog";
+import { computeEtaRelativeTime } from "./lib/etaRelativeTime";
 
 function formatCurrency(raw: string): string {
   const n = Number.parseFloat(raw);
@@ -39,11 +41,31 @@ function paymentLabel(t: AdminOrderDto["paymentMethod"]): string {
   return t === "CASH_ON_DELIVERY" ? "Gotówka przy dostawie" : "Gotówka przy odbiorze";
 }
 
+function formatPlacedRelative(iso: string, now: number = Date.now()): string {
+  const diffMin = Math.floor((now - new Date(iso).getTime()) / 60_000);
+  if (diffMin < 1) return "przed chwilą";
+  if (diffMin < 60) return `${diffMin} min temu`;
+  const hours = Math.floor(diffMin / 60);
+  if (hours < 24) return `${hours} godz. temu`;
+  return formatDateTime(iso);
+}
+
+function buildMapsHref(address: OrderTrackingAddressDto): string {
+  const parts = [
+    `${address.street} ${address.buildingNumber}`,
+    `${address.postalCode} ${address.city}`,
+  ];
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    parts.join(", ")
+  )}`;
+}
+
 export function OrderDetailPage() {
   const { id: idParam } = useParams<{ id: string }>();
   const id = idParam ? Number.parseInt(idParam, 10) : NaN;
   const queryClient = useQueryClient();
   const [etaOpen, setEtaOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   const query = useQuery<AdminOrderDto>({
     queryKey: ["admin", "orders", "detail", id],
@@ -151,168 +173,229 @@ export function OrderDetailPage() {
     <div className="space-y-6">
       <BackLink />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900">
-          {order.orderNumber}
-        </h1>
-        <OrderStatusBadge status={order.status} />
-        <span className="text-sm text-slate-500">
-          {formatDateTime(order.placedAt)}
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-600">
-        <span>
-          <span className="text-slate-500">Rodzaj: </span>
-          {fulfillmentLabel(order.fulfillmentType)}
-        </span>
-        <span>
-          <span className="text-slate-500">Płatność: </span>
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-baseline gap-4">
+          <h1 className="font-mono text-[40px] font-semibold tracking-tight text-slate-900">
+            {order.orderNumber}
+          </h1>
+          <OrderStatusBadge status={order.status} size="lg" />
+        </div>
+        <div className="text-sm text-slate-500">
+          Złożone {formatPlacedRelative(order.placedAt)} ·{" "}
+          {fulfillmentLabel(order.fulfillmentType)} ·{" "}
           {paymentLabel(order.paymentMethod)}
-        </span>
-        {order.etaMinutes !== null && (
-          <span>
-            <span className="text-slate-500">ETA: </span>
-            ok. {order.etaMinutes} min
-          </span>
-        )}
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Klient</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-slate-500">
-                Imię i nazwisko
-              </div>
-              <div className="text-slate-900">{order.customerName}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider text-slate-500">
-                Telefon
-              </div>
-              <a
-                href={`tel:${order.customerPhone}`}
-                className="text-primary hover:underline"
-              >
-                {order.customerPhone}
-              </a>
-            </div>
-            {order.customerEmail && (
-              <div>
-                <div className="text-xs uppercase tracking-wider text-slate-500">
-                  E-mail
-                </div>
-                <a
-                  href={`mailto:${order.customerEmail}`}
-                  className="text-primary hover:underline"
-                >
-                  {order.customerEmail}
-                </a>
-              </div>
-            )}
-            {order.customerNotes && (
-              <div>
-                <div className="text-xs uppercase tracking-wider text-slate-500">
-                  Uwagi
-                </div>
-                <p className="whitespace-pre-line text-slate-700">
-                  {order.customerNotes}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <OrderStatusActions
+        currentStatus={order.status}
+        fulfillmentType={order.fulfillmentType}
+        onChangeStatus={(next) =>
+          statusMutation.mutate({ next, version: order.version })
+        }
+        onOpenEta={() => setEtaOpen(true)}
+        onOpenCancel={() => setCancelOpen(true)}
+        isSubmitting={mutating}
+      />
 
-        {order.fulfillmentType === "DELIVERY" && order.deliveryAddress && (
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Adres dostawy</CardTitle>
+              <CardTitle>Pozycje</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-slate-700">
-              <AddressBlock address={order.deliveryAddress} />
+            <CardContent className="space-y-3">
+              {order.items.map((item, idx) => (
+                <OrderItemRow key={idx} item={item} />
+              ))}
+              <div className="border-t border-slate-200 pt-3 text-sm">
+                <div className="flex justify-between text-slate-600">
+                  <span>Suma częściowa</span>
+                  <span className="tabular-nums">
+                    {formatCurrency(order.subtotal)}
+                  </span>
+                </div>
+                <div className="mt-1 flex justify-between text-base font-semibold text-slate-900">
+                  <span>Razem</span>
+                  <span className="tabular-nums">
+                    {formatCurrency(order.total)}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        )}
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Pozycje</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {order.items.map((item, idx) => (
-              <OrderItemRow key={idx} item={item} />
-            ))}
-            <div className="border-t border-slate-200 pt-3 text-sm">
-              <div className="flex justify-between text-slate-600">
-                <span>Suma częściowa</span>
-                <span className="tabular-nums">{formatCurrency(order.subtotal)}</span>
+          <Card>
+            <CardHeader>
+              <CardTitle>Klient</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-slate-500">
+                    Imię i nazwisko
+                  </div>
+                  <div className="text-slate-900">{order.customerName}</div>
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-slate-500">
+                    Telefon
+                  </div>
+                  <a
+                    href={`tel:${order.customerPhone}`}
+                    className="text-primary hover:underline"
+                  >
+                    {order.customerPhone}
+                  </a>
+                </div>
+                {order.customerEmail && (
+                  <div className="sm:col-span-2">
+                    <div className="text-xs uppercase tracking-wider text-slate-500">
+                      E-mail
+                    </div>
+                    <a
+                      href={`mailto:${order.customerEmail}`}
+                      className="text-primary hover:underline"
+                    >
+                      {order.customerEmail}
+                    </a>
+                  </div>
+                )}
               </div>
-              <div className="mt-1 flex justify-between text-base font-semibold text-slate-900">
-                <span>Razem</span>
-                <span className="tabular-nums">{formatCurrency(order.total)}</span>
+
+              {order.fulfillmentType === "DELIVERY" && order.deliveryAddress && (
+                <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                  <div className="text-xs uppercase tracking-wider text-slate-500">
+                    Adres dostawy
+                  </div>
+                  <div className="mt-1 text-slate-900">
+                    <DeliveryAddressLines address={order.deliveryAddress} />
+                  </div>
+                  <a
+                    href={buildMapsHref(order.deliveryAddress)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
+                  >
+                    Otwórz w mapie →
+                  </a>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Płatność</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-700">
+              {paymentLabel(order.paymentMethod)}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          {order.customerNotes && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+                Uwagi klienta
               </div>
+              <p className="mt-1 whitespace-pre-line text-sm text-amber-900">
+                {order.customerNotes}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Status i ETA</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-slate-600">
-              <span className="text-slate-500">Obecny status: </span>
-              {statusLabel(order.status)}
-            </div>
-            <div className="text-sm text-slate-600">
-              <span className="text-slate-500">ETA: </span>
-              {order.etaMinutes !== null ? `ok. ${order.etaMinutes} min` : "nie ustawione"}
-            </div>
-            <OrderStatusActions
-              currentStatus={order.status}
-              fulfillmentType={order.fulfillmentType}
-              onChangeStatus={(next) =>
-                statusMutation.mutate({ next, version: order.version })
-              }
-              isSubmitting={mutating}
-            />
-            <div>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setEtaOpen(true)}
-                disabled={mutating}
-              >
-                Ustaw ETA
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <DarkEtaCard
+            etaMinutes={order.etaMinutes}
+            etaSetAt={order.etaSetAt}
+          />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Historia statusów</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OrderStatusHistory history={order.statusHistory} />
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Historia statusów</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OrderStatusHistory history={order.statusHistory} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <EtaDialog
         open={etaOpen}
         onOpenChange={setEtaOpen}
         currentEtaMinutes={order.etaMinutes}
+        currentEtaSetAt={order.etaSetAt}
         onSubmit={(minutesFromNow) =>
           etaMutation.mutate({ minutesFromNow, version: order.version })
         }
         isSubmitting={etaMutation.isPending}
       />
+
+      <CancelOrderDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        orderNumber={order.orderNumber}
+        isSubmitting={mutating}
+        onConfirm={() => {
+          setCancelOpen(false);
+          statusMutation.mutate({
+            next: "CANCELED",
+            version: order.version,
+          });
+        }}
+      />
+    </div>
+  );
+}
+
+function DarkEtaCard({
+  etaMinutes,
+  etaSetAt,
+}: {
+  etaMinutes: number | null;
+  etaSetAt: string | null;
+}) {
+  return (
+    <div className="rounded-lg bg-slate-900 p-6 text-white">
+      <div className="text-xs font-semibold uppercase tracking-wider text-white/60">
+        ETA
+      </div>
+      {etaMinutes !== null ? (
+        <>
+          <div className="mt-1 font-mono text-[48px] font-semibold leading-none tracking-tight">
+            {etaMinutes}{" "}
+            <span className="text-2xl font-normal text-white/70">min</span>
+          </div>
+          {etaSetAt && (
+            <div className="mt-2 text-sm text-white/60">
+              ustawione {computeEtaRelativeTime(etaSetAt)}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="mt-2 text-sm text-white/60">
+          Brak ustawionego ETA — kliknij „Ustaw ETA" powyżej.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeliveryAddressLines({ address }: { address: OrderTrackingAddressDto }) {
+  return (
+    <div className="space-y-0.5 text-sm">
+      <div>
+        {address.street} {address.buildingNumber}
+        {address.apartmentNumber && `/${address.apartmentNumber}`}
+      </div>
+      <div>
+        {address.postalCode} {address.city}
+      </div>
+      {address.notes && (
+        <div className="pt-1 text-xs text-slate-500">{address.notes}</div>
+      )}
     </div>
   );
 }
@@ -321,17 +404,24 @@ function OrderDetailSkeleton() {
   return (
     <div className="space-y-6">
       <BackLink />
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="h-8 w-48 animate-pulse rounded bg-slate-200" />
-        <div className="h-6 w-24 animate-pulse rounded-full bg-slate-200" />
-        <div className="h-4 w-32 animate-pulse rounded bg-slate-200" />
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-baseline gap-4">
+          <div className="h-10 w-48 animate-pulse rounded bg-slate-200" />
+          <div className="h-7 w-24 animate-pulse rounded-full bg-slate-200" />
+        </div>
+        <div className="h-4 w-72 animate-pulse rounded bg-slate-200" />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
-        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
-        <div className="h-56 animate-pulse rounded-lg bg-slate-200 lg:col-span-2" />
-        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
-        <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+      <div className="h-20 animate-pulse rounded-lg bg-slate-200" />
+      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
+        <div className="space-y-6">
+          <div className="h-56 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+          <div className="h-24 animate-pulse rounded-lg bg-slate-200" />
+        </div>
+        <div className="space-y-6">
+          <div className="h-32 animate-pulse rounded-lg bg-slate-900/80" />
+          <div className="h-48 animate-pulse rounded-lg bg-slate-200" />
+        </div>
       </div>
     </div>
   );
@@ -345,23 +435,6 @@ function BackLink() {
     >
       ← Wróć do listy
     </Link>
-  );
-}
-
-function AddressBlock({ address }: { address: OrderTrackingAddressDto }) {
-  return (
-    <div className="space-y-1">
-      <div>
-        {address.street} {address.buildingNumber}
-        {address.apartmentNumber && `/${address.apartmentNumber}`}
-      </div>
-      <div>
-        {address.postalCode} {address.city}
-      </div>
-      {address.notes && (
-        <div className="pt-1 text-xs text-slate-500">{address.notes}</div>
-      )}
-    </div>
   );
 }
 

@@ -15,11 +15,16 @@ const mapping: Record<OrderStatus, { variant: Variant; label: string }> = {
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;
+  size?: "sm" | "lg";
 }
 
-export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
+export function OrderStatusBadge({ status, size = "sm" }: OrderStatusBadgeProps) {
   const { variant, label } = mapping[status];
-  return <Badge variant={variant}>{label}</Badge>;
+  return (
+    <Badge variant={variant} size={size}>
+      {label}
+    </Badge>
+  );
 }
 
 export function statusLabel(status: OrderStatus): string {
