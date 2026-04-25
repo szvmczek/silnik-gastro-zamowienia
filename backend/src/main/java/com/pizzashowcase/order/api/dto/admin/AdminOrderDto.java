@@ -16,6 +16,7 @@ public record AdminOrderDto(
         String orderNumber,
         OrderStatus status,
         Integer etaMinutes,
+        Instant etaSetAt,
         FulfillmentType fulfillmentType,
         PaymentMethod paymentMethod,
         Instant placedAt,

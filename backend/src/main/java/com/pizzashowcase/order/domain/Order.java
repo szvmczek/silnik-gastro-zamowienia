@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -69,6 +70,9 @@ public class Order extends AuditableEntity {
 
     @Column(name = "eta_minutes")
     private Integer etaMinutes;
+
+    @Column(name = "eta_set_at")
+    private Instant etaSetAt;
 
     @Version
     @Column(nullable = false)
@@ -170,8 +174,15 @@ public class Order extends AuditableEntity {
         return etaMinutes;
     }
 
-    public void setEtaMinutes(Integer etaMinutes) {
-        this.etaMinutes = etaMinutes;
+    public Instant getEtaSetAt() {
+        return etaSetAt;
+    }
+
+    // Atomic update of (etaMinutes, etaSetAt) — preserves the invariant
+    // etaMinutes != null ⟺ etaSetAt != null. Do not expose individual setters.
+    public void setEta(Integer minutes) {
+        this.etaMinutes = minutes;
+        this.etaSetAt = minutes != null ? Instant.now() : null;
     }
 
     public Long getVersion() {
