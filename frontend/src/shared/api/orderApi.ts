@@ -139,6 +139,7 @@ export interface AdminOrderDto {
   orderNumber: string;
   status: OrderStatus;
   etaMinutes: number | null;
+  etaSetAt: string | null;
   fulfillmentType: FulfillmentType;
   paymentMethod: PaymentMethod;
   placedAt: string;
