@@ -13,6 +13,7 @@ const navItems: AdminNavItem[] = [
   { to: "/admin", label: "Pulpit", end: true },
   { to: "/admin/orders", label: "Zamówienia" },
   { to: "/admin/menu", label: "Menu" },
+  { to: "/admin/delivery-zones", label: "Strefy dostawy" },
   { to: "/admin/settings", label: "Ustawienia" },
   { to: "/admin/opening-hours", label: "Godziny otwarcia" },
   { to: "/admin/page-content", label: "Treści stron" },

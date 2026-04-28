@@ -60,6 +60,11 @@ const AddonGroupEditPage = lazy(() =>
     default: m.AddonGroupEditPage,
   })),
 );
+const DeliveryZonesPage = lazy(() =>
+  import("@/features/admin/delivery-zones/DeliveryZonesPage").then((m) => ({
+    default: m.DeliveryZonesPage,
+  })),
+);
 
 export function AppRouter() {
   return (
@@ -86,6 +91,7 @@ export function AppRouter() {
           <Route path="menu/products/new" element={<ProductEditPage />} />
           <Route path="menu/products/:id" element={<ProductEditPage />} />
           <Route path="menu/addon-groups/:id" element={<AddonGroupEditPage />} />
+          <Route path="delivery-zones" element={<DeliveryZonesPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="opening-hours" element={<OpeningHoursPage />} />
           <Route path="page-content" element={<PageContentPage />} />
