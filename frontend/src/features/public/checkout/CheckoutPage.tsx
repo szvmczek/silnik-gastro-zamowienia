@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
@@ -23,6 +23,10 @@ import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { useIsRestaurantOpen } from "@/shared/hooks/useIsRestaurantOpen";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { lineTotal, useCartStore, useCartTotal } from "@/features/public/cart/cartStore";
+import { fetchDeliveryCities } from "./api";
+import { useDeliveryCheck } from "./hooks/useDeliveryCheck";
+import { DeliveryZoneBadge } from "./components/DeliveryZoneBadge";
+import { maskPostalCodeInput } from "@/features/admin/delivery-zones/lib/postalCode";
 
 const phoneRegex = /^\+?\d{9,11}$/;
 const postalRegex = /^\d{2}-\d{3}$/;
@@ -166,6 +170,26 @@ export function CheckoutPage() {
   const fulfillmentType = watch("fulfillmentType");
   const isDelivery = fulfillmentType === "DELIVERY";
 
+  const watchedCity = watch("deliveryAddress.city") ?? "";
+  const watchedPostal = watch("deliveryAddress.postalCode") ?? "";
+  const { data: citiesData } = useQuery({
+    queryKey: ["public", "delivery-cities"],
+    queryFn: fetchDeliveryCities,
+    staleTime: 5 * 60_000,
+    enabled: isDelivery,
+  });
+  const { data: deliveryCheck, isFetching: deliveryChecking } = useDeliveryCheck(
+    watchedCity,
+    watchedPostal,
+    isDelivery,
+  );
+  const deliveryUnavailable =
+    isDelivery && deliveryCheck?.status === "UNAVAILABLE";
+  const deliveryFee = isDelivery && deliveryCheck && deliveryCheck.status !== "UNAVAILABLE"
+    ? deliveryCheck.fee
+    : 0;
+  const previewTotal = Number(total) + (isDelivery ? deliveryFee : 0);
+
   const mutation = useMutation({
     mutationFn: placeOrder,
     onSuccess: (data) => {
@@ -227,8 +251,10 @@ export function CheckoutPage() {
     ? "Składanie zamówienia…"
     : !restaurantIsOpen
       ? "Restauracja zamknięta"
-      : `Złóż zamówienie — ${formatPrice(total, currency)}`;
-  const submitDisabled = mutation.isPending || !restaurantIsOpen;
+      : deliveryUnavailable
+        ? "Dostawa niedostępna pod tym adresem"
+        : `Złóż zamówienie — ${formatPrice(previewTotal, currency)}`;
+  const submitDisabled = mutation.isPending || !restaurantIsOpen || deliveryUnavailable;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -274,7 +300,9 @@ export function CheckoutPage() {
           <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
             <SummaryCardContents
               items={items}
-              total={total}
+              subtotal={total}
+              deliveryFee={isDelivery ? deliveryFee : null}
+              total={previewTotal}
               currency={currency}
               compact
             />
@@ -435,13 +463,24 @@ export function CheckoutPage() {
                     htmlFor="postalCode"
                     error={errors.deliveryAddress?.postalCode?.message}
                   >
-                    <Input
-                      id="postalCode"
-                      placeholder="00-000"
-                      autoComplete="postal-code"
-                      disabled={mutation.isPending}
-                      error={!!errors.deliveryAddress?.postalCode}
-                      {...register("deliveryAddress.postalCode")}
+                    <Controller
+                      control={control}
+                      name="deliveryAddress.postalCode"
+                      render={({ field }) => (
+                        <Input
+                          id="postalCode"
+                          placeholder="00-000"
+                          autoComplete="postal-code"
+                          disabled={mutation.isPending}
+                          error={!!errors.deliveryAddress?.postalCode}
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={field.value}
+                          onChange={(e) => field.onChange(maskPostalCodeInput(e.target.value))}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                        />
+                      )}
                     />
                   </Field>
                   <Field
@@ -451,13 +490,24 @@ export function CheckoutPage() {
                   >
                     <Input
                       id="city"
+                      list="delivery-cities"
                       autoComplete="address-level2"
                       disabled={mutation.isPending}
                       error={!!errors.deliveryAddress?.city}
                       {...register("deliveryAddress.city")}
                     />
+                    <datalist id="delivery-cities">
+                      {(citiesData ?? []).map((c) => (
+                        <option key={c.display} value={c.display} />
+                      ))}
+                    </datalist>
                   </Field>
                 </div>
+                <DeliveryZoneBadge
+                  result={deliveryCheck}
+                  loading={deliveryChecking && !deliveryCheck}
+                  currency={currency}
+                />
                 <Field
                   label="Wskazówki dla kuriera (opcjonalne)"
                   htmlFor="addressNotes"
@@ -529,7 +579,13 @@ export function CheckoutPage() {
                   Podsumowanie
                 </div>
               </div>
-              <SummaryCardContents items={items} total={total} currency={currency} />
+              <SummaryCardContents
+                items={items}
+                subtotal={total}
+                deliveryFee={isDelivery ? deliveryFee : null}
+                total={previewTotal}
+                currency={currency}
+              />
               <div className="p-5">
                 <Button
                   type="submit"
@@ -695,6 +751,8 @@ function PaymentTile({ selected, title, subtitle, onSelect }: PaymentTileProps) 
 
 interface SummaryCardContentsProps {
   items: ReturnType<typeof useCartStore.getState>["items"];
+  subtotal: string | number;
+  deliveryFee: number | null;
   total: string | number;
   currency: string;
   compact?: boolean;
@@ -702,6 +760,8 @@ interface SummaryCardContentsProps {
 
 function SummaryCardContents({
   items,
+  subtotal,
+  deliveryFee,
   total,
   currency,
   compact,
@@ -750,14 +810,26 @@ function SummaryCardContents({
       </ul>
       <div
         className={cn(
-          "flex items-center justify-between border-t border-slate-200 bg-slate-50",
+          "border-t border-slate-200 bg-slate-50 space-y-1.5",
           compact ? "mt-3 rounded-md px-3 py-3" : "px-6 py-4"
         )}
       >
-        <span className="text-[14px] font-semibold text-slate-900">Razem</span>
-        <span className="text-[20px] font-semibold text-slate-900">
-          {formatPrice(total, currency)}
-        </span>
+        <div className="flex items-center justify-between text-[13px] text-slate-600">
+          <span>Suma produktów</span>
+          <span>{formatPrice(subtotal, currency)}</span>
+        </div>
+        {deliveryFee !== null && (
+          <div className="flex items-center justify-between text-[13px] text-slate-600">
+            <span>Dostawa</span>
+            <span>{formatPrice(deliveryFee, currency)}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-1.5">
+          <span className="text-[14px] font-semibold text-slate-900">Razem</span>
+          <span className="text-[20px] font-semibold text-slate-900">
+            {formatPrice(total, currency)}
+          </span>
+        </div>
       </div>
     </>
   );
