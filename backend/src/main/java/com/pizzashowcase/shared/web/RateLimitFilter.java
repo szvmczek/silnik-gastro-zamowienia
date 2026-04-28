@@ -41,7 +41,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "Too many order submissions. Try again later."),
             new Rule("GET", "/api/admin/orders/stream",
                     Bandwidth.builder().capacity(30).refillGreedy(30, Duration.ofMinutes(1)).build(),
-                    "Too many SSE connection attempts. Try again later.")
+                    "Too many SSE connection attempts. Try again later."),
+            new Rule("POST", "/api/public/delivery/check",
+                    Bandwidth.builder().capacity(60).refillGreedy(60, Duration.ofMinutes(1)).build(),
+                    "Too many delivery checks. Try again later."),
+            new Rule("GET", "/api/public/delivery/cities",
+                    Bandwidth.builder().capacity(60).refillGreedy(60, Duration.ofMinutes(1)).build(),
+                    "Too many requests. Try again later.")
     );
 
     private final Map<String, BucketEntry> buckets = new ConcurrentHashMap<>();
