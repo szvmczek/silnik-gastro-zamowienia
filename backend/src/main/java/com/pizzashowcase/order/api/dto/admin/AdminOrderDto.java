@@ -28,6 +28,8 @@ public record AdminOrderDto(
         OrderTrackingAddressDto deliveryAddress,
         List<OrderTrackingItemDto> items,
         BigDecimal subtotal,
+        BigDecimal deliveryFee,
+        String deliveryZoneName,
         BigDecimal total,
         List<AdminOrderStatusHistoryDto> statusHistory
 ) {

@@ -132,7 +132,12 @@ public class CheckoutService {
                 persisted.getOrderNumber(),
                 persisted.getTotal(),
                 persisted.getCreatedAt() != null ? persisted.getCreatedAt() : Instant.now()));
-        return new OrderConfirmationDto(persisted.getOrderNumber(), persisted.getPublicTrackingToken(), persisted.getTotal());
+        return new OrderConfirmationDto(
+                persisted.getOrderNumber(),
+                persisted.getPublicTrackingToken(),
+                persisted.getTotal(),
+                persisted.getDeliveryFee(),
+                persisted.getDeliveryZoneName());
     }
 
     private void validateFulfillmentPaymentAddress(CreateOrderRequest req) {

@@ -19,6 +19,8 @@ public record OrderTrackingDto(
         OrderTrackingAddressDto deliveryAddress,
         List<OrderTrackingItemDto> items,
         BigDecimal subtotal,
+        BigDecimal deliveryFee,
+        String deliveryZoneName,
         BigDecimal total
 ) {
 }

@@ -6,6 +6,8 @@ import java.util.UUID;
 public record OrderConfirmationDto(
         String orderNumber,
         UUID trackingToken,
-        BigDecimal total
+        BigDecimal total,
+        BigDecimal deliveryFee,
+        String deliveryZoneName
 ) {
 }

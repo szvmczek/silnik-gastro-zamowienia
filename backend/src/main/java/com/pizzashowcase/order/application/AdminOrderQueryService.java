@@ -135,6 +135,8 @@ public class AdminOrderQueryService {
                 toAddressDto(order.getFulfillmentType(), order.getDeliveryAddress()),
                 items,
                 order.getSubtotal(),
+                order.getDeliveryFee(),
+                order.getDeliveryZoneName(),
                 order.getTotal(),
                 history
         );
