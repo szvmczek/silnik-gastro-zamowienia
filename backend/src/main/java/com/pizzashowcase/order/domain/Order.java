@@ -68,6 +68,12 @@ public class Order extends AuditableEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column(name = "delivery_fee", nullable = false, precision = 10, scale = 2)
+    private BigDecimal deliveryFee = BigDecimal.ZERO;
+
+    @Column(name = "delivery_zone_name", length = 80)
+    private String deliveryZoneName;
+
     @Column(name = "eta_minutes")
     private Integer etaMinutes;
 
@@ -99,6 +105,8 @@ public class Order extends AuditableEntity {
                  Address deliveryAddress,
                  String customerNotes,
                  BigDecimal subtotal,
+                 BigDecimal deliveryFee,
+                 String deliveryZoneName,
                  BigDecimal total) {
         this.orderNumber = orderNumber;
         this.publicTrackingToken = publicTrackingToken;
@@ -111,6 +119,8 @@ public class Order extends AuditableEntity {
         this.deliveryAddress = deliveryAddress != null ? deliveryAddress : Address.empty();
         this.customerNotes = customerNotes;
         this.subtotal = subtotal;
+        this.deliveryFee = deliveryFee != null ? deliveryFee : BigDecimal.ZERO;
+        this.deliveryZoneName = deliveryZoneName;
         this.total = total;
     }
 
@@ -168,6 +178,14 @@ public class Order extends AuditableEntity {
 
     public BigDecimal getTotal() {
         return total;
+    }
+
+    public BigDecimal getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public String getDeliveryZoneName() {
+        return deliveryZoneName;
     }
 
     public Integer getEtaMinutes() {

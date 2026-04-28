@@ -5,6 +5,9 @@ import com.pizzashowcase.menu.domain.AddonGroup;
 import com.pizzashowcase.menu.domain.Product;
 import com.pizzashowcase.menu.domain.ProductAddonGroup;
 import com.pizzashowcase.menu.domain.ProductVariant;
+import com.pizzashowcase.delivery.application.DeliveryZoneLookupService;
+import com.pizzashowcase.delivery.domain.DeliveryLookupResult;
+import com.pizzashowcase.delivery.domain.DeliveryZoneType;
 import com.pizzashowcase.menu.infrastructure.ProductAddonGroupRepository;
 import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.order.api.dto.AddressRequest;
@@ -47,17 +50,20 @@ public class CheckoutService {
     private final OrderRepository orderRepository;
     private final OrderNumberGenerator orderNumberGenerator;
     private final ApplicationEventPublisher eventPublisher;
+    private final DeliveryZoneLookupService deliveryZoneLookupService;
 
     public CheckoutService(ProductRepository productRepository,
                            ProductAddonGroupRepository productAddonGroupRepository,
                            OrderRepository orderRepository,
                            OrderNumberGenerator orderNumberGenerator,
-                           ApplicationEventPublisher eventPublisher) {
+                           ApplicationEventPublisher eventPublisher,
+                           DeliveryZoneLookupService deliveryZoneLookupService) {
         this.productRepository = productRepository;
         this.productAddonGroupRepository = productAddonGroupRepository;
         this.orderRepository = orderRepository;
         this.orderNumberGenerator = orderNumberGenerator;
         this.eventPublisher = eventPublisher;
+        this.deliveryZoneLookupService = deliveryZoneLookupService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -84,9 +90,21 @@ public class CheckoutService {
         }
         subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
 
+        BigDecimal deliveryFee = BigDecimal.ZERO;
+        String deliveryZoneName = null;
+        if (request.fulfillmentType() == FulfillmentType.DELIVERY) {
+            AddressRequest a = request.deliveryAddress();
+            DeliveryLookupResult zone = deliveryZoneLookupService.lookup(a.city(), a.postalCode());
+            if (zone.type() == DeliveryZoneType.UNAVAILABLE) {
+                throw ApiException.unprocessable("Nie dostarczamy pod ten adres.");
+            }
+            deliveryFee = zone.fee().setScale(2, RoundingMode.HALF_UP);
+            deliveryZoneName = zone.zoneName();
+        }
+
         String orderNumber = orderNumberGenerator.next();
         UUID trackingToken = UUID.randomUUID();
-        BigDecimal total = subtotal.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotal.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
 
         Order order = new Order(
                 orderNumber,
@@ -99,6 +117,8 @@ public class CheckoutService {
                 buildAddress(request),
                 normalizeNotes(request.customerNotes()),
                 subtotal,
+                deliveryFee,
+                deliveryZoneName,
                 total
         );
         for (OrderItem item : items) {
