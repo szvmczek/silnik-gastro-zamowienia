@@ -305,11 +305,29 @@ export function TrackingPage() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-                <span className="text-[14px] font-semibold text-slate-700">Razem</span>
-                <span className="text-[20px] font-semibold text-slate-900">
-                  {formatPrice(order.total, currency)}
-                </span>
+              <div className="mt-4 space-y-1.5 border-t border-slate-200 pt-4">
+                <div className="flex items-center justify-between text-[13px] text-slate-600">
+                  <span>Suma produktów</span>
+                  <span>{formatPrice(order.subtotal, currency)}</span>
+                </div>
+                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName !== null && (
+                  <div className="flex items-center justify-between text-[13px] text-slate-600">
+                    <span>Dostawa{order.deliveryZoneName ? ` — ${order.deliveryZoneName}` : ""}</span>
+                    <span>{formatPrice(order.deliveryFee, currency)}</span>
+                  </div>
+                )}
+                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName === null && (
+                  <div className="flex items-center justify-between text-[13px] text-slate-500">
+                    <span>Dostawa</span>
+                    <span>—</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between pt-1.5">
+                  <span className="text-[14px] font-semibold text-slate-700">Razem</span>
+                  <span className="text-[20px] font-semibold text-slate-900">
+                    {formatPrice(order.total, currency)}
+                  </span>
+                </div>
               </div>
             </section>
           </div>

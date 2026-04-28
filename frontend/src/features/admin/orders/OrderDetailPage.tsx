@@ -209,18 +209,26 @@ export function OrderDetailPage() {
               {order.items.map((item, idx) => (
                 <OrderItemRow key={idx} item={item} />
               ))}
-              <div className="border-t border-slate-200 pt-3 text-sm">
+              <div className="space-y-1 border-t border-slate-200 pt-3 text-sm">
                 <div className="flex justify-between text-slate-600">
                   <span>Suma częściowa</span>
-                  <span className="tabular-nums">
-                    {formatCurrency(order.subtotal)}
-                  </span>
+                  <span className="tabular-nums">{formatCurrency(order.subtotal)}</span>
                 </div>
-                <div className="mt-1 flex justify-between text-base font-semibold text-slate-900">
+                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName !== null && (
+                  <div className="flex justify-between text-slate-600">
+                    <span>Dostawa — {order.deliveryZoneName}</span>
+                    <span className="tabular-nums">{formatCurrency(order.deliveryFee)}</span>
+                  </div>
+                )}
+                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName === null && (
+                  <div className="flex justify-between text-slate-500">
+                    <span>Dostawa</span>
+                    <span>—</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 text-base font-semibold text-slate-900">
                   <span>Razem</span>
-                  <span className="tabular-nums">
-                    {formatCurrency(order.total)}
-                  </span>
+                  <span className="tabular-nums">{formatCurrency(order.total)}</span>
                 </div>
               </div>
             </CardContent>

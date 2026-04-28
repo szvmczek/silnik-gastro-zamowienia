@@ -46,6 +46,8 @@ export interface OrderConfirmationDto {
   orderNumber: string;
   trackingToken: string;
   total: string;
+  deliveryFee: string;
+  deliveryZoneName: string | null;
 }
 
 export async function placeOrder(payload: CreateOrderRequest): Promise<OrderConfirmationDto> {
@@ -90,6 +92,8 @@ export interface OrderTrackingDto {
   deliveryAddress: OrderTrackingAddressDto | null;
   items: OrderTrackingItemDto[];
   subtotal: string;
+  deliveryFee: string;
+  deliveryZoneName: string | null;
   total: string;
 }
 
@@ -151,6 +155,8 @@ export interface AdminOrderDto {
   deliveryAddress: OrderTrackingAddressDto | null;
   items: OrderTrackingItemDto[];
   subtotal: string;
+  deliveryFee: string;
+  deliveryZoneName: string | null;
   total: string;
   statusHistory: AdminOrderStatusHistoryDto[];
 }
