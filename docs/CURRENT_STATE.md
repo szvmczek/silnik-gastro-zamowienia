@@ -49,6 +49,29 @@ sekcja "Domain conventions / Address normalization" — wszystko już
 w `ARCHITECTURE.md` po Sesji A docs. Faza 7.0 nie dodała nowych AD
 poza tym co było w roadmapie docs.
 
+**Status review (2026-04-28):** DONE z raportem review.
+- Fix **MEDIUM-1** zastosowany (`fix(phase-7.0)`): rozdział
+  `existsByCityNormalizedAndPostalCode` na dwie metody Spring Data
+  (`...AndPostalCode` non-null + `...AndPostalCodeIsNull`),
+  branch w `DeliveryZoneAdminService.addArea`, plus globalny
+  `@ExceptionHandler(DataIntegrityViolationException)` w
+  `GlobalExceptionHandler` mapujący na 409 z generic message
+  („Konflikt unikalności — wpis już istnieje w bazie."), log WARN.
+  Test regresyjny: `DeliveryZoneAdminServiceTest` (4 testy: null
+  postal success/conflict, non-null postal success/conflict) +
+  `GlobalExceptionHandlerTest` (1 test: DIV → 409 generic).
+- **Pre-merge:** ręczny smoke test 375px do wykonania przez operatora
+  (datalist iOS Safari, postal mask, badge 3 stany, CTA disable
+  przy UNAVAILABLE, breakdown w OrderSummary, tracking + admin detail
+  z fee/zone).
+- **Tech debt z review:** zapisany w `ARCHITECTURE.md`
+  (HIGH-1: native datalist vs custom Combobox, HIGH-2: race window
+  admin PATCH fee vs concurrent checkout) i `ROADMAP.md` jako 7.1
+  backlog (MEDIUM-2: expectedDeliveryFee echo, MEDIUM-3: 409 cross-zone
+  z nazwą strefy, LOW-1..LOW-7: zone rename FK, custom Combobox,
+  cities distinct cityNormalized, postal @Pattern, autoComplete=off,
+  OrderConfirmationDto display, X-Forwarded-For).
+
 **Definition of done — wszystkie zielone:**
 - migracja V10 + ALTER `orders` ✓
 - AddressNormalizer + PolishText z testami ✓
