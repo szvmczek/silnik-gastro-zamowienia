@@ -236,6 +236,29 @@ przez `DeliveryZoneAdminService` (przy save area), publiczny endpoint
 
 ## Znane ograniczenia / tech debt świadomie zaakceptowane
 
+### Phase 7.0 — accepted trade-offs
+
+- **Native HTML `<datalist>` instead of custom Combobox in CityCombobox.**
+  Plan zakładał React combobox z normalized-prefix matching. Wybrano
+  natywny `<datalist>` (~0 LoC vs ~150). Konsekwencje: matching jest
+  substring-based (browser default) zamiast normalized-prefix; iOS
+  Safari ma surowe stylowanie panelu sugestii. Funkcjonalnie kontrakt
+  zachowany — backend `AddressNormalizer` normalizuje przy lookup,
+  więc lookup działa niezależnie od capitalizacji/diakrytyków.
+  Akceptowalne dla typowego zbioru 10-30 miast w bazie pizzerii.
+  Upgrade do custom Combobox — `ROADMAP.md` 7.1 jeśli klient zgłosi
+  UX issue.
+
+- **Race window: admin PATCH fee vs concurrent client checkout.**
+  Klient widzi badge `5 zł`, klika „Złóż zamówienie", admin równocześnie
+  PATCH fee → 10 zł. Backend re-lookuje przy `placeOrder` i snapshotuje
+  aktualną wartość (10 zł) — klient zostaje obciążony inną kwotą niż
+  widział. Nie ma `LockModeType` ani echo `expectedDeliveryFee` z payloadu
+  klienta. W praktyce dla single-tenant MVP rzadkie; akceptowalne.
+  Mitigacja w 7.1 — patrz `ROADMAP.md`.
+
+### Pozostałe
+
 - JWT w localStorage (AD-003) — do migracji przy wdrożeniu produkcyjnym.
 - Brak refresh tokenów — klient musi się zalogować ponownie po 12h.
 - SSE token w query param (AD-018) — do migracji na httpOnly cookie

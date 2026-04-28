@@ -124,6 +124,34 @@ na ręczne wpisywanie 50 kodów po jednym).
 - Drag-and-drop sort stref (kolumna `display_order` już jest w 7.0,
   ale w 7.0 sort tylko `ORDER BY name`)
 
+**Tickety z review Fazy 7.0 (do dorobienia w 7.1):**
+- Konflikt fee przy concurrent admin PATCH: klient wysyła
+  `expectedDeliveryFee` w `POST /orders`, backend re-lookuje
+  i porównuje; różnica → 409 „Cena dostawy uległa zmianie."
+  Alternatywa: `zoneVersion` z `/check` echo'wany przy place-order.
+- 409 cross-zone z nazwą konfliktującej strefy: w
+  `DeliveryZoneAdminService` przy konflikcie doczytać konfliktujący
+  area + jego zone, włożyć `zone.getName()` w message.
+- Zone rename break w soft-delete guard: zamiast string-match
+  `existsByDeliveryZoneName`, dodać kolumnę `delivery_zone_id` (FK
+  nullable, ON DELETE SET NULL) na `orders` jako drugi snapshot.
+  Wymaga nowej migracji + backfill istniejących rekordów po nazwie.
+- Custom React Combobox dla CityCombobox: normalized-prefix matching
+  po stronie klienta, pełna kontrola UX, lepsze stylowanie iOS Safari.
+- Cities listing distinct po `cityNormalized` z `MIN(cityDisplay)`
+  zamiast distinct po `cityDisplay` (mała inkonsystencja gdy admin
+  wpisze różne capitalizacje tego samego miasta w różnych strefach).
+- `DeliveryCheckRequest`: dodać `@Pattern("^\\d{2}-\\d{3}$")` na
+  `postalCode`, żeby invalid postal zwracał 400 zamiast 200 UNAVAILABLE.
+- `<input list>` autoComplete conflict: ustawić `autoComplete="off"`
+  na polu miasta w `CheckoutPage` żeby browser autofill nie konkurował
+  z datalist.
+- `OrderConfirmationDto`: wyświetlić `deliveryFee` i `deliveryZoneName`
+  na confirmation page (obecnie zwisają — backend zwraca, frontend
+  deserializuje, ale nie renderuje).
+- `RateLimitFilter`: świadome wsparcie `X-Forwarded-For` (z whitelistą
+  proxy) dla deploymentów za reverse proxy.
+
 **Estymacja:** 2-4 dni zależnie od wybranego podzbioru (każdy element
 można wziąć osobno).
 
