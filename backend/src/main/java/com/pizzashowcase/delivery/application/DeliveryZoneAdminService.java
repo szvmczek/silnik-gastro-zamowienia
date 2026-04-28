@@ -95,7 +95,10 @@ public class DeliveryZoneAdminService {
             throw ApiException.unprocessable(ex.getMessage());
         }
 
-        if (areaRepository.existsByCityNormalizedAndPostalCode(cityNorm, postalNorm)) {
+        boolean conflict = (postalNorm == null)
+                ? areaRepository.existsByCityNormalizedAndPostalCodeIsNull(cityNorm)
+                : areaRepository.existsByCityNormalizedAndPostalCode(cityNorm, postalNorm);
+        if (conflict) {
             throw ApiException.conflict(
                     "Wpis (" + cityNorm + ", " + (postalNorm != null ? postalNorm : "*") + ") istnieje już w innej strefie.");
         }

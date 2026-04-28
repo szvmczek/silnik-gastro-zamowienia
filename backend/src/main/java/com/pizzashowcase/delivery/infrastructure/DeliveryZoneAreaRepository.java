@@ -23,6 +23,8 @@ public interface DeliveryZoneAreaRepository extends JpaRepository<DeliveryZoneAr
 
     boolean existsByCityNormalizedAndPostalCode(String city, String postalCode);
 
+    boolean existsByCityNormalizedAndPostalCodeIsNull(String city);
+
     @Query("SELECT COUNT(a) FROM DeliveryZoneArea a WHERE a.zone.id = :zoneId")
     long countByZoneId(Long zoneId);
 }
