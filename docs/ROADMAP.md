@@ -65,33 +65,109 @@ Stripe + BLIK via Stripe. Decyzja po MVP, zależnie od klienta.
 
 ## Faza 7: Strefy dostawy
 
-### Kiedy najwcześniej sensownie
-Gdy realny klient zgłosi problem "przyjechało zamówienie spoza strefy" lub
-"musimy różnicować koszt dostawy". Nie wcześniej.
+Rozbita na cztery podfazy. 7.0 = MVP wystarczający dla pierwszego klienta.
+7.1-7.3 = ulepszenia ładowane tylko gdy konkretny klient zgłosi potrzebę.
 
-### Co się zmienia w modelu
-- Nowa encja DeliveryZone (id, name, polygon | postalCodes, deliveryFee,
-  minOrderAmount, estimatedMinutes, active)
-- Order.deliveryZoneId referencja
-- Walidacja adresu przy checkout
+> Wariant A z poprzedniej wersji roadmapy ("lista kodów pocztowych per strefa")
+> został **zastąpiony** przez bogatszy model `(city, postal_code)` z fallbackiem
+> i jest teraz Fazą 7.0. Wariant B ("polygony na mapie") trafił do Fazy 7.3.
 
-### Co trzeba zbudować
-- UI admin do definiowania stref:
-  - Wariant A (prosty): lista kodów pocztowych per strefa
-  - Wariant B (premium): rysowanie polygonów na mapie (Leaflet + plugin draw)
-- Matcher adresu → strefa (przez kod pocztowy lub geocoding + punkt w polygon)
-- Blokada checkoutu dla adresu poza strefą z czytelnym komunikatem
-- Kalkulacja deliveryFee i minOrderAmount per strefa
+Pełne ustalenia źródłowe: `docs/phases/PHASE_7_DELIVERY_ZONES_NOTES.md`.
+Decyzja architektoniczna lookup: AD-019 w `docs/ARCHITECTURE.md`.
+Zmiana w mechanice totalów: rozszerzenie AD-016 ("Klient nie wysyła cen")
+o regułę `total = subtotal + deliveryFee` i snapshot pól delivery na Order.
 
-### Pułapki
-- **Geocoding** — Google Maps płatny, Nominatim OSM darmowy ale wolny i
-  z rate limit. Decyzja przy implementacji.
-- **Polygon + kody pocztowe naraz** — priorytet polygonów, kody jako fallback
-- **Zmiana stref wstecz** — historyczne zamówienia nie zmieniają się
+### Faza 7.0 — MVP stref dostawy
 
-### Szacunek
-- Wariant A (kody pocztowe): 3-5 dni
-- Wariant B (polygony na mapie): 7-10 dni
+**Kiedy najwcześniej sensownie:** gdy pierwszy realny klient potrzebuje
+różnicować koszt dostawy między strefami albo blokować zamówienia spoza
+zasięgu. Niekoniecznie tuż po Fazie 5 — można odłożyć aż klient zgłosi
+potrzebę.
+
+**Co wchodzi w zakres:**
+- Encja `DeliveryZone` (name, type ∈ {FREE, PAID, UNAVAILABLE}, deliveryFee,
+  active, displayOrder) + `DeliveryZoneArea` (zone, city_normalized,
+  city_display, postal_code nullable)
+- Lookup hybrydowy `(city, postal_code)`: exact match → fallback `(city, NULL)`
+  → UNAVAILABLE
+- Endpointy publiczne: `POST /api/public/delivery/check`, `GET /api/public/delivery/cities`
+- Endpointy admin: CRUD stref + areas
+- CheckoutService: lookup przy `fulfillmentType=DELIVERY`, snapshot
+  `deliveryFee` i `deliveryZoneName` na encji Order, `total = subtotal + deliveryFee`
+- Pickup nadal ignoruje strefy całkowicie
+- Frontend admin: ekran "Strefy dostawy" (CRUD stref + dwa tryby dodawania
+  area: "cała miejscowość" i "konkretne kody")
+- Frontend public: lokalny autocomplete miast w `CheckoutPage`, format mask
+  na kodzie pocztowym, debounced live check, badge ze statusem strefy,
+  disabled CTA przy UNAVAILABLE, fee w `OrderSummary`
+- Tracking i admin order detail pokazują snapshotowane fee/zone
+
+**Świadomie poza scope (zero zewnętrznych płatnych API, zero map):**
+- Brak geocodingu, brak Google Places / Mapbox / Photon / Nominatim
+- Brak polygonów, brak Leaflet
+- Brak fuzzy matchingu nazw miast (literówki user'a → UNAVAILABLE)
+- Brak min order per strefa, brak godzin strefy
+
+**Estymacja:** 3-5 dni (backend + frontend + admin + docs).
+
+### Faza 7.1 — opcjonalne ulepszenia stref
+
+**Kiedy najwcześniej sensownie:** po wdrożeniu 7.0 u realnego klienta,
+gdy konkretny use-case z poniższych zacznie boleć (np. admin skarży się
+na ręczne wpisywanie 50 kodów po jednym).
+
+**Co wchodzi w zakres:**
+- Min order amount per strefa (np. "do strefy B minimum 40 zł")
+- Godziny strefy ("do strefy B dowozimy tylko 11-22")
+- Levenshtein matching nazw miast (tolerancja literówek przy lookup'ie)
+- Bulk CSV import area w panelu admina
+- Drag-and-drop sort stref (kolumna `display_order` już jest w 7.0,
+  ale w 7.0 sort tylko `ORDER BY name`)
+
+**Estymacja:** 2-4 dni zależnie od wybranego podzbioru (każdy element
+można wziąć osobno).
+
+### Faza 7.2 — autocomplete adresu z zewnętrznym API
+
+**Kiedy najwcześniej sensownie:** tylko jeśli realny klient zgłosi, że
+sugestie miast z bazy stref są niewystarczające (np. duża pizzeria, dużo
+różnych miejscowości w okolicy, użytkownicy mylą się w pisowni). Dla
+typowego klienta lokalny autocomplete z 7.0 wystarcza.
+
+**Co wchodzi w zakres:**
+- Photon (komoot.io, hosted) jako default — darmowy, OSM-based, bez
+  klucza API, bez karty kredytowej
+- Bring-your-own Google Places API key jako power-user feature
+  (klient sam zarządza limitami i kartą)
+- Frontend: rozszerzenie autocomplete w `CheckoutPage` o externalne
+  sugestie (z fallbackiem do listy lokalnej)
+
+**Estymacja:** 2-3 dni.
+
+### Faza 7.3 — polygony / drive-time isochrones
+
+**Kiedy najwcześniej sensownie:** tylko jeśli pizzeria ma flotę dostawczą
+i potrzebuje precyzyjnego SLA (np. "dowozimy tam, gdzie kierowca dojedzie
+w 25 min"). Większości klientów to nie dotyczy.
+
+**Co wchodzi w zakres:**
+- Leaflet + leaflet-draw w panelu admina — rysowanie polygonów strefy
+  na mapie OSM
+- Self-hosted OSRM albo Valhalla dla generowania isochrones (drive-time
+  polygons z punktu pizzerii)
+- Lookup adresu: geocoding → punkt w polygon → strefa
+- Wymaga 7.2 (geocoding adresu) jako prereq
+
+**Estymacja:** 7-10 dni + osobny koszt operacyjny (hosting OSRM/Valhalla).
+
+### Pułapki ogólne (dotyczą całej rodziny 7.x)
+
+- **Zmiana stref wstecz** — historyczne zamówienia mają snapshot
+  `deliveryFee` i `deliveryZoneName` (od 7.0). Nigdy się nie zmieniają.
+- **Format kodu pocztowego (PL)** — `XX-XXX`, normalizowany do tej formy
+  zawsze (frontend, admin, backend, lookup).
+- **Diakrytyki** — match po `city_normalized` (lowercase + strip diakrytyków),
+  display zawsze z `city_display`.
 
 ## Faza 8: Email notyfikacje
 
