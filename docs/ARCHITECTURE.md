@@ -91,6 +91,20 @@ Request payload `POST /api/public/orders` zawiera tylko ID (`productId`,
 `variantId`, `addonIds`) + `quantity` + dane klienta. Backend pobiera świeże
 ceny z DB i liczy totals.
 
+**From Phase 7.0 onwards** (delivery zones):
+
+- Reguła obliczeniowa totalu:
+  - `fulfillmentType=DELIVERY` → `Order.total = subtotal + deliveryFee`
+  - `fulfillmentType=PICKUP`   → `Order.total = subtotal`,
+    `deliveryFee=0`, `deliveryZoneName=NULL`
+- Pola `Order.deliveryFee` (NUMERIC(10,2)) i `Order.deliveryZoneName`
+  (VARCHAR(80) nullable) zapisywane przez `CheckoutService` jako **snapshot**
+  w momencie tworzenia zamówienia. Ich wartości są niezmienne po późniejszej
+  rekonfiguracji stref przez admina — historyczne totalsy nie zmieniają się.
+- Kontekst i mechanika lookup'u strefy (exact + fallback), normalizacja
+  adresu, alternatywy odrzucone — patrz **AD-019**. Tu pozostaje tylko
+  reguła totalu i kontrakt snapshotu na encji Order.
+
 ### AD-017: State machine location — backend source of truth, FE mirror
 Logika dozwolonych przejść statusu zamówienia (z uwzględnieniem
 `FulfillmentType` dla gałęzi `READY → OUT_FOR_DELIVERY | DELIVERED`) żyje
@@ -114,6 +128,111 @@ każdy inny endpoint nadal wymaga `Authorization: Bearer`. Ryzyka: token
 w Referer, w logach proxy, w URL historii. Do migracji przy wdrożeniu
 produkcyjnym — preferowany wariant: httpOnly cookie + SameSite=Strict
 (spina się z AD-003) albo fetch-stream polyfill zamiast `EventSource`.
+
+### AD-019: Delivery zones lookup with (city, postal_code) fallback
+
+#### Kontekst
+Faza 7.0 wprowadza strefy dostawy. Pierwotna roadmapa (Wariant A)
+zakładała "lista kodów pocztowych per strefa" — okazała się
+niewystarczająca dla realnych przypadków:
+
+- **1 kod pocztowy = wiele miejscowości.** Na wsi jeden kod (np. `05-180`)
+  obejmuje 5+ wsi. Dopasowanie samym kodem dałoby fałszywe trafienie:
+  klient z innej miejscowości pod tym samym kodem dostaje fee jak my.
+- **1 miejscowość = wiele kodów pocztowych.** Większe miasta mają
+  kilkanaście-kilkadziesiąt kodów. Wymóg, żeby admin wpisywał każdy
+  kod osobno dla strefy "całe miasto X" jest błędogenny.
+- **Override per-dzielnica.** Realny przypadek: NDM ma centrum (FREE)
+  i dzielnicę Modlin-Twierdza (PAID 5 zł, kod `05-160`). Sam kod albo
+  sama nazwa nie wystarczają — potrzebny mechanizm "general rule + override".
+
+#### Decyzja
+Adres dopasowywany przez parę `(city_normalized, postal_code)` z
+`postal_code` opcjonalnym (NULL = wildcard miasta). Lookup kolejność:
+
+1. **Exact match** `(city, postalCode)` — najbardziej szczegółowy wpis wygrywa
+2. **Fallback** `(city, NULL)` — reguła ogólna dla całego miasta
+3. **Brak trafienia** → `UNAVAILABLE`
+
+Bardziej szczegółowy wpis (z konkretnym kodem) **nadpisuje** regułę
+ogólną. Dwie strefy mogą legalnie współistnieć: "cały NDM darmowo" +
+"NDM kod 05-160 za 5 zł" — to feature, nie konflikt.
+
+Konkretnie (przykład NDM):
+- `(NDM, NULL)` w strefie FREE
+- `(NDM, '05-160')` w strefie PAID 5 zł
+- Lookup `NDM + 05-100` → exact miss → fallback → **FREE**
+- Lookup `NDM + 05-160` → exact hit → **PAID 5 zł** (override wygrywa)
+- Lookup `Warszawa + cokolwiek` → miss + miss → **UNAVAILABLE**
+
+#### Alternatywy odrzucone
+
+- **Sam kod pocztowy.** Odrzucone — 1 kod = wiele wsi (false positive
+  dla sąsiednich miejscowości).
+- **Sama nazwa miasta.** Odrzucone — duplikaty nazw na PL, brak
+  możliwości override per-dzielnica.
+- **External geocoding API:**
+  - **Google Places Autocomplete + Address Validation** — sesja
+    terminowana ~$17-25/1K, free tier 10K/m. Wymaga karty kredytowej
+    i monitoringu kosztów. Reżim "zero abonamentów dla klienta pizzerii"
+    wyklucza.
+  - **Mapbox Geocoding** — 100K req/m za darmo, potem $5/1K (ostry klif).
+    Wymaga karty. Wyklucza ten sam reżim.
+  - **HERE 250K free/m** — wymaga karty, dodatkowe EU compliance.
+  - **Photon (Komoot, hosted)** — darmowy, OSM-based, ale bez SLA
+    i jako public dependency. Akceptowalny, ale przeniesiony do
+    **Fazy 7.2** jako opcjonalny upgrade dla klientów którzy zgłoszą
+    potrzebę.
+  - **Self-hosted Nominatim** — $200-500/m za hosting. Absurdalnie
+    nieproporcjonalne dla MVP showcase.
+
+Wybór `(city, postal_code)` z lokalnym autocomplete miast i format
+mask kodu daje 90% wartości UX-owej za 0 zł — bez kart kredytowych
+i bez zewnętrznych zależności.
+
+#### Konsekwencje
+
+- **UNIQUE z NULL.** PostgreSQL domyślnie traktuje `NULL` jako rozłączne
+  w UNIQUE, więc samo `UNIQUE (city_normalized, postal_code)` nie blokuje
+  zduplikowanego `(NDM, NULL)`. Wymagane jedno z dwóch:
+  - `UNIQUE (city_normalized, postal_code) NULLS NOT DISTINCT` — PG 15+
+  - `CREATE UNIQUE INDEX ... ON delivery_zone_area (city_normalized, COALESCE(postal_code, ''))` — działa od starszych wersji
+  Wybór dokonywany w sesji implementacyjnej Fazy 7.0 po sprawdzeniu wersji
+  PG w `docker-compose`.
+- **Spójność normalizacji.** Funkcja normalizacji `city → city_normalized`
+  musi działać identycznie w trzech miejscach: admin save area
+  (`DeliveryZoneAdminService`), admin `/cities` listing
+  (`DeliveryZonePublicController` → unique cities), public lookup
+  (`DeliveryZoneLookupService`). Rozjazd → cichy miss przy lookup.
+  Rekomendacja: jedna `AddressNormalizer` w `shared/`, używana z trzech
+  miejsc.
+- **Niezmienność historycznych totalów.** Po zmianie konfiguracji stref
+  zamówienia historyczne nie zmieniają fee — mechanika snapshotów
+  `deliveryFee` i `deliveryZoneName` na encji Order opisana w **AD-016
+  (rozszerzenie z Fazy 7.0)**. Tu tylko cross-reference.
+
+## Domain conventions
+
+### Address normalization (od Fazy 7.0)
+
+Kontrakt normalizacji adresu wymagany przez AD-019:
+
+- **City** (`city_normalized`):
+  1. lowercase
+  2. strip diakrytyków (`Łomianki` → `lomianki`, `Nowy Dwór` → `nowy dwor`).
+     Polish stripAccents jak w `shared.util.SlugGenerator` (AD-012).
+  3. collapse whitespace (multiple spaces → single space, trim)
+- **City display** (`city_display`) — oryginalna pisownia z formularza
+  admina, jedyne pole pokazywane userowi
+- **Postal code** (`postal_code`):
+  - Format kanoniczny: `^\d{2}-\d{3}$` (PL standard, **zawsze z myślnikiem**)
+  - Auto-formatowanie wejścia: `01234` → `01-234`, strip whitespace
+  - NULL = wildcard miasta (cała miejscowość objęta strefą)
+
+Implementacja: jedna `AddressNormalizer` w module `shared/`, wywoływana
+przez `DeliveryZoneAdminService` (przy save area), publiczny endpoint
+`/api/public/delivery/cities` oraz `DeliveryZoneLookupService`
+(przy lookup). Rozjazd między tymi trzema miejscami → cichy miss.
 
 ## Znane ograniczenia / tech debt świadomie zaakceptowane
 
