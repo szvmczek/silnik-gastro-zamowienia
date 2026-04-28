@@ -52,4 +52,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                           @Param("toExclusive") Instant toExclusive);
 
     long countByStatusIn(Collection<OrderStatus> statuses);
+
+    boolean existsByDeliveryZoneName(String deliveryZoneName);
 }
