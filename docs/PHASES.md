@@ -229,7 +229,11 @@ Showcase premium pod HTTPS, gotowy do pokazania klientowi.
 - README pozwala sklonować repo i odpalić lokalnie w <30 min
 
 ## Faza 7.0: Strefy dostawy (MVP)
-STATUS: PLANNED
+STATUS: DONE (2026-04-28)
+
+> Uwaga historyczna: pierwotnie plan 7.0 zakładał `V8__delivery_zones.sql`,
+> ale V8/V9 były już zajęte (V8 order-number-sequence-seed z Fazy 3 hotfix,
+> V9 add-eta-set-at z Fazy 4). Ostatecznie użyto `V10__delivery_zones.sql`.
 
 > Pierwsza post-MVP faza w tym pliku. Pełen kontekst biznesowy i historia
 > rozważanych alternatyw: `docs/phases/PHASE_7_DELIVERY_ZONES_NOTES.md`.

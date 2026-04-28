@@ -3,10 +3,65 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak — Faza 4 + Faza 5 zamknięte, redesign post-MVP zakończony
-(10/10 grup mergowane do `phase-5`, patrz "Redesign progress"
-poniżej). Następny krok: deployment Pizza Showcase staging
-(Railway) + draft `docs/ONBOARDING.md` dla pierwszego klienta.
+Brak — Faza 7.0 (Strefy dostawy MVP) ZAMKNIĘTA na branchu
+`design/g10-polish` (2026-04-28). Faza 4+5 wcześniej zamknięte,
+redesign post-MVP DONE. Następny krok: 7.1 (kolejne usprawnienia stref
+— min order, godziny per strefa, bulk CSV, drag-and-drop sort) lub
+deployment staging.
+
+## Faza 7.0 — Strefy dostawy (DONE, 2026-04-28)
+
+Branch: `design/g10-polish` (kontynuacja po Sesji A docs).
+Pełna mechanika lookup `(city, postal_code)` z fallbackiem (AD-019).
+Snapshot `Order.deliveryFee` + `Order.deliveryZoneName` na encji Order
+(AD-016 rozszerzenie). 13 testów lookup, 4 testy CheckoutService
+delivery fee, 7 testów AddressNormalizer, 5 testów PolishText,
+5 testów SlugGenerator regression.
+
+**Migracja:** `V10__delivery_zones.sql` — `delivery_zone` +
+`delivery_zone_area` (UNIQUE NULLS NOT DISTINCT, PG 16) + ALTER
+`orders` (delivery_fee NOT NULL DEFAULT 0, delivery_zone_name
+nullable). Istniejące zamówienia backward-compatible.
+
+**Backend:** moduł `delivery/` (api/application/domain/infrastructure),
+`shared.util.PolishText` (refactor wyciągnięty z `SlugGenerator`),
+`shared.util.AddressNormalizer`. Endpointy publiczne POST
+`/api/public/delivery/check` i GET `/api/public/delivery/cities`
+(rate-limited 60/min/IP). Endpointy admin `/api/admin/delivery-zones`
+(GET/POST/PATCH/DELETE) + `/areas` (POST/DELETE), path-based
+ROLE_ADMIN guard. CheckoutService: PICKUP nie woła serwisu stref,
+DELIVERY robi lookup → UNAVAILABLE 422 / FREE/PAID snapshot fee+zone
+i `total = subtotal + deliveryFee`.
+
+**Frontend:** admin `/admin/delivery-zones` z form dialogiem,
+listą stref + areas, AddAreaForm w 2 trybach (Cała miejscowość /
+Konkretne kody przez `parsePostalCodes` + auto-format `00000`→`00-000`
++ dedupe). Public CheckoutPage: datalist autocomplete miast (lokalny,
+5min cache), postal mask, debounced 300ms `useDeliveryCheck`,
+`DeliveryZoneBadge` w 3 stanach, CTA disabled gdy
+DELIVERY+UNAVAILABLE, breakdown subtotal/dostawa/razem w
+OrderSummary. TrackingPage i admin OrderDetailPage pokazują rozbicie
+ze snapshotu encji Order; legacy ordery (deliveryZoneName=null)
+pokazują "Dostawa: —".
+
+**Decyzje architektoniczne:** AD-019 (nowy), AD-016 rozszerzenie 7.0,
+sekcja "Domain conventions / Address normalization" — wszystko już
+w `ARCHITECTURE.md` po Sesji A docs. Faza 7.0 nie dodała nowych AD
+poza tym co było w roadmapie docs.
+
+**Definition of done — wszystkie zielone:**
+- migracja V10 + ALTER `orders` ✓
+- AddressNormalizer + PolishText z testami ✓
+- DeliveryZoneLookupService z 13 testami (exact, fallback, override,
+  miss, inactive, empty, diakrytyki, whitespace, invalid postal,
+  case insensitivity, postal auto-format, explicit UNAVAILABLE) ✓
+- public + admin endpointy z rate limit ✓
+- CheckoutService snapshot fee+zone, PICKUP regresja zerowa,
+  UNAVAILABLE 422 ✓
+- 3 widoki (tracking, admin detail, confirmation) z fee/zone ✓
+- 4 testy CheckoutService (FREE/PAID/UNAVAILABLE/PICKUP) ✓
+- admin UI strefy z ZoneFormDialog + AddAreaForm + override warning ✓
+- public checkout combobox + mask + live check + badge + CTA disable ✓
 
 ## Redesign progress (post-MVP, docs/design/MIGRATION_PLAN.md)
 
