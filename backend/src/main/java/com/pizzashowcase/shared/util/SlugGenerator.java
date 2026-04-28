@@ -1,6 +1,5 @@
 package com.pizzashowcase.shared.util;
 
-import java.text.Normalizer;
 import java.util.Locale;
 import java.util.function.Predicate;
 
@@ -11,11 +10,7 @@ public final class SlugGenerator {
 
     public static String slugify(String input) {
         if (input == null) return "";
-        String mapped = input
-                .replace('ł', 'l').replace('Ł', 'L')
-                .replace('ń', 'n').replace('Ń', 'N');
-        String stripped = Normalizer.normalize(mapped, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "");
+        String stripped = PolishText.stripAccents(input);
         String lower = stripped.toLowerCase(Locale.ROOT);
         String hyphenated = lower.replaceAll("[^a-z0-9]+", "-");
         return trimHyphens(hyphenated);
