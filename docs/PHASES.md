@@ -227,3 +227,153 @@ Showcase premium pod HTTPS, gotowy do pokazania klientowi.
 - Demo end-to-end: klient składa zamówienie → admin obsługuje → klient widzi
 - Mobile (375px) i desktop wyglądają premium
 - README pozwala sklonować repo i odpalić lokalnie w <30 min
+
+## Faza 7.0: Strefy dostawy (MVP)
+STATUS: PLANNED
+
+> Pierwsza post-MVP faza w tym pliku. Pełen kontekst biznesowy i historia
+> rozważanych alternatyw: `docs/phases/PHASE_7_DELIVERY_ZONES_NOTES.md`.
+> Dla samej implementacji ten rozdział PHASES.md jest samowystarczalny —
+> sesja startowa Fazy 7.0 nie wymaga zaglądania do NOTES.
+
+### Cel
+Restauracja konfiguruje, gdzie dowozi i za ile (FREE / PAID / UNAVAILABLE).
+Klient w checkoucie wpisuje miasto + kod pocztowy, dostaje natychmiastową
+informację o dostępności i koszcie dostawy. Niedostępny adres blokuje
+złożenie zamówienia.
+
+Reżim kosztowy: **zero zewnętrznych płatnych API, zero map, zero geocodingu**.
+Lokalny autocomplete miast z bazy stref + format mask na kodzie pocztowym.
+
+### Zakres
+
+**Backend:**
+
+- Encje:
+  - `DeliveryZone` (id, name, type ∈ {FREE, PAID, UNAVAILABLE},
+    deliveryFee NUMERIC(10,2), active, displayOrder, createdAt, updatedAt)
+  - `DeliveryZoneArea` (id, zone, cityNormalized, cityDisplay,
+    postalCode VARCHAR(6) NULL — NULL = wildcard miasta)
+- Migracja `V8__delivery_zones.sql`:
+  - tabela `delivery_zone` z `CHECK (type IN ('FREE','PAID','UNAVAILABLE'))`
+    i `CHECK (type <> 'PAID' OR delivery_fee > 0)`
+  - tabela `delivery_zone_area` z UNIQUE `(city_normalized, postal_code)` —
+    realizacja zależnie od wersji PG: `NULLS NOT DISTINCT` (PG 15+) albo
+    UNIQUE INDEX z `COALESCE(postal_code, '')`. Decyzja w sesji
+    implementacyjnej po sprawdzeniu wersji w `docker-compose`.
+  - `ALTER TABLE orders ADD COLUMN delivery_fee NUMERIC(10,2) NOT NULL DEFAULT 0`
+  - `ALTER TABLE orders ADD COLUMN delivery_zone_name VARCHAR(80)` (nullable)
+  - Existing orders dostają `delivery_fee=0`, `delivery_zone_name=NULL` —
+    backward compatible.
+- `DeliveryZoneLookupService.lookup(city, postalCode)`:
+  1. normalize(city) → lowercase + strip diakrytyków + collapse whitespace
+  2. normalize(postalCode) → format `XX-XXX`, walidacja regex
+  3. query exact `(cityNormalized, postalCode)` na aktywnych strefach → trafienie wygrywa
+  4. fallback `(cityNormalized, NULL)` na aktywnych strefach
+  5. brak trafienia → `UNAVAILABLE`
+- `DeliveryZoneAdminService` — CRUD stref + areas, walidacje,
+  detekcja konfliktów cross-zone
+- `CheckoutService` (rozszerzenie):
+  - dla `fulfillmentType=DELIVERY`: lookup city/postalCode z `deliveryAddress`
+  - `UNAVAILABLE` → 422 RFC 7807 z `detail` "Nie dostarczamy pod ten adres"
+  - `FREE`/`PAID` → ustaw `order.deliveryFee`, `order.deliveryZoneName` jako snapshot
+  - `total = subtotal + deliveryFee`
+  - `fulfillmentType=PICKUP` → ignoruje strefy, `deliveryFee=0`,
+    `deliveryZoneName=NULL`, `total = subtotal`
+- Endpointy publiczne (rate-limited przez istniejący `RateLimitFilter`,
+  np. 60 req/min/IP):
+  - `POST /api/public/delivery/check`
+    - body: `{ city: string, postalCode: string }`
+    - response 200: `{ status: "FREE"|"PAID"|"UNAVAILABLE", fee: number, zoneName: string|null }`
+  - `GET /api/public/delivery/cities`
+    - response 200: `[{ display: string }, ...]` — unikalne miasta
+      ze skonfigurowanych aktywnych stref, do lokalnego autocomplete
+- Endpointy admin (JWT + ROLE_ADMIN):
+  - `GET    /api/admin/delivery-zones`
+  - `POST   /api/admin/delivery-zones`
+  - `PATCH  /api/admin/delivery-zones/{id}`
+  - `DELETE /api/admin/delivery-zones/{id}` — soft delete (`active=false`)
+    jeśli strefa jest referenced przez orders (po `deliveryZoneName` snapshot)
+    lub ma areas; hard delete tylko gdy ani areas ani orders
+  - `POST   /api/admin/delivery-zones/{id}/areas`
+    - body: `{ city: string, postalCode: string|null }`
+  - `DELETE /api/admin/delivery-zones/{id}/areas/{areaId}`
+
+**Frontend:**
+
+- Admin: nowy ekran `/admin/delivery-zones`
+  - Lista stref (sort `ORDER BY name` w 7.0 — drag-and-drop dopiero w 7.1)
+  - Formularz strefy: nazwa, typ (radio FREE/PAID/UNAVAILABLE), koszt
+    dostawy (widoczne tylko dla PAID, walidacja > 0), aktywna (checkbox)
+  - Per strefa: lista areas + dwa tryby dodawania:
+    1. **"Cała miejscowość"** — input city + checkbox "wszystkie kody"
+       → zapis `(city, NULL)`
+    2. **"Konkretne kody"** — input city + textarea kodów (po `\n` lub `,`)
+       → N rekordów `(city, code1)`, `(city, code2)`...
+  - Walidacja kodu: regex `^\d{2}-\d{3}$`, auto-formatowanie `01234` → `01-234`
+  - Warning przy override: "Ten wpis nadpisuje regułę ogólną dla {miasto}"
+  - Pusty stan stref → banner "Skonfiguruj strefy, żeby zacząć przyjmować
+    zamówienia z dostawą" (defaultowo wszystko UNAVAILABLE)
+- Public `CheckoutPage`:
+  - Pole `Miasto` — combobox z lokalnym autocomplete: pobierz listę
+    z `GET /api/public/delivery/cities`, match po normalized prefix.
+    User może wpisać miasto spoza listy (wtedy lookup zwróci UNAVAILABLE).
+  - Pole `Kod pocztowy` — input mask `00-000`, walidacja format
+  - Live check: debounced 300ms call `POST /api/public/delivery/check`
+    po wypełnieniu obu pól
+  - Badge pod polami:
+    - ✅ "Darmowa dostawa — strefa: {zoneName}"
+    - ⚠️ "Dostawa: {fee} zł — strefa: {zoneName}"
+    - ❌ "Niestety nie dostarczamy pod ten adres"
+  - CTA "Złóż zamówienie" disabled gdy `status=UNAVAILABLE`
+    i `fulfillmentType=DELIVERY`
+  - `OrderSummary` pokazuje breakdown: `Suma produktów: {subtotal}`,
+    `Dostawa: {deliveryFee}`, `Razem: {total}`
+- Public `TrackingPage` — pokazuje snapshot `deliveryFee` i `deliveryZoneName`
+  z odpowiedzi tracking endpoint
+- Admin order detail (`/admin/orders/{id}`) — pokazuje fee i zone z snapshotu
+
+### Kluczowe decyzje (cross-ref do ARCHITECTURE.md)
+
+- **AD-019** — lookup hybrydowy `(city, postal_code)` z fallbackiem.
+  Mechanika i odrzucone alternatywy (sam kod, sama nazwa, external
+  geocoding).
+- **AD-016 (rozszerzenie z 7.0)** — `total = subtotal + deliveryFee`
+  dla DELIVERY; snapshot `deliveryFee`/`deliveryZoneName` na encji Order
+  niezmienny po rekonfiguracji stref.
+- **Domain conventions** — kontrakt normalizacji adresu (lowercase + strip
+  diakrytyków + collapse whitespace dla city; regex `^\d{2}-\d{3}$` dla
+  postal_code zawsze z myślnikiem). Identyczny w trzech miejscach: admin
+  save area, admin `/cities`, public lookup.
+
+### Definition of done
+
+- Admin konfiguruje co najmniej trzy strefy (FREE z fallback area,
+  PAID z konkretnym kodem jako override, UNAVAILABLE jako placeholder)
+- Klient w checkoucie pisze miasto, dostaje sugestie z autocomplete,
+  wybiera, podaje kod pocztowy → po 300ms widzi badge ze statusem strefy
+- Override działa: wpis `(NDM, 05-160)` w strefie PAID wygrywa nad
+  `(NDM, NULL)` w strefie FREE
+- Adres spoza zasięgu → CTA disabled, czytelny komunikat
+- Zamówienie złożone → `total = subtotal + deliveryFee`, snapshot zone/fee
+  zapisany na Order
+- Pickup → fee=0, zoneName=NULL, total=subtotal (lookup pominięty)
+- Tracking i admin order detail pokazują snapshot fee/zone
+- Migracja istniejących orderów → `delivery_fee=0`, `delivery_zone_name=NULL`
+- Mobile (375px): combobox autocomplete + badge mieszczą się bez wrapowania
+  do drugiej linii w nieczytelny sposób
+
+### NIE ruszać jeszcze (out of scope w 7.0)
+
+- Zewnętrzne API adresowe (Google Places / Mapbox / Photon / Nominatim) → **7.2**
+- Polygony stref / mapy / Leaflet / leaflet-draw / OSRM / Valhalla → **7.3**
+- Levenshtein / fuzzy matching nazw miast (literówki user'a) → **7.1**
+- Min order amount per strefa → **7.1**
+- Godziny otwarcia per strefa ("dowozimy do strefy B tylko 11-22") → **7.1**
+- Bulk CSV import area w panelu admina → **7.1**
+- Drag-and-drop sort stref na liście admina (kolumna `display_order`
+  zostaje w schemacie, sort w 7.0 tylko `ORDER BY name`) → **7.1**
+- Free shipping threshold ("darmowa dostawa od 60 zł") — to osobna funkcja
+  (rabat oparty o subtotal, nie strefa), nie część rodziny 7.x
+- Multi-tenant per-zone (strefy per restauracja) — w roadmapie ogólnej
+  pod multi-tenant, tu single-tenant
