@@ -12,13 +12,39 @@ paymentMethod rozszerzalny, service layer oddzielający API od persystencji.
 Nie zostawiamy pustych interfejsów PaymentProvider, DeliveryZoneCalculator
 itp. — to YAGNI.
 
-## Post-MVP — Backend additions
+## Faza 4.5: Operational UI Split
 
-- [ ] **Cancel order reason persistence** — `UpdateOrderStatusRequest`
-  + new column `order_status_history.reason VARCHAR(500) NULL` (Flyway
-  V10) + frontend send reason in PATCH /status payload + admin detail
-  page wyświetla reason w timeline historii statusów. Identified G7
-  verify (commit f4fa7ca).
+**STATUS:** in progress
+
+Trzy nowe widoki operacyjne (Kuchnia, Wydanie, Dostawa) plus przerobiony
+pulpit z wykresami (Recharts) i podstawowymi statystykami. Backend
+praktycznie nieruszany — frontend filtruje istniejący
+`/api/admin/orders` po stronie klienta.
+
+**Pełna spec:** `docs/PHASES.md` rozdział "Faza 4.5: Operational UI Split".
+Source of truth dyskusji projektowej: `docs/FAZA_4_5_HANDOFF.md`.
+
+**Nowe AD records:** AD-020 (Single ADMIN role for operational views),
+AD-021 (Cancellation reason on `OrderStatusHistory`).
+
+**Co wchodzi w zakres (skrót):**
+- Trzy nowe routy: `/admin/kitchen`, `/admin/pickup`, `/admin/delivery`
+  (filtry po stronie klienta — bez nowych endpointów listy)
+- Przerobiony `/admin` (Pulpit): kafelki dziś + BarChart godzinowy
+  + LineChart 7 dni + top 5 produktów 30 dni + kafelki aktywne per status
+- **NOWY** endpoint `GET /api/admin/dashboard/stats` (pełny payload
+  zastępujący `/dashboard/summary`; alias zachowany jako deprecated —
+  patrz "Tech debt świadomie odłożony")
+- `reason: String?` (max 500 znaków) na `OrderStatusHistory` + pole
+  w UI anulowania (`/admin/orders`) wymagane dla `CANCELED`
+- Dźwięki różnicowane per widok przez Web Audio API (synteza, bez plików)
+- Recharts dodany do `frontend/package.json`
+
+**Świadomie poza scope:** RBAC / nowe role (zostaje single ADMIN —
+trigger'y reewaluacji w AD-020), drukarka bonowa, audit log per-user.
+
+**Estymacja:** ~5-7 dni (backend migracja + endpoint + frontend 3 widoki
++ dashboard rebuild + dźwięki + docs).
 
 ## Faza 6: Płatności online
 
@@ -280,3 +306,13 @@ gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
     niedostępne lub flagować całą grupę.
 
   Fix razem z Fazą 5 (polish) — wymaga decyzji UX, nie tylko kodu.
+
+### Z Fazy 4.5 (Operational UI Split)
+
+- **Deprecated: `GET /api/admin/dashboard/summary`**
+  Zastąpiony przez `/api/admin/dashboard/stats` w Fazie 4.5. Trzymany
+  jako alias dla bezpieczeństwa kompatybilności wstecznej. Usunąć po
+  Fazie 4.5 gdy:
+  - (a) frontend nie wywołuje już `/summary` (`grep -r "dashboard/summary" frontend/`
+    pusty),
+  - (b) najwcześniej w fazie sprzątającej post-MVP.

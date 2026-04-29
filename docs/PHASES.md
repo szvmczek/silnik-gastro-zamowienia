@@ -199,6 +199,457 @@ Admin obsługuje zamówienia. Klient widzi zmiany statusu na trackingu.
 - Edycja menu (zrobiona w Fazie 2)
 - Notyfikacje email/SMS
 
+## Faza 4.5: Operational UI Split
+STATUS: in progress
+
+> Sesja Kroku 5 (post-smoke-test) zmieni STATUS na DONE i zaktualizuje
+> `docs/CURRENT_STATE.md`. Pełny handoff (kontekst dyskusji, alternatywy
+> odrzucone, sekwencja kroków): `docs/FAZA_4_5_HANDOFF.md`.
+
+### Cel
+Przebudować nawigację panelu admina tak, żeby każda rola (Kuchnia,
+Wydanie, Dostawa, Manager) miała swój dedykowany widok operacyjny
+zoptymalizowany pod specyficzny kontekst pracy (dotyk, glanceability,
+information density). Plus dorzucić podstawowe statystyki na pulpicie
+manager'a. Backend praktycznie nieruszany — frontend filtruje istniejący
+`/api/admin/orders` po stronie klienta. Brak nowych ról
+(patrz **AD-020** w `ARCHITECTURE.md`).
+
+### Zakres backend
+
+**Migracja:**
+- Nowa migracja Flyway (kolejny dostępny numer — V10 zajęty przez
+  delivery zones z Fazy 7.0, najprawdopodobniej V11; ustalany w sesji
+  implementacyjnej po weryfikacji): `ADD COLUMN reason TEXT NULL`
+  na tabeli `order_status_history`. Pole opcjonalne, używane głównie
+  dla `CANCELED`. Decyzja architektoniczna: **AD-021**.
+
+**Encje:**
+- `OrderStatusHistory` — dodaj pole `reason: String?` (nullable, max
+  500 znaków, kolumna `reason TEXT`).
+
+**Endpointy:**
+- `PATCH /api/admin/orders/{id}/status` — DTO request rozszerzone
+  o opcjonalne pole `reason: String?` (max 500 znaków). Service zapisuje
+  reason na nowym wpisie `OrderStatusHistory` jeśli niepuste. Konwencja:
+  reason wymagany tylko dla `CANCELED` (walidacja na froncie, backend
+  liberalny).
+- **NOWY** `GET /api/admin/dashboard/stats` — endpoint zastępujący
+  `/dashboard/summary` w UI Fazy 4.5. Payload:
+  ```json
+  {
+    "today": {
+      "orderCount": 23,
+      "totalRevenue": 1847.50,
+      "averageOrderValue": 80.32,
+      "deliveryCount": 18,
+      "pickupCount": 5,
+      "canceledCount": 1
+    },
+    "activeCounts": {
+      "new": 2,
+      "inPreparation": 4,
+      "readyForPickup": 1,
+      "readyForDelivery": 0,
+      "outForDelivery": 3
+    },
+    "last7Days": [
+      { "date": "2026-04-23", "orderCount": 18, "revenue": 1234.50 }
+    ],
+    "hourlyToday": [
+      { "hour": 11, "orderCount": 0 },
+      { "hour": 12, "orderCount": 2 }
+    ],
+    "topProducts30Days": [
+      { "productName": "Pizza Margherita", "totalSold": 89 }
+    ]
+  }
+  ```
+- `GET /api/admin/dashboard/summary` zostaje jako **deprecated alias**
+  do usunięcia w przyszłej fazie. Tech debt zarejestrowany w
+  `docs/ROADMAP.md` sekcja "Tech debt świadomie odłożony" → "Z Fazy 4.5"
+  z trigger'em usunięcia. Nie gubić.
+
+**Co NIE wchodzi w backend:**
+- ❌ Żadnych nowych ról ani modyfikacji `SecurityConfig` (AD-020)
+- ❌ Żadnych nowych endpointów typu `/api/admin/kitchen/orders` —
+  frontend filtruje istniejące `/api/admin/orders` query paramami
+- ❌ Żadnych zmian w SSE infrastructure (działa, używamy jak jest)
+- ❌ Żadnych zmian w state machine `OrderStatus`
+- ❌ Żadnych zmian w public API (`/api/public/*`)
+- ❌ Żadnych zmian w `/track/:token` (klient widzi to samo co dziś)
+
+### Zakres frontend
+
+**Nowe routy:**
+- `/admin/kitchen` — widok Kuchni
+- `/admin/pickup` — widok Wydania
+- `/admin/delivery` — widok Dostawy
+
+**Przerobione routy:**
+- `/admin` (Pulpit) — z 3 kafelków na pełnoprawny dashboard manager'a
+  ze statystykami i wykresami
+
+**Bez zmian (poza minor):**
+- `/admin/orders` — zostaje jako "Wszystkie zamówienia". To **jedyne**
+  miejsce gdzie można anulować zamówienie (z polem reason wymaganym).
+- `/admin/orders/:id` — szczegóły zamówienia, bez zmian poza dorzuceniem
+  wyświetlania `reason` w historii statusów (jeśli niepuste).
+- Pozostałe widoki (Menu, Ustawienia, Godziny, Treści, Strefy) — bez
+  zmian.
+
+**Nawigacja w sidebar (`AdminLayout.tsx`):**
+```
+Pulpit               (/admin)
+─────────────────
+Kuchnia              (/admin/kitchen)
+Wydanie              (/admin/pickup)
+Dostawa              (/admin/delivery)
+─────────────────
+Wszystkie zamówienia (/admin/orders)
+─────────────────
+Menu                 (/admin/menu)
+Ustawienia           (/admin/settings)
+Godziny otwarcia     (/admin/opening-hours)
+Treści stron         (/admin/page-content)
+Strefy dostawy       (/admin/delivery-zones)
+```
+Separatory wizualne między sekcjami: operacyjne / archiwum / konfiguracja.
+
+### Specyfikacje per widok
+
+#### Kuchnia (`/admin/kitchen`)
+
+**Filtr danych:** zamówienia w statusach `NEW` lub `IN_PREPARATION`
+(niezależnie od `fulfillmentType`).
+
+**Layout:**
+- Dwie sekcje z nagłówkami:
+  - "NOWE — N" (`NEW`, sortowane `placedAt ASC` — najstarsze na górze)
+  - "W PRZYGOTOWANIU — N" (`IN_PREPARATION`, sortowane `placedAt ASC`)
+- Każde zamówienie = karta. Grid responsywny (1 kolumna mobile, 2-3
+  kolumny tablet/desktop).
+
+**Karta zamówienia:**
+- Numer zamówienia (duży, top-left)
+- Czas: "12 min temu" (`date-fns` `formatDistanceToNow` + locale `pl`)
+- Badge typu: 🚗 DOSTAWA / 🏪 ODBIÓR (kolorystyka rozróżnialna)
+- Pełna lista pozycji z dodatkami:
+  ```
+  2× Margherita 40cm
+     + ekstra ser, oregano
+  1× Pepperoni 30cm
+  1× Cola 0.5l
+  ```
+- **Banner uwag klienta** (żółty kontrastowy box, tylko jeśli
+  `customerNotes` niepuste): "📝 Bez cebuli, dzwonić domofon nie działa"
+- ETA: jeśli ustawione — "ETA: 19:45". Jeśli nie — przycisk "Ustaw ETA"
+  (modal jak istniejący w Fazie 4)
+- **Główna akcja** (przycisk pełnej szerokości karty, min 56px wysokości):
+  - dla `NEW`: "Przyjmij" → `PATCH status` → `IN_PREPARATION`
+  - dla `IN_PREPARATION`: "Gotowe" → `PATCH status` → `READY`
+- **Bez confirm dialogu** — kucharz musi móc szybko klikać
+
+**Co NIE pokazujemy:** adres dostawy, telefon klienta, kwota, przycisk
+"Anuluj" (anulowanie tylko z `/admin/orders`).
+
+**Empty state:** ikona + "Brak zamówień. Czekamy na pierwsze."
+
+**Auto-refresh:** istniejący `useAdminOrderFeed()` (SSE). Lista
+inwaliduje się na `ORDER_CREATED` i `ORDER_STATUS_CHANGED`.
+
+**Dźwięk:** **tylko** `ORDER_CREATED` (nowe zamówienie).
+
+#### Wydanie (`/admin/pickup`)
+
+**Filtr danych:** zamówienia w statusie `READY` z `fulfillmentType =
+PICKUP` (PICKUP nigdy nie idzie w `OUT_FOR_DELIVERY`).
+
+**Layout:** jedna sekcja "DO WYDANIA — N", sortowanie `placedAt ASC`
+(najstarsze najpilniejsze). Karty pełnej szerokości lub 2 kolumny.
+
+**Karta zamówienia:**
+- Numer zamówienia (duży)
+- **Imię klienta — bardzo duże, kontrastowe** (klient mówi "Jan
+  Kowalski", pracownik szuka po imieniu — kluczowa info dla tego widoku)
+- Czas: "20 min temu"
+- Telefon klienta z **przyciskiem "Zadzwoń"** (`<a href="tel:+48...">`)
+  — przypadek: klient nie przyszedł 30 min, dzwonimy
+- Lista pozycji
+- Kwota do pobrania (jeśli `paymentMethod = CASH_ON_PICKUP`):
+  "Pobierz: 89,50 zł" — duża, czerwona, niemożliwa do przegapienia
+- Metoda płatności (tekstowo)
+- **Główna akcja:** "Wydano" → `PATCH status` → `DELIVERED`
+- **Z confirm dialogiem** ("Czy na pewno wydano zamówienie? Operacja
+  kończy lifecycle zamówienia.") — `DELIVERED` jest terminalne
+
+**Co NIE pokazujemy:** adres dostawy (PICKUP go nie ma), przycisk
+"Anuluj", przyciski wstecznych statusów.
+
+**Empty state:** "Brak zamówień do wydania."
+
+**Dźwięk:** **tylko** `ORDER_STATUS_CHANGED` z `status = READY` ORAZ
+`fulfillmentType = PICKUP`.
+
+#### Dostawa (`/admin/delivery`)
+
+**Filtr danych:** zamówienia w statusach `READY` z `fulfillmentType =
+DELIVERY` ORAZ wszystkie w statusie `OUT_FOR_DELIVERY` (te zawsze są
+DELIVERY, więc filtr `fulfillmentType` redundantny ale bezpieczny).
+
+**Layout:**
+- Dwie sekcje:
+  - "DO ZABRANIA — N" (`READY` + `DELIVERY`, sort `placedAt ASC`)
+  - "W DOSTAWIE — N" (`OUT_FOR_DELIVERY`, sort `placedAt ASC`)
+- Karty 1-2 kolumny (mobile/tablet).
+
+**Karta zamówienia:**
+- Numer zamówienia (duży)
+- Czas: "25 min temu"
+- **Adres dostawy — bardzo duży, kontrastowy** (najważniejsza info
+  dla dostawcy):
+  ```
+  ul. Słowackiego 14/3
+  05-092 Łomianki
+  ```
+- **Notatki adresowe** (jeśli niepuste) — banner: "Dzwonić, domofon
+  nie działa, 3 piętro bez windy"
+- Imię + telefon klienta z **przyciskiem "Zadzwoń"**
+- Kwota do pobrania (jeśli `CASH_ON_DELIVERY`): "Pobierz: 89,50 zł" —
+  duża, czerwona
+- **Notatki klienta** (`customerNotes`) — jeśli niepuste, banner:
+  "📝 Bez cebuli"
+- Lista pozycji (kompaktowo — dostawca chce overview, nie czytanie
+  szczegółów dodatków)
+- **Akcje główne:**
+  - dla `READY`: "Wyjechało" → `PATCH status` → `OUT_FOR_DELIVERY`.
+    Bez confirm.
+  - dla `OUT_FOR_DELIVERY`: "Dostarczone" → `PATCH status` →
+    `DELIVERED`. **Z confirm dialogiem** ("Potwierdzić dostawę?") —
+    terminalne.
+- **Akcje pomocnicze (zawsze widoczne, mniejsze przyciski):**
+  - "🧭 Nawiguj" — `<a href="https://www.google.com/maps/search/?api=1&query={URL_encoded_full_address}" target="_blank">` — otwiera Google Maps z adresem
+  - "📞 Zadzwoń" — duplikat dla pewności
+
+**Co NIE pokazujemy:** przycisk "Anuluj" (anulowanie tylko
+`/admin/orders`); ETA może być pokazane readonly, **dostawca nie
+edytuje** (tylko Kuchnia ustawia); przyciski cofania statusu.
+
+**Empty state:** "Brak zamówień do dostarczenia."
+
+**Dźwięk:** **tylko** `ORDER_STATUS_CHANGED` z `status = READY` ORAZ
+`fulfillmentType = DELIVERY`.
+
+#### Pulpit (`/admin`) — przerobiony
+
+**Cel:** widok dla manager'a / właściciela, otwiera raz dziennie z
+laptopa żeby zobaczyć "co się dzieje".
+
+**Sekcje (od góry):**
+
+1. **Kafelki dziś** (4 karty w rzędzie, 2x2 na mobile):
+   - "Zamówienia dziś" (liczba + delta vs wczoraj jeśli można policzyć)
+   - "Sprzedaż dziś" (PLN)
+   - "Średnia wartość zamówienia"
+   - "Aktywne zamówienia" (suma w nieterminalnych statusach)
+
+2. **Wykres słupkowy: Zamówienia dziś według godziny** (Recharts BarChart)
+   - X axis: godziny od `openingHours` startu do końca (np. 11-23)
+   - Y axis: liczba zamówień
+   - Aktualna godzina podświetlona innym kolorem
+   - Pomaga manager'owi wykryć peak hours
+
+3. **Wykres liniowy: Zamówienia ostatnie 7 dni** (Recharts LineChart)
+   - X axis: dni (skrót "Pon", "Wt", ...)
+   - Y axis: liczba zamówień
+   - Druga linia: revenue (drugorzędna oś Y) — opcjonalnie, może być
+     osobny wykres
+
+4. **Lista: Top 5 produktów ostatnie 30 dni**
+   - Prosta tabela / lista: nazwa produktu + liczba sprzedanych sztuk
+
+5. **Aktywne zamówienia per status** (5 małych kafelków, każdy linkuje):
+   - Nowe → `/admin/kitchen`
+   - W przygotowaniu → `/admin/kitchen`
+   - Gotowe do wydania → `/admin/pickup`
+   - Gotowe do wysyłki → `/admin/delivery`
+   - W dostawie → `/admin/delivery`
+
+**Dane z backendu:** nowy `GET /api/admin/dashboard/stats`.
+
+**Auto-refresh:** SSE inwaliduje query `["admin", "dashboard", "stats"]`.
+Dodatkowo polling co 60s jako safety net.
+
+**Dźwięk:** **brak**. Manager nie pracuje na dźwięk.
+
+### Decyzje przekrojowe
+
+#### Sortowanie
+We wszystkich widokach operacyjnych w obrębie sekcji: **najstarsze na
+górze** (`placedAt ASC`). Powód: zamówienie wiszące 12 min jest pilniejsze
+niż to które właśnie wpadło. Dźwięk SSE i tak zwróci uwagę na nowe.
+
+#### Confirm dialogi
+
+| Akcja | Confirm? |
+|---|---|
+| Przyjmij (NEW → IN_PREPARATION) | NIE |
+| Gotowe (IN_PREPARATION → READY) | NIE |
+| Wyjechało (READY → OUT_FOR_DELIVERY) | NIE |
+| Wydano (READY PICKUP → DELIVERED) | TAK |
+| Dostarczone (OUT_FOR_DELIVERY → DELIVERED) | TAK |
+| Anuluj (z /admin/orders) | TAK + pole reason wymagane |
+
+#### Anulowanie zamówienia (tylko w `/admin/orders`)
+W `OrderStatusActions.tsx` rozszerz istniejący Dialog o pole tekstowe
+`reason` (Textarea, max 500 znaków). Pole **wymagane** dla `CANCELED`
+(walidacja w komponencie: `if (!reason.trim()) toast.error("Podaj
+powód")`). Wartość `reason` w body `PATCH status`. Decyzja
+architektoniczna: **AD-021**.
+
+W `/admin/orders/:id` w sekcji historii statusów: jeśli `reason`
+niepuste, wyświetl pod wpisem (mniejsza czcionka, kursywa).
+
+#### Toasty
+Wszystkie widoki admina pokazują toasty na eventy SSE — istniejące
+zachowanie z Fazy 4 (Sonner) bez zmian. Toasty w prawym górnym, znikają
+po 4-5 s.
+
+Nowość: toast może być **klikalny** i przekierowywać do odpowiedniej
+zakładki (toast "Nowe zamówienie #2026-00184" na widoku Dostawy → klik
+→ `/admin/kitchen`). Implementacja przez prop `onClick` w `toast.success`.
+
+#### Dźwięki — implementacja
+**Bez plików MP3.** Generowanie syntetyczne przez Web Audio API:
+
+```typescript
+function playTone(frequency: number, durationMs: number, type: OscillatorType = 'sine') {
+  const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.value = frequency;
+
+  gain.gain.setValueAtTime(0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + durationMs / 1000);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+
+  oscillator.start();
+  oscillator.stop(ctx.currentTime + durationMs / 1000);
+}
+
+export function playKitchenSound() {
+  // "ding-ding" wysoki - nowe zamówienie
+  playTone(880, 100);
+  setTimeout(() => playTone(880, 100), 150);
+}
+
+export function playPickupSound() {
+  // "bong" średni - gotowe do wydania
+  playTone(523, 300, 'triangle');
+}
+
+export function playDeliverySound() {
+  // "gong" niski - gotowe do dostawy
+  playTone(330, 400, 'triangle');
+}
+```
+
+Hook `useAdminOrderFeed` rozszerzony: przyjmuje opcjonalny prop
+`view: 'kitchen' | 'pickup' | 'delivery' | 'manager'`. Filtruje eventy
+SSE i woła odpowiedni `play*Sound()` per widok. `manager` nie gra nic.
+Globalny `SoundToggle` (z Fazy 4) działa jak działał — wycisza wszystko.
+
+**Web Audio API uwaga:** AudioContext musi być utworzony po user
+interaction (autoplay policy). Pierwsze kliknięcie SoundToggle przy
+włączaniu dźwięku unlock'uje context. Bez tego pierwszy ping nie
+zadziała — ale skoro user musi włączyć dźwięk, to user już kliknął.
+
+#### Dźwięki — który widok pika na który event
+
+| Event SSE | Kuchnia | Wydanie | Dostawa | Pulpit |
+|---|---|---|---|---|
+| `ORDER_CREATED` (NEW) | 🔔 ding-ding | — | — | — |
+| `ORDER_STATUS_CHANGED` → `READY` (PICKUP) | — | 🔔 bong | — | — |
+| `ORDER_STATUS_CHANGED` → `READY` (DELIVERY) | — | — | 🔔 gong | — |
+| Inne eventy | — | — | — | — |
+
+#### Recharts — instalacja
+`npm install recharts` w `frontend/`. Sprawdzić kompatybilność z React
+19 (recharts >= 2.10 wspiera).
+
+#### Mobile / tablet responsywność
+Wszystkie 3 widoki operacyjne **muszą wyglądać dobrze na tablecie
+poziomym** (iPad 1024×768 — typowy use case w lokalu) ORAZ na pionowym
+(telefon dostawcy). Karty: `min-width: 320px`, grid auto-rows. Touch
+targets: główny przycisk akcji minimum 56px wysokości. Font: minimum
+16px na kluczowych info (adres, imię, kwota).
+
+Pulpit może być desktop-first (manager z laptopa), ale wykresy muszą
+adaptować się przez `ResponsiveContainer` Recharts.
+
+### Out of scope
+
+**NIE dotykamy:**
+- State machine `OrderStatus`
+- Public tracking `/track/:token`
+- Backend SSE infrastructure
+- Auth / `SecurityConfig`
+- RBAC (patrz AD-020 dla trigger'ów reewaluacji)
+- Menu, Settings, OpeningHours, PageContent CRUD
+- Strefy dostawy
+- Endpointy public API
+- Encje `Order`, `OrderItem`, `OrderItemAddon` (poza dodaniem `reason`
+  na `OrderStatusHistory`)
+- File upload (zdjęcia produktów dalej z URL)
+- Kupony, klient accounts, drukarka bonowa, kasa fiskalna
+
+**NIE robimy** (choć rozważane):
+- Per-widok SoundToggle (jeden globalny zostaje)
+- Per-device tokeny / sesje
+- Audit log "kto co kliknął"
+- Nowe role / RBAC
+- Edycja ETA z innych widoków niż Kuchnia
+- Anulowanie z innych widoków niż `/admin/orders`
+
+### Definition of Done
+
+- [ ] Migracja Flyway dodaje `reason TEXT NULL` do `order_status_history`
+- [ ] Encja `OrderStatusHistory` ma pole `reason`
+- [ ] DTO `PATCH /api/admin/orders/{id}/status` akceptuje opcjonalne
+  `reason`
+- [ ] `OrderStatusService` zapisuje `reason` na nowym wpisie historii
+- [ ] **NOWY** endpoint `GET /api/admin/dashboard/stats` zwraca pełny
+  payload
+- [ ] Frontend ma trzy nowe widoki: `/admin/kitchen`, `/admin/pickup`,
+  `/admin/delivery`
+- [ ] Każdy widok pokazuje tylko zamówienia z odpowiednimi statusami
+  i `fulfillmentType`
+- [ ] Sortowanie: najstarsze na górze w obrębie sekcji
+- [ ] Akcje: Przyjmij / Gotowe / Wyjechało / Dostarczone / Wydano —
+  wszystkie działają, terminalne mają confirm
+- [ ] Telefon klikalny w Wydaniu i Dostawie (`tel:` link)
+- [ ] Nawiguj w Dostawie otwiera Google Maps z adresem
+- [ ] Pulpit `/admin` przerobiony — kafelki + 2 wykresy + top produkty
+  + aktywne zamówienia z linkami
+- [ ] Recharts działa, wykresy są responsywne
+- [ ] Sidebar ma nową strukturę z 3 zakładkami operacyjnymi
+- [ ] `/admin/orders` z `OrderStatusActions.tsx` ma pole reason wymagane
+  przy anulowaniu (i `/admin/orders/:id` pokazuje reason w historii)
+- [ ] SSE działa we wszystkich nowych widokach (lista inwaliduje się)
+- [ ] Dźwięki: 3 różne, każdy widok pika tylko swój event,
+  SoundToggle globalnie wycisza
+- [ ] Empty states w 3 widokach operacyjnych
+- [ ] Mobile (375px) i tablet (1024px) — wszystkie widoki czytelne
+  i klikalne
+- [ ] Dokumentacja zaktualizowana po smoke teście:
+  - `ROADMAP.md` — wpis Fazy 4.5 jako DONE
+  - `PHASES.md` — STATUS: DONE w tym rozdziale
+  - `CURRENT_STATE.md` — sekcja "Faza 4.5: Operational UI Split — DONE"
+
 ## Faza 5: Polish + Deploy
 STATUS: DONE (kod); deploy Railway — ostatni krok manualny
 

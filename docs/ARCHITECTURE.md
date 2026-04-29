@@ -211,6 +211,51 @@ i bez zewnętrznych zależności.
   `deliveryFee` i `deliveryZoneName` na encji Order opisana w **AD-016
   (rozszerzenie z Fazy 7.0)**. Tu tylko cross-reference.
 
+### AD-020: Single ADMIN role for operational views (MVP)
+
+**Decyzja:** Nowe widoki operacyjne (Kuchnia, Wydanie, Dostawa) wymagają
+roli `ADMIN`, tej samej co istniejące widoki admina. Nie wprowadzamy
+osobnych ról `KITCHEN`, `DELIVERY`, `PICKUP`, `MANAGER`.
+
+**Powody:**
+- Target market (małe lokale 1-5 osób) operacyjnie funkcjonuje na zaufaniu
+- RBAC to znaczna robota dodatkowa (3-5 dni) i blokowałby zamknięcie fazy
+- Brak konkretnych use case'ów wymuszających granulację
+
+**Konsekwencje akceptowane:**
+- Wszyscy zalogowani widzą wszystkie zakładki
+- Audit trail to jedna tożsamość ADMIN, bez per-user attribution
+- Egzekwowanie podziału obowiązków = konwencja, nie technicznie
+
+**Trigger do reewaluacji:**
+- Klient zatrudnia zewnętrznych dostawców → potrzebne ograniczenie widoczności
+- Zespół 5+ osób → potrzebny audit per-user
+- Incident "kucharz zmienił ceny" → wymusza RBAC
+
+### AD-021: Cancellation reason on OrderStatusHistory
+
+**Decyzja:** Pole `reason: String?` (max 500 znaków, nullable) dodane
+na `OrderStatusHistory`, nie na `Order`.
+
+**Powody:**
+- Logicznie powód należy do **eventu zmiany statusu**, nie do zamówienia
+- Otwiera możliwość przyszłych powodów (np. "powód cofnięcia z READY do
+  IN_PREPARATION" — gdyby kiedyś dopuszczone)
+- `OrderStatusHistory` już istnieje, dodanie kolumny to addytywna
+  migracja zero-risk
+
+**Konsekwencje:**
+- DTO `PATCH /status` rozszerzone o `reason?`
+- `OrderStatusService` zapisuje `reason` przy zmianie statusu
+- UI w `/admin/orders/:id` wyświetla `reason` w historii (jeśli niepuste)
+- Walidacja: `reason` wymagane na froncie dla `CANCELED`, opcjonalne
+  dla innych
+
+**Out of scope:**
+- Słownik predefiniowanych powodów (np. "klient odmówił", "brak
+  składników") — na razie wolny tekst. Jeśli okaże się że potrzebne,
+  dorobić w osobnej fazie.
+
 ## Domain conventions
 
 ### Address normalization (od Fazy 7.0)
