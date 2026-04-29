@@ -26,6 +26,7 @@ class OrderStatusTest {
     static Stream<Arguments> allowedDeliveryTransitions() {
         return Stream.of(
                 Arguments.of(NEW, CONFIRMED),
+                Arguments.of(NEW, IN_PREPARATION),
                 Arguments.of(NEW, CANCELED),
                 Arguments.of(CONFIRMED, IN_PREPARATION),
                 Arguments.of(CONFIRMED, CANCELED),
@@ -41,6 +42,7 @@ class OrderStatusTest {
     static Stream<Arguments> allowedPickupTransitions() {
         return Stream.of(
                 Arguments.of(NEW, CONFIRMED),
+                Arguments.of(NEW, IN_PREPARATION),
                 Arguments.of(NEW, CANCELED),
                 Arguments.of(CONFIRMED, IN_PREPARATION),
                 Arguments.of(CONFIRMED, CANCELED),
@@ -76,9 +78,8 @@ class OrderStatusTest {
     }
 
     @Test
-    @DisplayName("Cannot skip stages (NEW->IN_PREPARATION, NEW->READY, CONFIRMED->DELIVERED, ...)")
+    @DisplayName("Cannot skip stages (NEW->READY, CONFIRMED->DELIVERED, ...)")
     void cannotSkipStages() {
-        assertThat(NEW.canTransitionTo(IN_PREPARATION, DELIVERY)).isFalse();
         assertThat(NEW.canTransitionTo(READY, DELIVERY)).isFalse();
         assertThat(NEW.canTransitionTo(OUT_FOR_DELIVERY, DELIVERY)).isFalse();
         assertThat(NEW.canTransitionTo(DELIVERED, DELIVERY)).isFalse();
@@ -87,6 +88,13 @@ class OrderStatusTest {
         assertThat(CONFIRMED.canTransitionTo(DELIVERED, DELIVERY)).isFalse();
         assertThat(IN_PREPARATION.canTransitionTo(OUT_FOR_DELIVERY, DELIVERY)).isFalse();
         assertThat(IN_PREPARATION.canTransitionTo(DELIVERED, DELIVERY)).isFalse();
+    }
+
+    @Test
+    @DisplayName("AD-023: NEW -> IN_PREPARATION is allowed for both fulfillment types")
+    void newCanGoDirectlyToInPreparation() {
+        assertThat(NEW.canTransitionTo(IN_PREPARATION, DELIVERY)).isTrue();
+        assertThat(NEW.canTransitionTo(IN_PREPARATION, PICKUP)).isTrue();
     }
 
     @Test
@@ -180,6 +188,7 @@ class OrderStatusTest {
     private Set<Pair> allowedSetFor(FulfillmentType ft) {
         Set<Pair> set = new HashSet<>();
         set.add(new Pair(NEW, CONFIRMED));
+        set.add(new Pair(NEW, IN_PREPARATION)); // AD-023
         set.add(new Pair(CONFIRMED, IN_PREPARATION));
         set.add(new Pair(IN_PREPARATION, READY));
         if (ft == DELIVERY) {

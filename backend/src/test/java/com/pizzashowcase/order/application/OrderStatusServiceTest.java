@@ -81,4 +81,20 @@ class OrderStatusServiceTest {
         verify(order).addStatusHistory(captor.capture());
         assertThat(captor.getValue().getReason()).isNull();
     }
+
+    @Test
+    void changeStatus_newToInPreparation_isAllowedAndAppendsHistory() {
+        // AD-023: kitchen single-tap "Przyjmij" jumps NEW -> IN_PREPARATION
+        // skipping CONFIRMED. State machine accepts it; history gets one entry.
+        when(order.getStatus()).thenReturn(OrderStatus.NEW);
+        UpdateOrderStatusRequest request =
+                new UpdateOrderStatusRequest(1L, OrderStatus.IN_PREPARATION, null);
+
+        service.changeStatus(7L, request);
+
+        ArgumentCaptor<OrderStatusHistory> captor = ArgumentCaptor.forClass(OrderStatusHistory.class);
+        verify(order).addStatusHistory(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.IN_PREPARATION);
+        verify(order).setStatus(OrderStatus.IN_PREPARATION);
+    }
 }

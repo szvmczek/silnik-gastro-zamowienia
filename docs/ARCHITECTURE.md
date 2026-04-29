@@ -292,6 +292,42 @@ zamiast slim ListItem-only.
 - Per-widok dedicated endpoint (`/admin/kitchen/orders` itp.) —
   explicite zakazane w spec Fazy 4.5
 
+### AD-023: State machine extension — NEW → IN_PREPARATION for kitchen workflow
+
+**Decyzja:** Rozszerzenie state machine `OrderStatus` o tranzycję `NEW →
+IN_PREPARATION` (obok istniejących `NEW → CONFIRMED` i `NEW → CANCELED`).
+Tranzycja addytywna — ścieżka `NEW → CONFIRMED → IN_PREPARATION` dalej
+działa bez zmian.
+
+**Powody:**
+- Spec Fazy 4.5 wymaga ścieżki `NEW → IN_PREPARATION` dla widoku Kuchnia,
+  ale jednocześnie deklaruje "state machine NIE rusza". Sprzeczność
+  wewnętrzna spec'u rozwiązana świadomie.
+- Małe lokale operacyjnie konflują "akceptuj zamówienie" i "rozpocznij
+  przygotowanie" w jeden gest — `CONFIRMED` jako odrębny krok jest
+  vestigial dla target marketu Fazy 4.5.
+- Tranzycja addytywna — żadna istniejąca ścieżka nie zostaje złamana.
+  Stary flow `NEW → CONFIRMED → IN_PREPARATION` dalej działa via
+  `/admin/orders`.
+
+**Konsekwencje akceptowane:**
+- `CONFIRMED` staje się opcjonalnym pośrednim statusem (back-office
+  confirm path).
+- Kitchen filter pokrywa `NEW + CONFIRMED + IN_PREPARATION` (`CONFIRMED`
+  widoczny w sekcji "NOWE" obok `NEW`); akcja "Przyjmij" działa identycznie
+  dla obu i kieruje do `IN_PREPARATION`.
+
+**Trigger do reewaluacji:**
+- Pojawi się wymaganie capacity gating / payment verification między
+  akceptacją a rozpoczęciem przygotowania.
+- Klient potrzebuje rozróżnienia "zaakceptowano ale jeszcze nie zaczęto
+  gotować" w UI lub raportach.
+
+**Out of scope:**
+- Usunięcie statusu `CONFIRMED` — dalej użyteczny dla back-office flow.
+- Zmiana semantyki przycisku "Potwierdź" w `/admin/orders` detail
+  (dalej `NEW → CONFIRMED`).
+
 ## Domain conventions
 
 ### Address normalization (od Fazy 7.0)

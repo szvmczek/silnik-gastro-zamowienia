@@ -8,7 +8,6 @@ import {
   updateOrderEta,
   type AdminOrderListItemDto,
   type AdminOrdersQuery,
-  type SpringPage,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
@@ -19,6 +18,7 @@ import { KitchenOrderCard } from "./KitchenOrderCard";
 const PAGE_SIZE = 100;
 
 const NEW_QUERY: AdminOrdersQuery = { status: "NEW", size: PAGE_SIZE };
+const CONFIRMED_QUERY: AdminOrdersQuery = { status: "CONFIRMED", size: PAGE_SIZE };
 const IN_PREP_QUERY: AdminOrdersQuery = { status: "IN_PREPARATION", size: PAGE_SIZE };
 
 export function KitchenPage() {
@@ -26,12 +26,20 @@ export function KitchenPage() {
   const queryClient = useQueryClient();
 
   // SSE invalidates ["admin","orders","list"] (prefix match), refreshing
-  // both these queries and the OrdersListPage table.
-  const [newQuery, inPrepQuery] = useQueries({
+  // these queries and the OrdersListPage table.
+  // CONFIRMED merged into "NOWE" section: orders confirmed via /admin/orders
+  // back-office flow must stay visible to the kitchen (AD-023).
+  const [newQuery, confirmedQuery, inPrepQuery] = useQueries({
     queries: [
       {
         queryKey: ["admin", "orders", "list", NEW_QUERY] as const,
         queryFn: () => fetchAdminOrders(NEW_QUERY),
+        refetchInterval: 15_000,
+        refetchIntervalInBackground: false,
+      },
+      {
+        queryKey: ["admin", "orders", "list", CONFIRMED_QUERY] as const,
+        queryFn: () => fetchAdminOrders(CONFIRMED_QUERY),
         refetchInterval: 15_000,
         refetchIntervalInBackground: false,
       },
@@ -46,11 +54,16 @@ export function KitchenPage() {
 
   const [etaForOrder, setEtaForOrder] = useState<AdminOrderListItemDto | null>(null);
 
-  const newRows = useMemo(() => sortAsc(newQuery.data), [newQuery.data]);
-  const inPrepRows = useMemo(() => sortAsc(inPrepQuery.data), [inPrepQuery.data]);
+  const newRows = useMemo(
+    () => sortAsc([...(newQuery.data?.content ?? []), ...(confirmedQuery.data?.content ?? [])]),
+    [newQuery.data, confirmedQuery.data],
+  );
+  const inPrepRows = useMemo(() => sortAsc(inPrepQuery.data?.content), [inPrepQuery.data]);
 
   const errorMessage =
-    queryError(newQuery.error) ?? queryError(inPrepQuery.error);
+    queryError(newQuery.error) ??
+    queryError(confirmedQuery.error) ??
+    queryError(inPrepQuery.error);
 
   const etaMutation = useMutation({
     mutationFn: ({
@@ -79,7 +92,8 @@ export function KitchenPage() {
     },
   });
 
-  const isLoading = newQuery.isPending || inPrepQuery.isPending;
+  const isLoading =
+    newQuery.isPending || confirmedQuery.isPending || inPrepQuery.isPending;
   const isEmpty =
     !isLoading && newRows.length === 0 && inPrepRows.length === 0;
 
@@ -196,10 +210,10 @@ function SectionHeader({ title, count }: { title: string; count: number | null }
 }
 
 function sortAsc(
-  page: SpringPage<AdminOrderListItemDto> | undefined,
+  rows: AdminOrderListItemDto[] | undefined,
 ): AdminOrderListItemDto[] {
-  if (!page) return [];
-  return [...page.content].sort(
+  if (!rows) return [];
+  return [...rows].sort(
     (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
   );
 }

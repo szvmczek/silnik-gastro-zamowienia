@@ -273,7 +273,9 @@ manager'a. Backend praktycznie nieruszany — frontend filtruje istniejący
 - ❌ Żadnych nowych endpointów typu `/api/admin/kitchen/orders` —
   frontend filtruje istniejące `/api/admin/orders` query paramami
 - ❌ Żadnych zmian w SSE infrastructure (działa, używamy jak jest)
-- ❌ Żadnych zmian w state machine `OrderStatus`
+- ⚠️ State machine `OrderStatus` rozszerzona addytywnie o `NEW →
+  IN_PREPARATION` (AD-023, post-review CRITICAL-1) — wszystkie istniejące
+  ścieżki bez zmian.
 - ❌ Żadnych zmian w public API (`/api/public/*`)
 - ❌ Żadnych zmian w `/track/:token` (klient widzi to samo co dziś)
 
@@ -318,12 +320,16 @@ Separatory wizualne między sekcjami: operacyjne / archiwum / konfiguracja.
 
 #### Kuchnia (`/admin/kitchen`)
 
-**Filtr danych:** zamówienia w statusach `NEW` lub `IN_PREPARATION`
-(niezależnie od `fulfillmentType`).
+**Filtr danych:** zamówienia w statusach `NEW` lub `CONFIRMED` lub
+`IN_PREPARATION` (niezależnie od `fulfillmentType`). `CONFIRMED` widoczne
+razem z `NEW` jako "NOWE" — pojawia się gdy admin użył back-office flow
+przez `/admin/orders`. Patrz **AD-023** (rozszerzenie state machine
+o `NEW → IN_PREPARATION` dla single-tap "Przyjmij").
 
 **Layout:**
 - Dwie sekcje z nagłówkami:
-  - "NOWE — N" (`NEW`, sortowane `placedAt ASC` — najstarsze na górze)
+  - "NOWE — N" (`NEW` + `CONFIRMED`, sortowane `placedAt ASC` —
+    najstarsze na górze)
   - "W PRZYGOTOWANIU — N" (`IN_PREPARATION`, sortowane `placedAt ASC`)
 - Każde zamówienie = karta. Grid responsywny (1 kolumna mobile, 2-3
   kolumny tablet/desktop).
@@ -344,7 +350,8 @@ Separatory wizualne między sekcjami: operacyjne / archiwum / konfiguracja.
 - ETA: jeśli ustawione — "ETA: 19:45". Jeśli nie — przycisk "Ustaw ETA"
   (modal jak istniejący w Fazie 4)
 - **Główna akcja** (przycisk pełnej szerokości karty, min 56px wysokości):
-  - dla `NEW`: "Przyjmij" → `PATCH status` → `IN_PREPARATION`
+  - dla `NEW` lub `CONFIRMED`: "Przyjmij" → `PATCH status` →
+    `IN_PREPARATION` (AD-023)
   - dla `IN_PREPARATION`: "Gotowe" → `PATCH status` → `READY`
 - **Bez confirm dialogu** — kucharz musi móc szybko klikać
 
@@ -592,7 +599,9 @@ adaptować się przez `ResponsiveContainer` Recharts.
 ### Out of scope
 
 **NIE dotykamy:**
-- State machine `OrderStatus`
+- State machine `OrderStatus` — z **jednym wyjątkiem**: addytywna
+  tranzycja `NEW → IN_PREPARATION` dodana post-review (AD-023). Pozostała
+  semantyka bez zmian.
 - Public tracking `/track/:token`
 - Backend SSE infrastructure
 - Auth / `SecurityConfig`

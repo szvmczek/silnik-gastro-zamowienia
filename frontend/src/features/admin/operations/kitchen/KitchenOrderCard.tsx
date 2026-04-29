@@ -26,7 +26,12 @@ interface PrimaryAction {
 }
 
 function primaryAction(status: OrderStatus): PrimaryAction | null {
-  if (status === "NEW") return { label: "Przyjmij", next: "IN_PREPARATION" };
+  // AD-023: NEW and CONFIRMED collapse into a single "Przyjmij" gesture that
+  // goes straight to IN_PREPARATION. CONFIRMED only appears when an admin
+  // used the back-office /admin/orders flow.
+  if (status === "NEW" || status === "CONFIRMED") {
+    return { label: "Przyjmij", next: "IN_PREPARATION" };
+  }
   if (status === "IN_PREPARATION") return { label: "Gotowe", next: "READY" };
   return null;
 }

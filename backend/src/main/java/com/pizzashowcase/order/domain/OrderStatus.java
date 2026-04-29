@@ -24,7 +24,9 @@ public enum OrderStatus {
             return true;
         }
         return switch (this) {
-            case NEW -> next == CONFIRMED;
+            // AD-023: NEW -> IN_PREPARATION skips the optional CONFIRMED step
+            // for the kitchen single-tap workflow.
+            case NEW -> next == CONFIRMED || next == IN_PREPARATION;
             case CONFIRMED -> next == IN_PREPARATION;
             case IN_PREPARATION -> next == READY;
             case READY -> switch (fulfillmentType) {
