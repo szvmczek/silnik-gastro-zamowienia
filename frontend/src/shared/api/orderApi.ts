@@ -174,6 +174,49 @@ export interface AdminDashboardSummaryDto {
   awaitingFulfillment: number;
 }
 
+export interface AdminDashboardStatsToday {
+  orderCount: number;
+  totalRevenue: string;
+  averageOrderValue: string;
+  deliveryCount: number;
+  pickupCount: number;
+  canceledCount: number;
+}
+
+export interface AdminDashboardActiveCounts {
+  // Backend uses @JsonProperty("new") to map this through the Java
+  // reserved keyword.
+  new: number;
+  inPreparation: number;
+  readyForPickup: number;
+  readyForDelivery: number;
+  outForDelivery: number;
+}
+
+export interface AdminDashboardDailyStats {
+  date: string;
+  orderCount: number;
+  revenue: string;
+}
+
+export interface AdminDashboardHourlyStats {
+  hour: number;
+  orderCount: number;
+}
+
+export interface AdminDashboardTopProductStats {
+  productName: string;
+  totalSold: number;
+}
+
+export interface AdminDashboardStatsDto {
+  today: AdminDashboardStatsToday;
+  activeCounts: AdminDashboardActiveCounts;
+  last7Days: AdminDashboardDailyStats[];
+  hourlyToday: AdminDashboardHourlyStats[];
+  topProducts30Days: AdminDashboardTopProductStats[];
+}
+
 export interface AdminOrdersQuery {
   status?: OrderStatus | null;
   fulfillmentType?: FulfillmentType | null;
@@ -232,5 +275,10 @@ export async function updateOrderEta(
 
 export async function fetchDashboardSummary(): Promise<AdminDashboardSummaryDto> {
   const { data } = await apiClient.get<AdminDashboardSummaryDto>("/admin/dashboard/summary");
+  return data;
+}
+
+export async function fetchDashboardStats(): Promise<AdminDashboardStatsDto> {
+  const { data } = await apiClient.get<AdminDashboardStatsDto>("/admin/dashboard/stats");
   return data;
 }
