@@ -37,7 +37,7 @@ export function PickupOrderCard({ order, onRequestRelease }: PickupOrderCardProp
   return (
     <article className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <header className="flex items-baseline justify-between gap-3">
-        <div className="font-mono text-[16px] font-semibold text-slate-500">
+        <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">
           {order.orderNumber}
         </div>
         <div className="text-xs text-slate-500">{relativeTime(order.placedAt)}</div>
@@ -56,7 +56,7 @@ export function PickupOrderCard({ order, onRequestRelease }: PickupOrderCardProp
       </a>
 
       <ul className="mt-4 space-y-1.5 text-[14px] text-slate-700">
-        {order.items.map((item, idx) => (
+        {(order.items ?? []).map((item, idx) => (
           <ItemLine key={idx} item={item} />
         ))}
       </ul>

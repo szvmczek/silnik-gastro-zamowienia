@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Button } from "@/shared/components/ui/Button";
 import {
@@ -46,6 +46,13 @@ function relativeTime(iso: string): string {
   return formatDistanceToNow(new Date(iso), { locale: pl, addSuffix: true });
 }
 
+function formatEta(etaMinutes: number, etaSetAt: string | null): string {
+  // Graceful degradation for legacy rows from before etaSetAt was tracked.
+  if (!etaSetAt) return `${etaMinutes} min`;
+  const target = new Date(new Date(etaSetAt).getTime() + etaMinutes * 60_000);
+  return format(target, "HH:mm");
+}
+
 export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
   const queryClient = useQueryClient();
   const action = primaryAction(order.status);
@@ -87,7 +94,7 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
       </header>
 
       <ul className="mt-4 space-y-2 text-[14px] text-slate-900">
-        {order.items.map((item, idx) => (
+        {(order.items ?? []).map((item, idx) => (
           <ItemLine key={idx} item={item} />
         ))}
       </ul>
@@ -101,7 +108,9 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
 
       <div className="mt-4 flex items-center justify-between text-[13px] text-slate-600">
         {order.etaMinutes !== null ? (
-          <span className="font-medium text-slate-900">ETA: {order.etaMinutes} min</span>
+          <span className="font-medium text-slate-900">
+            ETA: {formatEta(order.etaMinutes, order.etaSetAt)}
+          </span>
         ) : (
           <span className="text-slate-400">ETA: —</span>
         )}

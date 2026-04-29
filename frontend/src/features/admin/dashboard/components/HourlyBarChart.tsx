@@ -14,9 +14,10 @@ interface HourlyBarChartProps {
   currentHour: number;
 }
 
-// Restaurants-typical operating window. Hours outside (00-07) are virtually
-// always zero; trimming reduces visual noise and saves chart real-estate.
-const FIRST_HOUR = 8;
+// Show full 24h: zero-count hours render as height 0 and stay invisible,
+// while the current-hour highlight always finds a matching bar regardless
+// of whether the venue operates during day or night hours.
+const FIRST_HOUR = 0;
 const LAST_HOUR = 23;
 
 export function HourlyBarChart({ data, currentHour }: HourlyBarChartProps) {

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/shared/auth/authStore";
@@ -24,6 +25,7 @@ const MAX_BACKOFF_MS = 30_000;
 
 export function useAdminOrderFeed(): void {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const reconnectTimer = useRef<number | null>(null);
   const backoffRef = useRef<number>(INITIAL_BACKOFF_MS);
   const sourceRef = useRef<EventSource | null>(null);
@@ -65,7 +67,12 @@ export function useAdminOrderFeed(): void {
         // stats is the new Faza 4.5 manager dashboard query key.
         queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "summary"] });
         queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
-        toast.success(`Nowe zamówienie: ${data.orderNumber}`);
+        toast.success(`Nowe zamówienie: ${data.orderNumber}`, {
+          action: {
+            label: "Otwórz",
+            onClick: () => navigate("/admin/kitchen"),
+          },
+        });
         emitOrderFeed({
           kind: "created",
           orderId: data.orderId,
@@ -106,7 +113,7 @@ export function useAdminOrderFeed(): void {
       cancelled = true;
       cleanup();
     };
-  }, [queryClient]);
+  }, [queryClient, navigate]);
 }
 
 function parsePayload<T>(raw: unknown): T | null {

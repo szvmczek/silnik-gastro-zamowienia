@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Navigation, Phone } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
@@ -29,6 +29,13 @@ function relativeTime(iso: string): string {
   return formatDistanceToNow(new Date(iso), { locale: pl, addSuffix: true });
 }
 
+function formatEta(etaMinutes: number, etaSetAt: string | null): string {
+  // Graceful degradation for legacy rows from before etaSetAt was tracked.
+  if (!etaSetAt) return `${etaMinutes} min`;
+  const target = new Date(new Date(etaSetAt).getTime() + etaMinutes * 60_000);
+  return format(target, "HH:mm");
+}
+
 function buildMapsHref(address: OrderTrackingAddressDto): string {
   const parts = [
     `${address.street} ${address.buildingNumber}`,
@@ -51,7 +58,7 @@ export function DeliveryOrderCard({
   return (
     <article className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <header className="flex items-baseline justify-between gap-3">
-        <div className="font-mono text-[16px] font-semibold text-slate-500">
+        <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">
           {order.orderNumber}
         </div>
         <div className="text-xs text-slate-500">{relativeTime(order.placedAt)}</div>
@@ -112,14 +119,17 @@ export function DeliveryOrderCard({
       )}
 
       <ul className="mt-3 space-y-0.5 text-[13px] text-slate-600">
-        {order.items.map((item, idx) => (
+        {(order.items ?? []).map((item, idx) => (
           <CompactItemLine key={idx} item={item} />
         ))}
       </ul>
 
       {order.etaMinutes !== null && (
         <div className="mt-3 text-[13px] text-slate-500">
-          ETA: <span className="text-slate-900">{order.etaMinutes} min</span>
+          ETA:{" "}
+          <span className="text-slate-900">
+            {formatEta(order.etaMinutes, order.etaSetAt)}
+          </span>
         </div>
       )}
 

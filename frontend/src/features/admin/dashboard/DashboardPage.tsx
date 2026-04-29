@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/shared/auth/useAuth";
 import {
@@ -57,7 +56,9 @@ export function DashboardPage() {
     ? extractProblem(query.error)?.detail ?? "Spróbuj odświeżyć stronę."
     : null;
 
-  const currentHour = useMemo(() => new Date().getHours(), []);
+  // Recomputed every render. The 60s refetch on dashboard/stats triggers
+  // a re-render, which is sufficient cadence for the hourly highlight.
+  const currentHour = new Date().getHours();
   const delta = stats ? computeDelta(stats) : undefined;
   const activeTotal = stats ? computeActiveTotal(stats) : 0;
 
