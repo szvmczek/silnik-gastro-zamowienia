@@ -7,6 +7,7 @@ import java.time.Instant;
 public record AdminOrderStatusHistoryDto(
         OrderStatus status,
         Instant changedAt,
-        String changedBy
+        String changedBy,
+        String reason
 ) {
 }

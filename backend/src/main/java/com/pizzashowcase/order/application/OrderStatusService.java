@@ -47,7 +47,8 @@ public class OrderStatusService {
         }
 
         order.setStatus(next);
-        order.addStatusHistory(new OrderStatusHistory(next, Instant.now(), currentAdminIdentity()));
+        order.addStatusHistory(new OrderStatusHistory(
+                next, Instant.now(), currentAdminIdentity(), normalizeReason(request.reason())));
         // Force flush so @Version bumps before we read it into the DTO.
         // Without this, the client sees stale version=N and the next PATCH 409s.
         Order saved = orderRepository.saveAndFlush(order);
@@ -82,5 +83,11 @@ public class OrderStatusService {
     private static String currentAdminIdentity() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null ? auth.getName() : null;
+    }
+
+    private static String normalizeReason(String reason) {
+        if (reason == null) return null;
+        String trimmed = reason.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

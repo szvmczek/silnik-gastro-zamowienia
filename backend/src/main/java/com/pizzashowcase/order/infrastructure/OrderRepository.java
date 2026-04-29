@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,6 +53,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                           @Param("toExclusive") Instant toExclusive);
 
     long countByStatusIn(Collection<OrderStatus> statuses);
+
+    long countByStatus(OrderStatus status);
+
+    long countByStatusAndFulfillmentType(OrderStatus status, FulfillmentType fulfillmentType);
+
+    @Query("SELECT o FROM Order o WHERE o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive")
+    List<Order> findInCreatedAtRange(@Param("fromInclusive") Instant fromInclusive,
+                                     @Param("toExclusive") Instant toExclusive);
+
+    // @EntityGraph na items dla unikania N+1 przy agregacji topProducts30Days.
+    @Query("SELECT o FROM Order o WHERE o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive")
+    @EntityGraph(attributePaths = "items")
+    List<Order> findInCreatedAtRangeWithItems(@Param("fromInclusive") Instant fromInclusive,
+                                              @Param("toExclusive") Instant toExclusive);
 
     boolean existsByDeliveryZoneName(String deliveryZoneName);
 }
