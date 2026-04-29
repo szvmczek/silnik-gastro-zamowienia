@@ -218,9 +218,7 @@ manager'a. Backend praktycznie nieruszany — frontend filtruje istniejący
 ### Zakres backend
 
 **Migracja:**
-- Nowa migracja Flyway (kolejny dostępny numer — V10 zajęty przez
-  delivery zones z Fazy 7.0, najprawdopodobniej V11; ustalany w sesji
-  implementacyjnej po weryfikacji): `ADD COLUMN reason TEXT NULL`
+- `V11__add_reason_to_order_status_history.sql`: `ADD COLUMN reason TEXT`
   na tabeli `order_status_history`. Pole opcjonalne, używane głównie
   dla `CANCELED`. Decyzja architektoniczna: **AD-021**.
 

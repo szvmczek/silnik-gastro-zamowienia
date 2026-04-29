@@ -25,7 +25,9 @@ praktycznie nieruszany — frontend filtruje istniejący
 Source of truth dyskusji projektowej: `docs/FAZA_4_5_HANDOFF.md`.
 
 **Nowe AD records:** AD-020 (Single ADMIN role for operational views),
-AD-021 (Cancellation reason on `OrderStatusHistory`).
+AD-021 (Cancellation reason on `OrderStatusHistory`), AD-022 (Admin
+order list returns full detail shape — dodane w trakcie M3.5 jako
+prerequisite dla widoków operacyjnych bez per-card detail HTTP storm).
 
 **Co wchodzi w zakres (skrót):**
 - Trzy nowe routy: `/admin/kitchen`, `/admin/pickup`, `/admin/delivery`
