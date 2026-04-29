@@ -6,17 +6,25 @@ import { Sheet, SheetContent } from "@/shared/components/ui/Sheet";
 import { useAdminOrderFeed } from "@/features/admin/realtime/useAdminOrderFeed";
 import { SoundToggle } from "@/features/admin/realtime/SoundToggle";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
-import { AdminSidebar, type AdminNavItem } from "./AdminSidebar";
+import { AdminSidebar, type AdminNavEntry } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 
-const navItems: AdminNavItem[] = [
-  { to: "/admin", label: "Pulpit", end: true },
-  { to: "/admin/orders", label: "Zamówienia" },
-  { to: "/admin/menu", label: "Menu" },
-  { to: "/admin/delivery-zones", label: "Strefy dostawy" },
-  { to: "/admin/settings", label: "Ustawienia" },
-  { to: "/admin/opening-hours", label: "Godziny otwarcia" },
-  { to: "/admin/page-content", label: "Treści stron" },
+// Sections from top: Pulpit / operacyjne / archiwum / konfiguracja
+// (Faza 4.5 spec). Visual separators map to <hr> in AdminSidebar.
+const navItems: AdminNavEntry[] = [
+  { kind: "link", to: "/admin", label: "Pulpit", end: true },
+  { kind: "separator" },
+  { kind: "link", to: "/admin/kitchen", label: "Kuchnia" },
+  { kind: "link", to: "/admin/pickup", label: "Wydanie" },
+  { kind: "link", to: "/admin/delivery", label: "Dostawa" },
+  { kind: "separator" },
+  { kind: "link", to: "/admin/orders", label: "Wszystkie zamówienia" },
+  { kind: "separator" },
+  { kind: "link", to: "/admin/menu", label: "Menu" },
+  { kind: "link", to: "/admin/settings", label: "Ustawienia" },
+  { kind: "link", to: "/admin/opening-hours", label: "Godziny otwarcia" },
+  { kind: "link", to: "/admin/page-content", label: "Treści stron" },
+  { kind: "link", to: "/admin/delivery-zones", label: "Strefy dostawy" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("pl-PL", {

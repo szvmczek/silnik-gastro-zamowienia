@@ -1,14 +1,21 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "@/shared/lib/cn";
 
-export interface AdminNavItem {
+export interface AdminNavLink {
+  kind: "link";
   to: string;
   label: string;
   end?: boolean;
 }
 
+export interface AdminNavSeparator {
+  kind: "separator";
+}
+
+export type AdminNavEntry = AdminNavLink | AdminNavSeparator;
+
 interface AdminSidebarProps {
-  items: AdminNavItem[];
+  items: AdminNavEntry[];
   onNavClick?: () => void;
   displayName?: string | null;
   userInitials?: string;
@@ -36,24 +43,32 @@ export function AdminSidebar({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            onClick={onNavClick}
-            className={({ isActive }) =>
-              cn(
-                "flex h-10 items-center gap-2.5 rounded-md px-3 text-[14px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                isActive
-                  ? "bg-primary/10 font-medium text-primary"
-                  : "text-slate-600 hover:bg-slate-100"
-              )
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        {items.map((item, idx) =>
+          item.kind === "separator" ? (
+            <hr
+              key={`sep-${idx}`}
+              className="my-2 border-slate-100"
+              aria-hidden="true"
+            />
+          ) : (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={onNavClick}
+              className={({ isActive }) =>
+                cn(
+                  "flex h-10 items-center gap-2.5 rounded-md px-3 text-[14px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                  isActive
+                    ? "bg-primary/10 font-medium text-primary"
+                    : "text-slate-600 hover:bg-slate-100",
+                )
+              }
+            >
+              {item.label}
+            </NavLink>
+          ),
+        )}
       </nav>
 
       {userInitials && displayName && (
