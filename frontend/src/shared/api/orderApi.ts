@@ -125,9 +125,16 @@ export interface AdminOrderListItemDto {
   paymentMethod: PaymentMethod;
   customerName: string;
   customerPhone: string;
+  // AD-022: list returns the operational-card detail shape so Kuchnia/Pickup/
+  // Delivery render full cards from a single list query (no per-card detail
+  // round-trip). items + items.addons fetched eagerly server-side.
+  customerNotes: string | null;
+  deliveryAddress: OrderTrackingAddressDto | null;
+  items: OrderTrackingItemDto[];
   total: string;
   placedAt: string;
   etaMinutes: number | null;
+  etaSetAt: string | null;
   itemsCount: number;
 }
 

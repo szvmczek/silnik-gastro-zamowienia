@@ -203,6 +203,10 @@ public class AdminOrderQueryService {
     }
 
     private AdminOrderListItemDto toListItem(Order order) {
+        // List now returns the same item/address shape as detail (AD-022) so
+        // operational views (Kuchnia/Pickup/Delivery) render full cards from
+        // a single list query. items + items.addons fetched eagerly via
+        // OrderRepository.findAllFiltered @EntityGraph to avoid N+1.
         return new AdminOrderListItemDto(
                 order.getId(),
                 order.getVersion(),
@@ -212,28 +216,19 @@ public class AdminOrderQueryService {
                 order.getPaymentMethod(),
                 order.getCustomerName(),
                 order.getCustomerPhone(),
+                order.getCustomerNotes(),
+                toAddressDto(order.getFulfillmentType(), order.getDeliveryAddress()),
+                toItemDtos(order),
                 order.getTotal(),
                 order.getCreatedAt(),
                 order.getEtaMinutes(),
+                order.getEtaSetAt(),
                 order.getItems().size()
         );
     }
 
     public AdminOrderDto toDto(Order order) {
-        List<OrderTrackingItemDto> items = order.getItems().stream()
-                .map(item -> new OrderTrackingItemDto(
-                        item.getProductNameSnapshot(),
-                        item.getVariantNameSnapshot(),
-                        item.getQuantity(),
-                        item.getUnitPriceSnapshot(),
-                        item.getLineTotal(),
-                        item.getAddons().stream()
-                                .map(addon -> new OrderTrackingAddonDto(
-                                        addon.getAddonGroupNameSnapshot(),
-                                        addon.getAddonNameSnapshot(),
-                                        addon.getUnitPriceSnapshot()))
-                                .toList()))
-                .toList();
+        List<OrderTrackingItemDto> items = toItemDtos(order);
 
         List<AdminOrderStatusHistoryDto> history = order.getStatusHistory().stream()
                 .map(h -> new AdminOrderStatusHistoryDto(
@@ -263,6 +258,23 @@ public class AdminOrderQueryService {
                 order.getTotal(),
                 history
         );
+    }
+
+    private List<OrderTrackingItemDto> toItemDtos(Order order) {
+        return order.getItems().stream()
+                .map(item -> new OrderTrackingItemDto(
+                        item.getProductNameSnapshot(),
+                        item.getVariantNameSnapshot(),
+                        item.getQuantity(),
+                        item.getUnitPriceSnapshot(),
+                        item.getLineTotal(),
+                        item.getAddons().stream()
+                                .map(addon -> new OrderTrackingAddonDto(
+                                        addon.getAddonGroupNameSnapshot(),
+                                        addon.getAddonNameSnapshot(),
+                                        addon.getUnitPriceSnapshot()))
+                                .toList()))
+                .toList();
     }
 
     private OrderTrackingAddressDto toAddressDto(FulfillmentType fulfillment, Address address) {

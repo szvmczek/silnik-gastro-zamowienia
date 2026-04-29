@@ -256,6 +256,42 @@ na `OrderStatusHistory`, nie na `Order`.
   składników") — na razie wolny tekst. Jeśli okaże się że potrzebne,
   dorobić w osobnej fazie.
 
+### AD-022: Admin order list returns full detail shape
+
+**Decyzja:** `GET /api/admin/orders` zwraca pełen detail shape (`items`
+z addonami, `deliveryAddress` z `notes`, `customerNotes`, `etaSetAt`)
+zamiast slim ListItem-only.
+
+**Powody:**
+- Widoki operacyjne Fazy 4.5 (Kuchnia/Pickup/Delivery) potrzebują tych
+  danych do renderowania kart
+- Spec Fazy 4.5 mówi „frontend filtruje istniejące `/admin/orders`" —
+  żeby to było wykonalne bez nowych endpointów per-widok, lista musi
+  mieć dane
+- Alternatywa (osobne `fetchAdminOrderById` per karta) generowałaby
+  HTTP storm: ~30 queries per widok per SSE invalidation w peak hour
+
+**Konsekwencje akceptowane:**
+- Payload listy ~5-10× większy (showcase scale: <100 KB przy 30 aktywnych
+  zamówieniach, akceptowalne)
+- Lista i detail mają zbieżny shape — przyszłe rozszerzenia detail
+  trzeba propagować na list mapping (`AdminOrderQueryService.toItemDtos`
+  / `toAddressDto` shared między obu mappings)
+- N+1 risk wyeliminowany przez `@EntityGraph(attributePaths = {"items",
+  "items.addons"})` na `OrderRepository.findAllFiltered`
+
+**Trigger do reewaluacji:**
+- Lokal z 200+ aktywnych zamówień w peak (skala wyłamująca się
+  showcase'owi) — wtedy slim list + osobny endpoint
+  `/admin/orders/operational` z paginacją i kolumnowo dobranym shape'em
+- Memory profiling pokazuje że Hibernate trzyma za dużo entity graphs
+  → consider DTO projection z manual JOIN
+
+**Out of scope:**
+- GraphQL / partial response — nie pasuje do reszty stacku
+- Per-widok dedicated endpoint (`/admin/kitchen/orders` itp.) —
+  explicite zakazane w spec Fazy 4.5
+
 ## Domain conventions
 
 ### Address normalization (od Fazy 7.0)

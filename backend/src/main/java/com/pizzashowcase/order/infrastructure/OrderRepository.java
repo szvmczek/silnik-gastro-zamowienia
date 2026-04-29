@@ -37,7 +37,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                         "(:status IS NULL OR o.status = :status) AND " +
                         "(:fulfillmentType IS NULL OR o.fulfillmentType = :fulfillmentType) AND " +
                         "o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive")
-    @EntityGraph(attributePaths = "items")
+    // items + items.addons fetched together to avoid N+1 when the list now
+    // returns the operational-card detail shape (AD-022).
+    @EntityGraph(attributePaths = {"items", "items.addons"})
     Page<Order> findAllFiltered(@Param("status") OrderStatus status,
                                 @Param("fulfillmentType") FulfillmentType fulfillmentType,
                                 @Param("fromInclusive") Instant fromInclusive,
