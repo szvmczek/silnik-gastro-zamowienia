@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/shared/auth/authStore";
-import { getSoundEnabled, playBeep } from "./soundPrefs";
+import { emitOrderFeed, type OrderFulfillmentType } from "./orderFeedEvents";
 
 interface OrderCreatedPayload {
   orderId: number;
@@ -15,6 +15,7 @@ interface OrderStatusChangedPayload {
   orderId: number;
   orderNumber: string;
   newStatus: string;
+  fulfillmentType?: OrderFulfillmentType;
 }
 
 const STREAM_PATH = "/api/admin/orders/stream";
@@ -60,9 +61,16 @@ export function useAdminOrderFeed(): void {
         const data = parsePayload<OrderCreatedPayload>((ev as MessageEvent).data);
         if (!data) return;
         queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+        // summary endpoint kept for backward compat (Faza 4 dashboard);
+        // stats is the new Faza 4.5 manager dashboard query key.
         queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "summary"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
         toast.success(`Nowe zamówienie: ${data.orderNumber}`);
-        if (getSoundEnabled()) playBeep();
+        emitOrderFeed({
+          kind: "created",
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+        });
       });
 
       es.addEventListener("ORDER_STATUS_CHANGED", (ev) => {
@@ -71,6 +79,15 @@ export function useAdminOrderFeed(): void {
         queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
         queryClient.invalidateQueries({
           queryKey: ["admin", "orders", "detail", data.orderId],
+        });
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "summary"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
+        emitOrderFeed({
+          kind: "status-changed",
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+          newStatus: data.newStatus,
+          fulfillmentType: data.fulfillmentType ?? null,
         });
       });
 

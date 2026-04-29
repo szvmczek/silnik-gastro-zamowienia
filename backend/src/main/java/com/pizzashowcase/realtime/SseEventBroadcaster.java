@@ -37,6 +37,7 @@ public class SseEventBroadcaster {
         payload.put("orderId", event.orderId());
         payload.put("orderNumber", event.orderNumber());
         payload.put("newStatus", event.newStatus());
+        payload.put("fulfillmentType", event.fulfillmentType());
         registry.broadcast(new SseEventEnvelope("ORDER_STATUS_CHANGED", payload));
     }
 }

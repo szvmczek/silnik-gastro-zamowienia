@@ -53,7 +53,7 @@ public class OrderStatusService {
         // Without this, the client sees stale version=N and the next PATCH 409s.
         Order saved = orderRepository.saveAndFlush(order);
         eventPublisher.publishEvent(new OrderStatusChangedEvent(
-                saved.getId(), saved.getOrderNumber(), saved.getStatus()));
+                saved.getId(), saved.getOrderNumber(), saved.getStatus(), saved.getFulfillmentType()));
         return adminOrderQueryService.toDto(saved);
     }
 
