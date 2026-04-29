@@ -53,6 +53,9 @@ const OrderDetailPage = lazy(() =>
 const KitchenPage = lazy(() =>
   import("@/features/admin/operations/kitchen/KitchenPage").then((m) => ({ default: m.KitchenPage })),
 );
+const PickupPage = lazy(() =>
+  import("@/features/admin/operations/pickup/PickupPage").then((m) => ({ default: m.PickupPage })),
+);
 const ProductEditPage = lazy(() =>
   import("@/features/admin/menu/products/ProductEditPage").then((m) => ({
     default: m.ProductEditPage,
@@ -89,6 +92,7 @@ export function AppRouter() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="kitchen" element={<KitchenPage />} />
+          <Route path="pickup" element={<PickupPage />} />
           <Route path="orders" element={<OrdersListPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="menu" element={<MenuOverviewPage />} />
