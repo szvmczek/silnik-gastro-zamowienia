@@ -52,6 +52,11 @@ export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
                 </>
               )}
             </div>
+            {entry.reason && (
+              <p className="mt-1 whitespace-pre-line text-xs italic text-slate-600">
+                {entry.reason}
+              </p>
+            )}
           </li>
         );
       })}

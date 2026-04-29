@@ -102,8 +102,15 @@ export function OrderDetailPage() {
   };
 
   const statusMutation = useMutation({
-    mutationFn: ({ next, version }: { next: OrderStatus; version: number }) =>
-      updateOrderStatus(id, { status: next, version }),
+    mutationFn: ({
+      next,
+      version,
+      reason,
+    }: {
+      next: OrderStatus;
+      version: number;
+      reason?: string;
+    }) => updateOrderStatus(id, { status: next, version, reason }),
     onSuccess: (data) => {
       queryClient.setQueryData(["admin", "orders", "detail", id], data);
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
@@ -347,11 +354,12 @@ export function OrderDetailPage() {
         onOpenChange={setCancelOpen}
         orderNumber={order.orderNumber}
         isSubmitting={mutating}
-        onConfirm={() => {
+        onConfirm={(reason) => {
           setCancelOpen(false);
           statusMutation.mutate({
             next: "CANCELED",
             version: order.version,
+            reason,
           });
         }}
       />

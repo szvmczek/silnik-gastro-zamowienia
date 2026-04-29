@@ -142,6 +142,7 @@ export interface AdminOrderStatusHistoryDto {
   status: OrderStatus;
   changedAt: string;
   changedBy: string | null;
+  reason: string | null;
 }
 
 export interface AdminOrderDto {
@@ -229,6 +230,9 @@ export interface AdminOrdersQuery {
 export interface UpdateOrderStatusPayload {
   version: number;
   status: OrderStatus;
+  // Optional in DTO; required by frontend validation only when status=CANCELED
+  // (AD-021). Backend stays liberal — accepts null/missing for any status.
+  reason?: string | null;
 }
 
 export interface UpdateOrderEtaPayload {
