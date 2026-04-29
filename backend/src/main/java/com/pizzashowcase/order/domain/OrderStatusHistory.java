@@ -36,13 +36,21 @@ public class OrderStatusHistory {
     @Column(name = "changed_by", length = 160)
     private String changedBy;
 
+    @Column(name = "reason", length = 500)
+    private String reason;
+
     protected OrderStatusHistory() {
     }
 
     public OrderStatusHistory(OrderStatus status, Instant changedAt, String changedBy) {
+        this(status, changedAt, changedBy, null);
+    }
+
+    public OrderStatusHistory(OrderStatus status, Instant changedAt, String changedBy, String reason) {
         this.status = status;
         this.changedAt = changedAt;
         this.changedBy = changedBy;
+        this.reason = reason;
     }
 
     public Long getId() {
@@ -67,5 +75,9 @@ public class OrderStatusHistory {
 
     public String getChangedBy() {
         return changedBy;
+    }
+
+    public String getReason() {
+        return reason;
     }
 }
