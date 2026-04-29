@@ -23,10 +23,10 @@ const TYPE_LABEL: Record<DeliveryZoneDto["type"], string> = {
   UNAVAILABLE: "Niedostępna",
 };
 
-const TYPE_COLOR: Record<DeliveryZoneDto["type"], "default" | "secondary" | "destructive"> = {
+const TYPE_COLOR: Record<DeliveryZoneDto["type"], "default" | "muted" | "danger"> = {
   FREE: "default",
-  PAID: "secondary",
-  UNAVAILABLE: "destructive",
+  PAID: "muted",
+  UNAVAILABLE: "danger",
 };
 
 export function DeliveryZonesPage() {
@@ -160,7 +160,7 @@ export function DeliveryZonesPage() {
                   <div className="flex items-center gap-2">
                     <h2 className="truncate text-[16px] font-semibold text-slate-900">{z.name}</h2>
                     <Badge variant={TYPE_COLOR[z.type]}>{TYPE_LABEL[z.type]}</Badge>
-                    {!z.active && <Badge variant="outline">nieaktywna</Badge>}
+                    {!z.active && <Badge variant="muted">nieaktywna</Badge>}
                   </div>
                   {z.type === "PAID" && (
                     <p className="mt-1 text-[13px] text-slate-500">
