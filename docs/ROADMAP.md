@@ -318,3 +318,23 @@ gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
   - (a) frontend nie wywołuje już `/summary` (`grep -r "dashboard/summary" frontend/`
     pusty),
   - (b) najwcześniej w fazie sprzątającej post-MVP.
+
+- **MEDIUM-5 (z review 4.5): dwa odrębne `AudioContext`**
+  `lib/sounds.ts` (kitchen/pickup/delivery) i `soundPrefs.ts`
+  (SoundToggle priming beep) mają osobne instancje `AudioContext`.
+  Mitigacja przez `audioCtx.resume()` po user-gesture działa, ale
+  niedostępna sumarycznie po długich okresach nieaktywności (browser
+  może suspendować ponownie). Trigger fix: konsolidacja do
+  `shared/audio/context.ts` przy okazji następnej fazy dotykającej
+  audio (notifications, per-event sound customization). Koszt ~30 LoC
+  vs poprawa niezawodności w edge case.
+
+- **LOW-7 (z review 4.5): heavy payload `OrdersListPage`**
+  `AdminOrderQueryService.findAllFiltered` ma `@EntityGraph(items,
+  items.addons)` (AD-022) wymagany przez widoki operacyjne, ale ten
+  sam `findAllFiltered` obsługuje też `OrdersListPage` (PAGE_SIZE=20)
+  który items nie renderuje. Zmarnowany payload + Hibernate fetch.
+  Trigger fix: split na `findAllFilteredSlim` (bez entity graph) dla
+  OrdersListPage i `findAllFilteredOperational` (z entity graph) dla
+  Kuchni/Pickup/Dostawy. Koszt ~30 LoC w repo + service. Akceptowalna
+  regresja w MVP (PAGE_SIZE=20 list, niski wpływ).
