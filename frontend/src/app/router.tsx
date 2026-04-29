@@ -50,6 +50,9 @@ const OrdersListPage = lazy(() =>
 const OrderDetailPage = lazy(() =>
   import("@/features/admin/orders/OrderDetailPage").then((m) => ({ default: m.OrderDetailPage })),
 );
+const KitchenPage = lazy(() =>
+  import("@/features/admin/operations/kitchen/KitchenPage").then((m) => ({ default: m.KitchenPage })),
+);
 const ProductEditPage = lazy(() =>
   import("@/features/admin/menu/products/ProductEditPage").then((m) => ({
     default: m.ProductEditPage,
@@ -85,6 +88,7 @@ export function AppRouter() {
           }
         >
           <Route index element={<DashboardPage />} />
+          <Route path="kitchen" element={<KitchenPage />} />
           <Route path="orders" element={<OrdersListPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="menu" element={<MenuOverviewPage />} />
