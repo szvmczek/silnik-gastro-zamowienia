@@ -14,7 +14,7 @@ itp. — to YAGNI.
 
 ## Faza 4.5: Operational UI Split
 
-**STATUS:** in progress
+**STATUS:** DONE — 30.04.2026
 
 Trzy nowe widoki operacyjne (Kuchnia, Wydanie, Dostawa) plus przerobiony
 pulpit z wykresami (Recharts) i podstawowymi statystykami. Backend
@@ -28,6 +28,8 @@ Source of truth dyskusji projektowej: `docs/FAZA_4_5_HANDOFF.md`.
 AD-021 (Cancellation reason on `OrderStatusHistory`), AD-022 (Admin
 order list returns full detail shape — dodane w trakcie M3.5 jako
 prerequisite dla widoków operacyjnych bez per-card detail HTTP storm).
+Plus AD-023 (NEW → IN_PREPARATION direct transition) dodane post-review
+jako fix CRITICAL-1.
 
 **Co wchodzi w zakres (skrót):**
 - Trzy nowe routy: `/admin/kitchen`, `/admin/pickup`, `/admin/delivery`

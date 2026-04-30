@@ -200,11 +200,11 @@ Admin obsługuje zamówienia. Klient widzi zmiany statusu na trackingu.
 - Notyfikacje email/SMS
 
 ## Faza 4.5: Operational UI Split
-STATUS: in progress
+STATUS: DONE — 30.04.2026
 
-> Sesja Kroku 5 (post-smoke-test) zmieni STATUS na DONE i zaktualizuje
-> `docs/CURRENT_STATE.md`. Pełny handoff (kontekst dyskusji, alternatywy
-> odrzucone, sekwencja kroków): `docs/FAZA_4_5_HANDOFF.md`.
+> Krok 5 (2026-04-30): STATUS zmieniony na DONE,
+> `docs/CURRENT_STATE.md` zaktualizowany. Pełny handoff (kontekst
+> dyskusji, alternatywy odrzucone): `docs/FAZA_4_5_HANDOFF.md`.
 
 ### Cel
 Przebudować nawigację panelu admina tak, żeby każda rola (Kuchnia,

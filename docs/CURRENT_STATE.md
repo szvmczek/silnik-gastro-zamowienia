@@ -3,11 +3,120 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak — Faza 7.0 (Strefy dostawy MVP) ZAMKNIĘTA na branchu
-`design/g10-polish` (2026-04-28). Faza 4+5 wcześniej zamknięte,
-redesign post-MVP DONE. Następny krok: 7.1 (kolejne usprawnienia stref
-— min order, godziny per strefa, bulk CSV, drag-and-drop sort) lub
-deployment staging.
+Brak — Faza 4.5 (Operational UI Split) ZAMKNIĘTA na branchu
+`design/g10-polish` (2026-04-30). Faza 7.0 (Strefy dostawy MVP)
+wcześniej zamknięta (2026-04-28). Faza 4+5 zamknięte wcześniej,
+redesign post-MVP DONE. Następne kroki: Faza 4.6 (Kitchen item
+checklist, PLANNED — patrz ROADMAP.md) lub Railway deploy.
+
+## Faza 4.5 — Operational UI Split (DONE, 2026-04-30)
+
+Branch: `design/g10-polish` (kontynuacja po Fazie 7.0). Trzy widoki
+operacyjne (Kuchnia/Wydanie/Dostawa) + przerobiony Pulpit z wykresami.
+Backend prawie nieruszany — frontend filtruje istniejące
+`/api/admin/orders` po stronie klienta (status × fulfillmentType).
+
+**Migracja:** `V11__add_reason_to_order_status_history.sql` —
+`ADD COLUMN reason TEXT NULL`. Addytywna, backward compatible.
+
+**Backend:**
+- `OrderStatusHistory.reason` (max 500 znaków, nullable)
+- DTO `UpdateOrderStatusRequest.reason` opcjonalne; service trimuje,
+  empty→null
+- **NOWY** `GET /api/admin/dashboard/stats` (`AdminDashboardController`
+  + `AdminDashboardStatsDto`): today (orders/revenue/AOV/delivery+
+  pickup+canceled counts), activeCounts per status, last7Days,
+  hourlyToday (24 sloty Europe/Warsaw), topProducts30Days. Java-side
+  aggregation, `@EntityGraph` anti-N+1
+- `GET /api/admin/dashboard/summary` zostaje jako **deprecated alias**
+  (do usunięcia w przyszłej fazie czyszczącej; tech debt zarejestrowany
+  w ROADMAP)
+- `AdminOrderListItemDto` rozszerzony o items+addons+address+notes+
+  etaSetAt (AD-022) — list shape = detail shape, anti-N+1 przez
+  `@EntityGraph` na `findAllFiltered`
+- State machine: addytywna tranzycja `NEW → IN_PREPARATION` (AD-023,
+  post-review CRITICAL-1) — pozostała semantyka bez zmian
+
+**Frontend:**
+- Trzy nowe routy: `/admin/kitchen`, `/admin/pickup`, `/admin/delivery`
+  (`KitchenPage` + `KitchenOrderCard`, `PickupPage` + `PickupOrderCard`,
+  `DeliveryPage` + `DeliveryOrderCard`)
+- Filtry per widok: Kuchnia (NEW + CONFIRMED + IN_PREPARATION),
+  Pickup (READY × PICKUP), Delivery (READY × DELIVERY +
+  OUT_FOR_DELIVERY). Sortowanie placedAt ASC w obrębie sekcji
+- Akcje: Przyjmij (NEW → IN_PREPARATION, single-tap), Gotowe,
+  Wyjechało, Dostarczone (z confirm), Wydano (z confirm). Anulowanie
+  tylko z `/admin/orders` z polem `reason` (max 500, wymagane
+  front-side dla CANCELED)
+- `DashboardPage` przebudowany: 4 kafelki dziś + Recharts BarChart
+  godzinowy (highlight aktualnej godziny) + LineChart 7 dni + lista
+  top 5 produktów + 5 status tiles z linkami do
+  `/admin/{kitchen,pickup,delivery}`
+- Shared utilities: `operations/shared/statusColors.ts` (mapping
+  status → amber/blue/emerald/indigo Tailwind), `SectionHeader.tsx`
+  (subtelne tło + badge z licznikiem), `timerColor.ts` (slate <5min →
+  amber 5-10 → red 10+), `useElapsedTick.ts` (re-render co 30s,
+  cleanup setInterval)
+- Karty: `border-l-4` w kolorze statusu; karta wisząca ≥10 min ma
+  `motion-safe:animate-urgent-pulse` (custom keyframe `urgentPulse`
+  2.5s red box-shadow w `tailwind.config.ts`); reduced-motion fallback
+  przez `motion-reduce:` (border-red-500 + ring)
+- Grid responsywny: `grid-cols-1 lg:grid-cols-2` we wszystkich 3
+  widokach (eliminacja wcześniejszego `xl:grid-cols-3` i
+  `sm:grid-cols-2`)
+- `lib/sounds.ts` (Web Audio API synteza, bez plików MP3):
+  `playKitchenSound` (ding-ding 880Hz), `playPickupSound` (bong 523Hz
+  triangle), `playDeliverySound` (gong 330Hz triangle). Każdy
+  gate'owany przez `getSoundEnabled()`
+- `realtime/useOperationalSound.ts` — pub/sub przez `orderFeedEvents`
+  subskrybowany per widok, woła odpowiedni `play*Sound()` zgodnie
+  z tabelą eventów. `manager` no-op
+- `useAdminOrderFeed` zamontowany 1× w `AdminLayout` — operacyjne
+  strony nie otwierają nowych EventSource'ów
+- `SoundToggle` (Faza 4) zachowany — globalnie wycisza wszystkie
+  3 dźwięki
+- `CancelOrderDialog` z polem reason + checkbox potwierdzenia
+  nieodwracalności; `OrderStatusHistory` w detail view wyświetla
+  reason (italic, smaller font) jeśli niepuste
+- Nawigacja sidebar (`AdminLayout.tsx`): trzy sekcje z separatorami —
+  operacyjne (Pulpit, Kuchnia, Wydanie, Dostawa), archiwum (Wszystkie
+  zamówienia), konfiguracja (Menu, Ustawienia, Godziny, Treści,
+  Strefy)
+
+**Decyzje architektoniczne:** AD-020 (Single ADMIN role for
+operational views), AD-021 (cancellation reason on
+`OrderStatusHistory`), AD-022 (admin order list returns full detail
+shape), AD-023 (NEW → IN_PREPARATION direct transition) — wszystkie
+w `ARCHITECTURE.md`.
+
+**Smoke test v2:** zatwierdzony przez operatora 30.04.2026 po fixach
+post-review (3 commity: smoke test bugfixy, system kolorystyczny per
+status, responsywność + timer escalation).
+
+**Definition of done — wszystkie zielone:**
+- migracja V11 + encja `OrderStatusHistory.reason` ✓
+- DTO i service zapisują reason (trim + empty→null) ✓
+- `GET /api/admin/dashboard/stats` z pełnym payloadem ✓
+- 3 widoki operacyjne z filtrami, sortowaniem, akcjami, confirm dla
+  terminalnych ✓
+- telefon klikalny `tel:` w Pickup/Delivery ✓
+- Nawiguj w Dostawie → Google Maps z pełnym adresem
+  (street + buildingNumber/apartmentNumber + postalCode + city) ✓
+- Pulpit przerobiony (kafelki + 2 wykresy + top produkty + status
+  tiles) ✓
+- Recharts responsywny ✓
+- sidebar trzy sekcje z separatorami ✓
+- reason wymagane przy CANCELED, wyświetlane w historii ✓
+- SSE działa we wszystkich widokach (single mount, pub/sub) ✓
+- 3 dźwięki per widok + globalny SoundToggle ✓
+- empty states ✓
+- 1 kolumna mobile/tablet, 2 desktop+ ✓
+- timer escalation (slate/amber/red) + pulse z reduced-motion
+  guard ✓
+
+**Następna faza:** Faza 4.6 (Kitchen item checklist, PLANNED) —
+zakres w `ROADMAP.md`. Trigger: decyzja właściciela ("teraz vs po
+Fazie 5 deploy").
 
 ## Faza 7.0 — Strefy dostawy (DONE, 2026-04-28)
 
@@ -1690,6 +1799,9 @@ przy starcie deployment.
       - `GET /api/admin/orders/{id}` → 404 gdy brak
       - `PATCH /api/admin/orders/{id}/status`, `PATCH /api/admin/orders/{id}/eta`
       - `GET /api/admin/dashboard/summary` (osobny `AdminDashboardController`)
+        *(deprecated od Fazy 4.5 — zastąpiony przez
+        `/api/admin/dashboard/stats`, alias zachowany; usunięcie
+        zaplanowane w fazie czyszczenia)*
     - Konflikt wersji → `OptimisticLockingFailureException` → 409 przez
       istniejący `GlobalExceptionHandler` (AD-009). Bez nowych hotfixów
       exception handlera
