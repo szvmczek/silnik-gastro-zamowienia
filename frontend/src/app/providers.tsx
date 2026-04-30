@@ -21,7 +21,7 @@ export function AppProviders({ children }: PropsWithChildren) {
         <ThemeBootstrap />
         <SeoHead />
         {children}
-        <Toaster position="top-right" />
+        <Toaster position="bottom-right" />
       </BrowserRouter>
     </QueryClientProvider>
   );
