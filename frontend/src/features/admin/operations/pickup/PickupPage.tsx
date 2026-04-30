@@ -24,6 +24,8 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/Dialog";
 import { PickupOrderCard } from "./PickupOrderCard";
+import { SectionHeader } from "../shared/SectionHeader";
+import { sectionTheme } from "../shared/statusColors";
 
 const PAGE_SIZE = 100;
 
@@ -113,9 +115,11 @@ export function PickupPage() {
         )
       ) : (
         <section>
-          <div className="kicker mb-3">
-            Do wydania <span className="ml-2 text-slate-400">— {rows.length}</span>
-          </div>
+          <SectionHeader
+            title="Do wydania"
+            count={rows.length}
+            theme={sectionTheme("pickup-ready")}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             {rows.map((row) => (
               <PickupOrderCard

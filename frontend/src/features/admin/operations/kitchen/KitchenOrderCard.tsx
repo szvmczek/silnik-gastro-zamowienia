@@ -14,6 +14,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { statusLabel } from "@/shared/components/OrderStatusBadge";
+import { statusTheme } from "../shared/statusColors";
 
 interface KitchenOrderCardProps {
   order: AdminOrderListItemDto;
@@ -57,6 +58,7 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
   const queryClient = useQueryClient();
   const action = primaryAction(order.status);
   const badge = fulfillmentBadge(order.fulfillmentType);
+  const theme = statusTheme(order.status);
 
   const mutation = useMutation({
     mutationFn: (next: OrderStatus) =>
@@ -78,7 +80,9 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
   });
 
   return (
-    <article className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <article
+      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border}`}
+    >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">

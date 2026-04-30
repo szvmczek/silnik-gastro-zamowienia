@@ -24,6 +24,8 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/Dialog";
 import { DeliveryOrderCard } from "./DeliveryOrderCard";
+import { SectionHeader } from "../shared/SectionHeader";
+import { sectionTheme, type SectionKind } from "../shared/statusColors";
 
 const PAGE_SIZE = 100;
 
@@ -129,6 +131,7 @@ export function DeliveryPage() {
 
       <Section
         title="Do zabrania"
+        sectionKind="delivery-ready"
         count={readyRows.length}
         rows={readyRows}
         isLoading={isLoading}
@@ -141,6 +144,7 @@ export function DeliveryPage() {
 
       <Section
         title="W dostawie"
+        sectionKind="delivery-out"
         count={outRows.length}
         rows={outRows}
         isLoading={isLoading}
@@ -187,6 +191,7 @@ export function DeliveryPage() {
 
 interface SectionProps {
   title: string;
+  sectionKind: SectionKind;
   count: number;
   rows: AdminOrderListItemDto[];
   isLoading: boolean;
@@ -197,6 +202,7 @@ interface SectionProps {
 
 function Section({
   title,
+  sectionKind,
   count,
   rows,
   isLoading,
@@ -204,10 +210,11 @@ function Section({
   onPrimary,
   primaryPending,
 }: SectionProps) {
+  const theme = sectionTheme(sectionKind);
   if (isLoading && rows.length === 0) {
     return (
       <section>
-        <SectionHeader title={title} count={null} />
+        <SectionHeader title={title} count={null} theme={theme} />
         <div className="grid gap-4 lg:grid-cols-2">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
@@ -224,7 +231,7 @@ function Section({
 
   return (
     <section>
-      <SectionHeader title={title} count={count} />
+      <SectionHeader title={title} count={count} theme={theme} />
       <div className="grid gap-4 lg:grid-cols-2">
         {rows.map((row) => (
           <DeliveryOrderCard
@@ -237,15 +244,6 @@ function Section({
         ))}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ title, count }: { title: string; count: number | null }) {
-  return (
-    <div className="kicker mb-3">
-      {title}
-      {count !== null && <span className="ml-2 text-slate-400">— {count}</span>}
-    </div>
   );
 }
 

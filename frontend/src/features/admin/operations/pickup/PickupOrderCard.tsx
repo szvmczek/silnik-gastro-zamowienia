@@ -7,6 +7,7 @@ import type {
   OrderTrackingItemDto,
   PaymentMethod,
 } from "@/shared/api/orderApi";
+import { statusTheme } from "../shared/statusColors";
 
 interface PickupOrderCardProps {
   order: AdminOrderListItemDto;
@@ -33,9 +34,12 @@ function relativeTime(iso: string): string {
 
 export function PickupOrderCard({ order, onRequestRelease }: PickupOrderCardProps) {
   const cashOnPickup = order.paymentMethod === "CASH_ON_PICKUP";
+  const theme = statusTheme(order.status);
 
   return (
-    <article className="flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <article
+      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border}`}
+    >
       <header className="flex items-baseline justify-between gap-3">
         <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">
           {order.orderNumber}

@@ -14,6 +14,8 @@ import { useOperationalSound } from "@/features/admin/realtime/useOperationalSou
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
 import { KitchenOrderCard } from "./KitchenOrderCard";
+import { SectionHeader } from "../shared/SectionHeader";
+import { sectionTheme, type SectionKind } from "../shared/statusColors";
 
 const PAGE_SIZE = 100;
 
@@ -124,6 +126,7 @@ export function KitchenPage() {
 
       <Section
         title="Nowe"
+        sectionKind="kitchen-new"
         count={newRows.length}
         rows={newRows}
         isLoading={isLoading}
@@ -132,6 +135,7 @@ export function KitchenPage() {
 
       <Section
         title="W przygotowaniu"
+        sectionKind="kitchen-prep"
         count={inPrepRows.length}
         rows={inPrepRows}
         isLoading={isLoading}
@@ -159,17 +163,26 @@ export function KitchenPage() {
 
 interface SectionProps {
   title: string;
+  sectionKind: SectionKind;
   count: number;
   rows: AdminOrderListItemDto[];
   isLoading: boolean;
   onOpenEta: (order: AdminOrderListItemDto) => void;
 }
 
-function Section({ title, count, rows, isLoading, onOpenEta }: SectionProps) {
+function Section({
+  title,
+  sectionKind,
+  count,
+  rows,
+  isLoading,
+  onOpenEta,
+}: SectionProps) {
+  const theme = sectionTheme(sectionKind);
   if (isLoading && rows.length === 0) {
     return (
       <section>
-        <SectionHeader title={title} count={null} />
+        <SectionHeader title={title} count={null} theme={theme} />
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
@@ -186,7 +199,7 @@ function Section({ title, count, rows, isLoading, onOpenEta }: SectionProps) {
 
   return (
     <section>
-      <SectionHeader title={title} count={count} />
+      <SectionHeader title={title} count={count} theme={theme} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {rows.map((row) => (
           <KitchenOrderCard
@@ -197,15 +210,6 @@ function Section({ title, count, rows, isLoading, onOpenEta }: SectionProps) {
         ))}
       </div>
     </section>
-  );
-}
-
-function SectionHeader({ title, count }: { title: string; count: number | null }) {
-  return (
-    <div className="kicker mb-3">
-      {title}
-      {count !== null && <span className="ml-2 text-slate-400">— {count}</span>}
-    </div>
   );
 }
 
