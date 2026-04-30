@@ -5,6 +5,7 @@ interface Tab {
   id: number;
   slug: string;
   name: string;
+  count: number;
 }
 
 interface Props {
@@ -27,7 +28,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         if (visible[0]) setActiveId(visible[0].target.id);
       },
-      { rootMargin: "-120px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
+      { rootMargin: "-140px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
 
     sectionIds.forEach((id) => {
@@ -43,7 +44,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
     isScrollingRef.current = true;
     const el = document.getElementById(id);
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 96;
+      const y = el.getBoundingClientRect().top + window.scrollY - 120;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
     window.setTimeout(() => {
@@ -52,8 +53,12 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
   };
 
   return (
-    <div className="sticky top-14 z-10 -mx-4 border-b border-slate-200 bg-white/85 px-4 backdrop-blur sm:top-16 sm:mx-0 sm:rounded-md sm:border">
-      <nav className="flex items-center gap-2 overflow-x-auto py-3 scrollbar-none">
+    <div className="sticky top-14 z-10 -mx-6 border-y border-slate-200 bg-[#fbfaf7]/95 backdrop-blur sm:top-16 sm:mx-0">
+      {/* Desktop — editorial "Skocz do" index */}
+      <nav className="hidden h-14 items-center gap-1 px-6 sm:flex md:px-12">
+        <span className="mr-4 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+          Skocz do
+        </span>
         {tabs.map((tab, i) => {
           const sectionId = sectionIds[i];
           const isActive = sectionId === activeId;
@@ -63,13 +68,55 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[13px] font-medium transition-colors",
+                "group inline-flex h-9 items-baseline gap-2 rounded-md px-3 text-[13px] transition-colors",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "font-semibold text-slate-900"
+                  : "text-slate-500 hover:text-slate-900"
               )}
             >
-              {tab.name}
+              <span
+                className={cn(
+                  "font-mono text-[10px] tabular-nums",
+                  isActive ? "text-primary" : "text-slate-400 group-hover:text-primary"
+                )}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span>{tab.name}</span>
+              <span className="font-mono text-[10px] tabular-nums text-slate-400">
+                / {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Mobile — pills row, scrolls horizontally */}
+      <nav className="flex h-12 items-center gap-1 overflow-x-auto px-3 scrollbar-none sm:hidden">
+        {tabs.map((tab, i) => {
+          const sectionId = sectionIds[i];
+          const isActive = sectionId === activeId;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleClick(sectionId)}
+              className={cn(
+                "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[12px] leading-none transition-colors",
+                isActive
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600"
+              )}
+            >
+              <span
+                className={cn(
+                  "font-mono text-[9px] leading-none tabular-nums",
+                  isActive ? "text-white/60" : "text-slate-400"
+                )}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="leading-none">{tab.name}</span>
             </button>
           );
         })}
