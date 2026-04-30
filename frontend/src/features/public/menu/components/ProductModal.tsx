@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, X } from "lucide-react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -62,7 +63,7 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
     }
   }, [product, open, defaults]);
 
-  const { unit, total, variant } = useMenuPrice({ product, variantId, selectedAddons, quantity });
+  const { total, variant } = useMenuPrice({ product, variantId, selectedAddons, quantity });
   const addItem = useCartStore((s) => s.addItem);
 
   const validationIssue = useMemo(() => {
@@ -136,28 +137,42 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showClose={false}
         className={cn(
-          "flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0",
+          "flex max-h-[90vh] flex-col gap-0 overflow-hidden border-0 p-0 shadow-2xl",
           "sm:max-w-[760px] sm:rounded-2xl",
           // mobile: bottom sheet
           "max-sm:left-0 max-sm:top-auto max-sm:bottom-0 max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0",
-          "max-sm:rounded-b-none max-sm:rounded-t-xl max-sm:border-l-0 max-sm:border-r-0 max-sm:border-b-0",
+          "max-sm:rounded-b-none max-sm:rounded-t-2xl",
           "max-sm:data-[state=open]:slide-in-from-bottom max-sm:data-[state=closed]:slide-out-to-bottom",
           "max-sm:data-[state=open]:zoom-in-100 max-sm:data-[state=closed]:zoom-out-100"
         )}
       >
-        {product.imageUrl ? (
-          <div className="aspect-[16/9] w-full shrink-0 overflow-hidden bg-slate-100">
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
-          </div>
-        ) : null}
+        {/* Mobile drag handle */}
+        <div className="flex shrink-0 justify-center pt-2.5 sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
+        </div>
+
+        <div className="relative shrink-0">
+          {product.imageUrl ? (
+            <div className="aspect-[16/9] w-full overflow-hidden bg-[#f4ede3] sm:aspect-[21/9]">
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          ) : null}
+          <DialogClose
+            aria-label="Zamknij"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <X className="h-[18px] w-[18px]" />
+          </DialogClose>
+        </div>
 
         <div className="flex-1 overflow-y-auto px-6 pb-4 pt-6 sm:px-7">
           <DialogHeader className="gap-2">
@@ -188,13 +203,6 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
                 currency={currency}
               />
             ))}
-          </div>
-
-          <div className="mt-6 flex items-center justify-between text-[13px] text-slate-500">
-            <span>Cena jednostkowa</span>
-            <span className="font-mono text-[14px] font-semibold text-slate-900">
-              {formatPrice(unit, currency)}
-            </span>
           </div>
         </div>
 
