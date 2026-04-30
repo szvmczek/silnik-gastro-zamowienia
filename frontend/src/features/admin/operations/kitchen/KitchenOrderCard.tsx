@@ -15,6 +15,8 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { statusLabel } from "@/shared/components/OrderStatusBadge";
 import { statusTheme } from "../shared/statusColors";
+import { timerEscalation } from "../shared/timerColor";
+import { useElapsedTick } from "../shared/useElapsedTick";
 
 interface KitchenOrderCardProps {
   order: AdminOrderListItemDto;
@@ -59,6 +61,8 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
   const action = primaryAction(order.status);
   const badge = fulfillmentBadge(order.fulfillmentType);
   const theme = statusTheme(order.status);
+  const now = useElapsedTick();
+  const timer = timerEscalation(order.placedAt, now);
 
   const mutation = useMutation({
     mutationFn: (next: OrderStatus) =>
@@ -81,14 +85,18 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
 
   return (
     <article
-      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border}`}
+      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border} ${
+        timer.pulse
+          ? "motion-safe:animate-urgent-pulse motion-reduce:border-red-500 motion-reduce:ring-1 motion-reduce:ring-red-200"
+          : ""
+      }`}
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">
             {order.orderNumber}
           </div>
-          <div className="text-xs text-slate-500">{relativeTime(order.placedAt)}</div>
+          <div className={`text-xs ${timer.color}`}>{relativeTime(order.placedAt)}</div>
         </div>
         <span
           className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}

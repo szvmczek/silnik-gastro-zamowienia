@@ -183,7 +183,7 @@ function Section({
     return (
       <section>
         <SectionHeader title={title} count={null} theme={theme} />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
@@ -200,7 +200,7 @@ function Section({
   return (
     <section>
       <SectionHeader title={title} count={count} theme={theme} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         {rows.map((row) => (
           <KitchenOrderCard
             key={row.id}

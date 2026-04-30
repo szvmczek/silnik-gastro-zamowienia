@@ -48,6 +48,34 @@ trigger'y reewaluacji w AD-020), drukarka bonowa, audit log per-user.
 **Estymacja:** ~5-7 dni (backend migracja + endpoint + frontend 3 widoki
 + dashboard rebuild + dźwięki + docs).
 
+## Faza 4.6: Kitchen item checklist (PLANNED)
+
+**Status:** PLANNED
+
+**Cel:** dodać możliwość odznaczania pozycji w karcie Kuchni
+w trakcie ich przygotowywania. Stan persistowany w bazie,
+przeżywa refresh, widoczny dla wszystkich kucharzy. NIE pokazywany
+klientowi w /track/:token.
+
+**Zakres:**
+- Backend: pole `isPrepared: Boolean` (default false) na OrderItem
+- Migracja Flyway: V12 (lub kolejny dostępny)
+- Endpoint: PATCH /api/admin/orders/{id}/items/{itemId}/prepared
+- Frontend: checkbox per pozycja w KitchenOrderCard
+- Optimistic update + rollback przy 4xx/5xx
+- Reset isPrepared na false przy zmianie statusu z IN_PREPARATION
+  do innego (sanity)
+
+**Out of scope:**
+- Wymuszanie "wszystkie odznaczone przed Gotowe" — sugestia, nie
+  blokada (decyzja: kuchnia ma elastyczność)
+- Pokazywanie progressu klientowi
+- Per-kucharz attribution kto co odznaczył
+
+**Trigger startu:** po Fazie 4.5 zamknięciu (zatwierdzony smoke
+test v2) — decyzja "teraz vs po Fazie 5 (deploy)" do podjęcia
+przez właściciela.
+
 ## Faza 6: Płatności online
 
 ### Kiedy najwcześniej sensownie

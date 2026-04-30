@@ -8,6 +8,8 @@ import type {
   OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { statusTheme } from "../shared/statusColors";
+import { timerEscalation } from "../shared/timerColor";
+import { useElapsedTick } from "../shared/useElapsedTick";
 
 interface DeliveryOrderCardProps {
   order: AdminOrderListItemDto;
@@ -55,16 +57,22 @@ export function DeliveryOrderCard({
   const addr = order.deliveryAddress;
   const cashOnDelivery = order.paymentMethod === "CASH_ON_DELIVERY";
   const theme = statusTheme(order.status);
+  const now = useElapsedTick();
+  const timer = timerEscalation(order.placedAt, now);
 
   return (
     <article
-      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border}`}
+      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border} ${
+        timer.pulse
+          ? "motion-safe:animate-urgent-pulse motion-reduce:border-red-500 motion-reduce:ring-1 motion-reduce:ring-red-200"
+          : ""
+      }`}
     >
       <header className="flex items-baseline justify-between gap-3">
         <div className="font-mono text-[20px] font-semibold tracking-tight text-slate-900">
           {order.orderNumber}
         </div>
-        <div className="text-xs text-slate-500">{relativeTime(order.placedAt)}</div>
+        <div className={`text-xs ${timer.color}`}>{relativeTime(order.placedAt)}</div>
       </header>
 
       {addr ? (

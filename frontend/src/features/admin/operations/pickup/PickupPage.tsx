@@ -97,7 +97,7 @@ export function PickupPage() {
       )}
 
       {query.isPending && rows.length === 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
@@ -120,7 +120,7 @@ export function PickupPage() {
             count={rows.length}
             theme={sectionTheme("pickup-ready")}
           />
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {rows.map((row) => (
               <PickupOrderCard
                 key={row.id}
