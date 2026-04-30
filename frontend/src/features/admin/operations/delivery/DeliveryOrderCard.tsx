@@ -37,13 +37,12 @@ function formatEta(etaMinutes: number, etaSetAt: string | null): string {
 }
 
 function buildMapsHref(address: OrderTrackingAddressDto): string {
-  const parts = [
-    `${address.street} ${address.buildingNumber}`,
-    `${address.postalCode} ${address.city}`,
-  ];
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    parts.join(", "),
-  )}`;
+  const apartment = address.apartmentNumber?.trim();
+  const houseNumber = apartment
+    ? `${address.buildingNumber}/${apartment}`
+    : address.buildingNumber;
+  const fullAddress = `ul. ${address.street} ${houseNumber}, ${address.postalCode} ${address.city}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 }
 
 export function DeliveryOrderCard({
@@ -111,13 +110,6 @@ export function DeliveryOrderCard({
         </div>
       )}
 
-      {order.customerNotes && (
-        <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[14px] text-amber-900">
-          <span aria-hidden="true">📝 </span>
-          <span className="whitespace-pre-line">{order.customerNotes}</span>
-        </div>
-      )}
-
       <ul className="mt-3 space-y-0.5 text-[13px] text-slate-600">
         {(order.items ?? []).map((item, idx) => (
           <CompactItemLine key={idx} item={item} />
@@ -133,7 +125,7 @@ export function DeliveryOrderCard({
         </div>
       )}
 
-      <div className="mt-5 flex flex-col gap-2">
+      <div className="mt-auto flex flex-col gap-2 pt-5">
         <Button
           type="button"
           variant="primary"

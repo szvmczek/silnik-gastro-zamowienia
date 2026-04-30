@@ -76,15 +76,17 @@ export function PickupOrderCard({ order, onRequestRelease }: PickupOrderCardProp
         </div>
       )}
 
-      <Button
-        type="button"
-        variant="primary"
-        size="xl"
-        className="mt-5 w-full"
-        onClick={onRequestRelease}
-      >
-        Wydano
-      </Button>
+      <div className="mt-auto pt-5">
+        <Button
+          type="button"
+          variant="primary"
+          size="xl"
+          className="w-full"
+          onClick={onRequestRelease}
+        >
+          Wydano
+        </Button>
+      </div>
     </article>
   );
 }

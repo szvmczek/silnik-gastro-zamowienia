@@ -422,10 +422,13 @@ DELIVERY, więc filtr `fulfillmentType` redundantny ale bezpieczny).
 - Imię + telefon klienta z **przyciskiem "Zadzwoń"**
 - Kwota do pobrania (jeśli `CASH_ON_DELIVERY`): "Pobierz: 89,50 zł" —
   duża, czerwona
-- **Notatki klienta** (`customerNotes`) — jeśli niepuste, banner:
-  "📝 Bez cebuli"
 - Lista pozycji (kompaktowo — dostawca chce overview, nie czytanie
   szczegółów dodatków)
+
+> Skorygowane po smoke teście (2026-04-30): banner `customerNotes`
+> usunięty z karty Dostawy — single-responsibility. `customerNotes`
+> wpływa na gotowanie (Kuchnia), nie na dowóz; `deliveryAddressNotes`
+> zostaje jako jedyny banner z uwagami w widoku Dostawy.
 - **Akcje główne:**
   - dla `READY`: "Wyjechało" → `PATCH status` → `OUT_FOR_DELIVERY`.
     Bez confirm.

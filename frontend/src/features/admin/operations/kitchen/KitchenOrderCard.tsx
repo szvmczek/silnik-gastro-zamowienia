@@ -124,16 +124,18 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
       </div>
 
       {action && (
-        <Button
-          type="button"
-          variant="primary"
-          size="xl"
-          className="mt-5 w-full"
-          onClick={() => mutation.mutate(action.next)}
-          disabled={mutation.isPending}
-        >
-          {mutation.isPending ? "Zapisywanie…" : action.label}
-        </Button>
+        <div className="mt-auto pt-5">
+          <Button
+            type="button"
+            variant="primary"
+            size="xl"
+            className="w-full"
+            onClick={() => mutation.mutate(action.next)}
+            disabled={mutation.isPending}
+          >
+            {mutation.isPending ? "Zapisywanie…" : action.label}
+          </Button>
+        </div>
       )}
     </article>
   );
