@@ -26,6 +26,8 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -87,9 +89,71 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.warn("Data integrity violation at {}: {}", request.getRequestURI(), ex.getMostSpecificCause().getMessage());
-        return buildResponse(HttpStatus.CONFLICT, "Konflikt unikalności — wpis już istnieje w bazie.", request, null);
+        String constraint = extractConstraintName(ex);
+        Throwable mostSpecific = ex.getMostSpecificCause();
+        log.warn("Data integrity violation at {} (constraint={}): {}",
+                request.getRequestURI(), constraint, mostSpecific.getMessage(), mostSpecific);
+
+        ConstraintMapping mapping = mapConstraint(constraint);
+        return buildResponse(mapping.status(), mapping.message(), request, null);
     }
+
+    private static ConstraintMapping mapConstraint(String constraint) {
+        if (constraint != null) {
+            ConstraintMapping known = NAMED_CONSTRAINTS.get(constraint);
+            if (known != null) {
+                return known;
+            }
+            if (constraint.endsWith("_key") || constraint.endsWith("_pkey") || constraint.startsWith("uk_")) {
+                return UNIQUE_CONFLICT;
+            }
+            if (constraint.contains("_check") || constraint.startsWith("ck_")) {
+                return new ConstraintMapping(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Naruszenie reguły walidacji (" + constraint + ").");
+            }
+        }
+        return GENERIC_INTEGRITY;
+    }
+
+    private static String extractConstraintName(DataIntegrityViolationException ex) {
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            if (cause instanceof org.hibernate.exception.ConstraintViolationException hce) {
+                String name = hce.getConstraintName();
+                if (name != null && !name.isBlank()) {
+                    return name;
+                }
+                break;
+            }
+            cause = cause.getCause();
+        }
+        Throwable mostSpecific = ex.getMostSpecificCause();
+        String msg = mostSpecific == null ? null : mostSpecific.getMessage();
+        if (msg != null) {
+            Matcher m = CONSTRAINT_NAME_PATTERN.matcher(msg);
+            if (m.find()) {
+                return m.group(1);
+            }
+        }
+        return null;
+    }
+
+    private static final Pattern CONSTRAINT_NAME_PATTERN = Pattern.compile("constraint \"([^\"]+)\"");
+
+    private static final ConstraintMapping UNIQUE_CONFLICT =
+            new ConstraintMapping(HttpStatus.CONFLICT, "Konflikt unikalności — wpis już istnieje w bazie.");
+
+    private static final ConstraintMapping GENERIC_INTEGRITY =
+            new ConstraintMapping(HttpStatus.CONFLICT, "Naruszenie integralności danych.");
+
+    private static final Map<String, ConstraintMapping> NAMED_CONSTRAINTS = Map.of(
+            "opening_hours_times",
+            new ConstraintMapping(HttpStatus.UNPROCESSABLE_ENTITY, "Nieprawidłowe godziny otwarcia."),
+            "opening_hours_day_values",
+            new ConstraintMapping(HttpStatus.UNPROCESSABLE_ENTITY, "Nieprawidłowy dzień tygodnia.")
+    );
+
+    private record ConstraintMapping(HttpStatus status, String message) {}
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetail> handleNoResource(NoResourceFoundException ex,
