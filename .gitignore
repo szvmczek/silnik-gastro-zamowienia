@@ -1,6 +1,7 @@
 # Java / Gradle
 *.class
 build/
+bin/
 .gradle/
 out/
 !gradle-wrapper.jar
