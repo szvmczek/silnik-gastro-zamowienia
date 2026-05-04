@@ -660,34 +660,318 @@ adaptować się przez `ResponsiveContainer` Recharts.
   - `PHASES.md` — STATUS: DONE w tym rozdziale
   - `CURRENT_STATE.md` — sekcja "Faza 4.5: Operational UI Split — DONE"
 
-## Faza 5: Polish + Deploy
-STATUS: DONE (kod); deploy Railway — ostatni krok manualny
+## Faza 5: Polish + Redesign + Deploy
+
+> **Uwaga historyczna:** poprzednia wersja Fazy 5 ("Polish + Deploy",
+> bez redesignu) została w większości dowieziona na branchu
+> `design/g10-polish` przed powstaniem `docs/UX_BIBLE.md`. Po stworzeniu
+> biblii UX i `docs/UX_GAP_ANALYSIS.md` scope Fazy 5 został rozszerzony
+> o redesign zgodnie z biblią — stąd reset statusu na PLANNED.
+> Część dotychczasowej pracy (deploy, error boundaries, część polish)
+> może być reużyta przy implementacji nowej Fazy 5.
+
+STATUS: PLANNED
 
 ### Cel
-Showcase premium pod HTTPS, gotowy do pokazania klientowi.
+Zamknięcie MVP zgodnie z `docs/UX_BIBLE.md` (sekcje MVP-critical) oraz
+`docs/UX_GAP_ANALYSIS.md` (synteza luk). Showcase premium pod HTTPS, gotowy
+do pokazania klientowi. Po tej fazie projekt prezentuje się jak dedykowana
+aplikacja restauracyjna na poziomie Pyszne / Uber Eats — dla pojedynczej
+restauracji, bez zbędnego enterprise.
 
-### Zakres
-- UX polish: transitions (Framer Motion na drawer/modal), skeletony
-  (nie spinnery), dopracowanie 375px na każdym ekranie
-- Walidacja godzin: jeśli zamknięte teraz → disable CTA "Zamów" z komunikatem
-- Mapa kontaktu: iframe OSM z markerem z adresu (opcjonalnie Leaflet)
-- SEO basics: meta tagi z RestaurantSettings, OG image, favicon, manifest.json
-- Error boundaries w React (globalna strona błędu)
-- Backend: Dockerfile multi-stage produkcyjny (frontend → backend → runtime),
-  healthcheck, structured logging (logback JSON w prod), graceful shutdown
-- SPA fallback controller dla React Router (każdy request SPA → index.html)
-- Deploy na Railway: serwis app + postgres, env vars, HTTPS, custom domain
-  (opcjonalnie)
-- Dokumentacja:
-  - README.md z quickstartem (local dev w <30 min)
-  - docs/customization.md: jak podmienić markę pod nowego klienta
-  - docs/deployment.md: jak zdeployować na Railway
+### Filozofia
+> Mała pizzeria nie potrzebuje narzędzi enterprise. Potrzebuje narzędzia
+> które robi 5 rzeczy świetnie zamiast 50 rzeczy źle.
+> *(UX_BIBLE.md, Podsumowanie priorytetów MVP)*
+
+Każda zmiana w tej fazie pochodzi z `UX_GAP_ANALYSIS.md`. Nie dodajemy
+nic spoza listy. Cokolwiek poza tym scope'm trafia do `ROADMAP.md`.
+
+### Zakres CORE — Backend
+
+**M1. Migracja Flyway V8 (lub kolejna wolna):**
+- `OrderItem.itemNote` VARCHAR(200) NULL — komentarz klienta per pozycja
+- `RestaurantSettings.defaultPreparationMinutes` INTEGER NOT NULL DEFAULT 30
+- `RestaurantSettings.manualClosedReason` VARCHAR(200) NULL
+- `RestaurantSettings.manualClosedUntil` TIMESTAMP WITH TIME ZONE NULL
+
+**M2. Backend logika:**
+- `CheckoutService.createOrder()` ustawia początkowe `eta` jako
+  `now() + defaultPreparationMinutes` (z `RestaurantSettings`)
+- `OrderItem` snapshotuje `itemNote` z `CartItem` payloadu (rules dla
+  walidacji: max 200 znaków, trimowane, null jeśli puste)
+- `RestaurantSettingsService.isOpenNow()` uwzględnia `manualClosedUntil`:
+  jeśli `manualClosedUntil > now()` → zwraca `false` niezależnie od godzin
+- Endpoint `PATCH /api/admin/orders/{id}/cancel` wymaga `cancelReason`
+  w body (min 1 znak, max 200) — zapisywane do `OrderStatusHistory.note`
+  lub osobnego pola `cancellationReason` na Order (decyzja w plan mode)
+- Endpoint `PATCH /api/admin/settings/manual-close` (body: reason +
+  optional until)
+- Endpoint `DELETE /api/admin/settings/manual-close` — przywraca
+  normalne godziny
+
+**M3. DTO updates:**
+- `CartItemDto` zyskuje `itemNote: string | null` (max 200)
+- `OrderItemDto` (publiczne tracking + admin) zwraca `itemNote`
+- `RestaurantSettingsDto` (public) zwraca `manualClosedReason` (jeśli
+  aktywny) i `defaultPreparationMinutes` (do informacji)
+
+### Zakres CORE — Frontend (strona klienta)
+
+**F1. Sticky cart sidebar (najważniejsza zmiana):**
+- Na `/menu` przy breakpoincie ≥1024px sidebar 360px po prawej stronie
+- Pozycja: `sticky top: 80px`, `max-height: calc(100vh - 96px)`
+- Layout `MenuPage`: `lg:grid-cols-[1fr_360px]` (analogicznie do
+  obecnego checkout layoutu)
+- Sidebar pokazuje **ten sam koszyk** co `CartDrawer`, ale inline
+- Poniżej 1024px: sidebar znika, pozostaje obecny `CartDrawer` + `MobileCartBar`
+- `CartDrawer` na mobile zmienia side z `right` na `bottom` (Sheet
+  bottom sheet) — biblia §6
+- Zachować persistence w localStorage (Zustand persist już działa)
+
+**F2. Komentarze per pozycja:**
+- `ProductModal`: textarea pole "Notatka" pod listą dodatków
+  - Placeholder: "Np. bez cebuli, dobrze wypieczona"
+  - Max 200 znaków, licznik znaków pod polem
+  - Wartość trafia do `addItem({...itemNote})` w cartStore
+- W koszyku (drawer/sidebar) wyświetlanie pod listą dodatków jako
+  szara kursywa: "📝 Bez cebuli"
+- Klik na komentarz → inline edit (textarea zastępuje tekst, Save/Cancel)
+- Cart store: `itemNote` jest częścią key generation (jeśli zmienisz
+  notatkę, zostaje to ta sama pozycja, tylko zaktualizuje pole) — ten
+  szczegół decyduje plan mode
+
+**F3. Pasek minimum order w koszyku:**
+- Pozycja: nad sekcją podsumowania
+- Tekst: "Brakuje **{X} zł** do złożenia zamówienia. Min. {Y} zł."
+- Progress bar 4px, primary color (% pełności od 0 do `minOrderAmount`)
+- Animacja przy zmianie kwoty (300ms smooth grow)
+- Po przekroczeniu: krótki zielony flash (600ms) + ✓, potem znika
+- CTA "Przejdź do kasy" disabled gdy poniżej minimum (tekst się zmienia
+  na "Min. zamówienie {Y} zł")
+
+**F4. Banner "restauracja zamknięta" globalny:**
+- Komponent `<RestaurantClosedBanner />` montowany w głównym layoutie
+  publicznym
+- Dane z `GET /api/public/settings` (już istnieje, sprawdzić czy zwraca
+  `isOpenNow` lub czy musimy dodać)
+- Polling co 60s (TanStack Query)
+- Gdy zamknięte: sticky banner na górze całej strony, sub-text
+  z `manualClosedReason` jeśli ustawiony, lub "Otwieramy o {godzina}"
+- Banner blokuje submit w `/checkout` (guard) i pokazuje komunikat na
+  modalu produktu ("Składanie zamówień jest tymczasowo niedostępne")
+- Menu nadal można przeglądać
+
+**F5. Pasek informacyjny pod hero (landing):**
+- Trzy ikony + tekst: czas dostawy, minimalna kwota, koszt dostawy
+- Dane z `RestaurantSettings`
+- Mobile: trzy wiersze, desktop: trzy kolumny
+- Pozycja: tuż pod hero, przed sekcją About
+
+**F6. UX micro polish menu:**
+- Cena dynamiczna na CTA modala produktu: "Dodaj do koszyka · 32,90 zł"
+- Animacja bump ikony koszyka (200ms scale 1→1.15→1) przy `addItem`
+- LQIP/blur-up dla zdjęć produktów (placeholder: ciemny szary lub
+  blurred preview do czasu załadowania, fade-in 200ms)
+- `loading="lazy"` na zdjęciach poza viewportem
+- Scroll-spy dla aktywnej kategorii (IntersectionObserver, próg 25% od
+  góry sticky headera, auto-scroll w nawigacji kategorii gdy aktywna
+  poza widokiem)
+
+**F7. Strona potwierdzenia (`OrderConfirmationPage`):**
+- Wzbogacić: pełna lista pozycji (z wariantami, dodatkami, `itemNote`)
+- Adres dostawy lub info o odbiorze
+- Metoda płatności
+- ETA prominentnie ("Dostawa ok. **{godzina}**" lub "Odbiór za ~{X} min")
+- Numer zamówienia z przyciskiem "Skopiuj"
+- CTA "Śledź zamówienie" (już jest)
+- Drugorzędne CTA "Wróć do menu"
+
+**F8. Tracking polish (`TrackingPage`):**
+- Stepper statusów z ikonami per status:
+  - NEW: ⏳ "Złożone"
+  - CONFIRMED: ✓ "Przyjęte"
+  - IN_PREPARATION: 👨‍🍳 "W przygotowaniu"
+  - READY: 🍕 "Gotowe"
+  - OUT_FOR_DELIVERY: 🛵 "W drodze" *(tylko dla DELIVERY)*
+  - DELIVERED: 🎉 "Dostarczone" / "Odebrane"
+  - CANCELED: ✕ "Anulowane"
+- Aktywny status: pulsowanie dot 1.5s loop
+- Zakończone: filled checkmark
+- Następne: szare, outlined
+- Stan terminalny DELIVERED: komunikat "Smacznego!" + CTA "Wróć do menu"
+- Stan terminalny CANCELED: komunikat z `cancellationReason` (jeśli
+  ujawniany w publicznym DTO — decyzja w plan mode) + CTA "Zamów ponownie"
+
+**F9. Edge case'y w checkoucie:**
+- Polling `isOpenNow()` co 60s na `/checkout` — gdy zmieni się na
+  `false`, pokazuje banner i blokuje submit (przycisk disabled
+  z tooltipem "Restauracja zamknęła się")
+- Błąd 422 przy `POST /api/public/orders` (niedostępny produkt) —
+  czytelny komunikat z listą produktów do usunięcia + CTA "Usuń
+  niedostępne i spróbuj ponownie"
+- Disabled CTA podczas `useMutation` (`isPending`) z spinnerem —
+  prevent double submit
+- Backend już ma rate limit 10/min/IP (Faza 3) — dodać user-friendly
+  komunikat przy 429
+
+**F10. Accessibility i performance:**
+- `prefers-reduced-motion` w globalnym CSS → wyłącza wszystkie
+  Framer Motion animacje, transitions, bumps
+- Audyt touch targets ≥44px (przez `QA_CHECKLIST.md`)
+- Audyt kontrastu WCAG AA (przez `QA_CHECKLIST.md`)
+- Skeleton screens dla `/menu`, `/checkout`, `/track/:token` zamiast
+  spinnerów
+
+**F11. Mikrocopy audyt:**
+- Puste stany (koszyk, brak wyników, brak zamówień admin) — zgodnie
+  z biblią §15
+- Komunikaty błędów formularza checkout — konkretne brzmienie z biblii
+- Toast notifications (sukces, błąd) — standaryzacja
+- Statusy zamówienia — polskie nazwy z biblii §15
+
+### Zakres CORE — Frontend (panel admina)
+
+**A1. Wyświetlanie `itemNote`:**
+- W widoku szczegółów zamówienia (`/admin/orders/:id`) pod każdą pozycją
+  jeśli `itemNote` istnieje — wyróżnione (żółta ramka/highlight, ikona 📝)
+- Na liście zamówień badge "📝 {N}" przy zamówieniach gdzie któraś
+  pozycja ma notatkę
+
+**A2. Klikalny telefon klienta:**
+- W sekcji klienta `<a href="tel:{phone}">{phone}</a>`
+- Polish wyglądu (ikona telefonu obok)
+
+**A3. Live polish:**
+- Animacja highlight nowego zamówienia na liście — zielony flash 600ms
+  na wierszu po przyjściu SSE event lub polling refresh
+- Favicon dot / title badge gdy są nieprzeczytane NEW:
+  `document.title = '(N) Pizza Showcase'` gdzie N to liczba NEW
+  zamówień nieotwartych przez admina
+- Reset N gdy admin otworzy listę zamówień
+
+**A4. Anulowanie z powodem:**
+- Modal anulowania: pole textarea "Powód anulowania" (wymagane, min 1)
+- Powód zapisywany w `OrderStatusHistory.note` lub osobne pole
+  `Order.cancellationReason` (decyzja w plan mode)
+- Czy widoczny dla klienta na trackingu — decyzja w plan mode
+  (preferowane: tak, sklejony krótko)
+
+**A5. Settings — nowe pola:**
+- Sekcja "Czas przygotowania":
+  - Input `defaultPreparationMinutes` (number, 5-120, step 5)
+  - Tekst pomocniczy: "Domyślny czas używany do wyznaczenia ETA dla
+    nowych zamówień. Możesz nadpisać per zamówienie w panelu."
+- Sekcja "Tymczasowe zamknięcie":
+  - Toggle "Zamknij teraz"
+  - Po włączeniu: textarea "Powód" (wymagana, max 200) i opcjonalny
+    timepicker "Otwarcie planowane na" (datetime-local, opcjonalne —
+    jeśli puste, admin musi ręcznie wyłączyć toggle)
+  - Po zapisaniu: aktywny `manualClosedUntil` (lub null = bezterminowo
+    do ręcznego wyłączenia)
+  - Banner pokazuje admin'owi że restauracja jest zamknięta manualnie
+
+**A6. Badge nawigacji:**
+- Pozycja "Zamówienia" w sidebarze admina dostaje badge z liczbą
+  nowych (NEW) zamówień
+- Reset gdy admin wejdzie w listę
+
+### Zakres CORE — Cross-cutting (wpisane w obecnej Fazie 5)
+
+**C1. Deploy + production:**
+- Dockerfile multi-stage (node 20 → gradle/jdk 21 → temurin 21 jre)
+- SPA fallback controller (każdy unmapped request → index.html)
+- Rate limiting w profilu prod (Bucket4j lub Spring rate limiter)
+- Structured logging prod (logback JSON)
+- Graceful shutdown
+- Railway deploy + custom domain + HTTPS
+
+**C2. SEO i meta:**
+- Meta tags z `RestaurantSettings` (title, description, OG)
+- OG image z `logoUrl`
+- `manifest.json` (PWA podstawowy)
+- Favicon (preferowany SVG, fallback emoji)
+- **Schema.org Restaurant** structured data (biblia §1) — JSON-LD
+  w `<head>` z danymi z `RestaurantSettings`
+
+**C3. UX polish ogólny:**
+- Error boundaries wokół `<Routes>` w main
+- Skeletony zamiast spinnerów dla list (menu, zamówienia)
+- Empty states dla wszystkich list (zgodnie z biblią §15)
+- Framer Motion transitions tam gdzie ma sens (modal otwarcie, toast,
+  drawer slide) — minimum, nie wszędzie
+- Mapa kontaktu (iframe OSM lub Leaflet — wybierz w plan mode)
+
+**C4. Dokumentacja:**
+- `README.md` quickstart (zaktualizować po deploy)
+- `docs/customization.md` — jak podmienić markę pod nowego klienta
+- `docs/deployment.md` — jak zdeployować na Railway
+
+### Zakres NICE-TO-HAVE (jeśli czas)
+
+- Free-delivery progress bar (jeśli `freeDeliveryFrom` istnieje
+  w `RestaurantSettings`)
+- Toast undo po usunięciu pozycji z koszyka (5s, "Cofnij")
+- Edycja `itemNote` inline w sidebarze (nie tylko w modalu)
+- Hover polish kart produktów
 
 ### Definition of done
-- Live URL pod HTTPS działa
-- Demo end-to-end: klient składa zamówienie → admin obsługuje → klient widzi
-- Mobile (375px) i desktop wyglądają premium
-- README pozwala sklonować repo i odpalić lokalnie w <30 min
+
+**Backend:**
+- [ ] Migracja V8 zaaplikowana, kolumny w DB
+- [ ] `CheckoutService` ustawia ETA z `defaultPreparationMinutes`
+- [ ] `isOpenNow()` reaguje na `manualClosedUntil`
+- [ ] Endpoint cancel wymaga `cancelReason`
+
+**Strona klienta:**
+- [ ] Sticky sidebar koszyka działa na desktop ≥1024px
+- [ ] Mobile cart drawer to teraz bottom sheet
+- [ ] Pole notatki w modalu produktu zapisuje do koszyka
+- [ ] Notatka widoczna w koszyku, edytowalna inline
+- [ ] Pasek minimum order pokazuje kwotę brakującą i % postępu
+- [ ] Banner "zamknięte" pojawia się gdy admin ustawi manual close
+- [ ] Pasek info pod hero pokazuje dane z settings
+- [ ] LQIP działa (testowane przez DevTools throttle)
+- [ ] Scroll-spy aktywuje kategorię w nawigacji
+- [ ] Strona potwierdzenia ma pełne podsumowanie
+- [ ] Tracking ma stepper z ikonami i animacją aktywnego
+- [ ] Checkout: gdy w trakcie zamknie się restauracja, banner i submit zablokowany
+- [ ] Mikrocopy zgodne z biblią §15
+
+**Panel admina:**
+- [ ] `itemNote` widoczny w szczegółach zamówienia
+- [ ] Tel: link działa
+- [ ] Highlight nowego zamówienia (flash)
+- [ ] Title badge "(N) Pizza Showcase"
+- [ ] Anulowanie wymaga powodu
+- [ ] Settings: pola czasu przygotowania i manual close działają
+
+**Cross-cutting:**
+- [ ] Aplikacja działa na Railway pod HTTPS
+- [ ] Custom domain skonfigurowany (lub przygotowany)
+- [ ] Schema.org Restaurant w `<head>`
+- [ ] Lighthouse: Performance ≥85, Accessibility ≥95, SEO ≥95
+
+### NIE ruszać w tej fazie (przeniesione do ROADMAP.md)
+
+Patrz `docs/UX_GAP_ANALYSIS.md` sekcja "→ ROADMAP.md (post-MVP)".
+Najważniejsze:
+
+- System ocen
+- Search i filtry tagów
+- Tagi/alergeny/wartości odżywcze produktów
+- Promo kody / kupony
+- Płatności online
+- Google Places / mapa kuriera
+- Pre-order / strefy / wyjątki godzin / capacity
+- KDS / kurierzy / wiele ról
+- Email/SMS notyfikacje
+- Wykresy / KPI / eksport
+- Drag-and-drop / upload zdjęć / bulk operations
+- Drukarka termiczna
+- Onboarding wizard
+- 2FA / audit log / RODO eksport
+- Multi-location / PWA push / QR menu
 
 ## Faza 7.0: Strefy dostawy (MVP)
 STATUS: DONE (2026-04-28)

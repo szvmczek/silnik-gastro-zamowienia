@@ -33,10 +33,37 @@ spójności architektury.
 PROSTSZE WYGRYWA. Jeśli decyzja techniczna komplikuje MVP bez proporcjonalnego
 zysku sprzedażowego — wybierasz prostszą wersję. Bez ego.
 
+## Filozofia produktowa (UX)
+
+> Mała pizzeria nie potrzebuje narzędzi enterprise. Potrzebuje narzędzia
+> które robi 5 rzeczy świetnie zamiast 50 rzeczy źle.
+
+Każda decyzja o feature musi przejść przez ten filtr. Pyszne.pl, Uber Eats,
+Glovo to **inspiracja** dla MVP-critical patterns (sticky cart, komentarze
+per pozycja, banner zamknięte) — ale **nie cel funkcjonalny**. Nie jesteśmy
+agregatorem. Jesteśmy dedykowaną aplikacją jednej restauracji.
+
+### Źródła prawdy UX
+
+- **`docs/UX_BIBLE.md`** — kompletna biblia UX (36 sekcji, ~20k słów,
+  konkretne wartości px / ms / kolory / copy). Referencja do detali.
+  Czytaj kiedy potrzebujesz wiedzieć "jak to dokładnie wygląda na Pyszne".
+- **`docs/UX_GAP_ANALYSIS.md`** — synteza luk między obecnym kodem a biblią,
+  z decyzjami **co wchodzi do Fazy 5, co do ROADMAP, co pomijamy**. Czytaj
+  na początku Fazy 5 jako spis zmian.
+
+Nie traktuj biblii jako zobowiązania do implementacji wszystkiego. Każdy
+element ma kategorię w `UX_GAP_ANALYSIS.md`: `MVP-critical` / `nice-to-have` /
+`ROADMAP` / `OUT OF SCOPE`. Tylko MVP-critical wchodzi do Fazy 5.
+
 ## Rdzeń produktu (MUSI działać w MVP)
 - Publiczny landing (hero, about, kontakt, godziny)
 - Menu (kategorie, produkty, warianty, dodatki)
 - Koszyk z persistence (localStorage)
+- Koszyk: sticky sidebar 360px na desktop ≥1024px (`MenuPage`),
+  bottom sheet drawer + floating bar na <1024px
+- Komentarze klienta per pozycja zamówienia (pole `OrderItem.itemNote`,
+  edytowalne w koszyku, widoczne w panelu admina)
 - Checkout z walidacją
 - Składanie zamówienia (totals LICZONE PO STRONIE SERWERA)
 - Tracking przez publiczny UUID token (polling)
@@ -44,6 +71,12 @@ zysku sprzedażowego — wybierasz prostszą wersję. Bez ego.
 - Admin: lista zamówień, szczegóły, zmiana statusu, ETA
 - Admin: CRUD menu (z URL dla zdjęć, nie upload)
 - Admin: edycja ustawień i godzin
+- Admin: domyślny czas przygotowania (`defaultPreparationMinutes`) używany
+  do auto-ETA przy nowych zamówieniach
+- Admin: manualne tymczasowe zamknięcie restauracji (`manualClosedReason`,
+  `manualClosedUntil`) z banerem na froncie
+- Banner "restauracja zamknięta" globalny na stronie publicznej z polling
+  co 60s na `isOpenNow()`
 - Responsywność mobile-first (375px)
 
 ## Dodatki (mogą wylecieć pod presją czasu)
@@ -56,12 +89,33 @@ zysku sprzedażowego — wybierasz prostszą wersję. Bez ego.
 
 ## Zakazane teraz (patrz docs/ROADMAP.md)
 Płatności online, konta klientów, kupony, integracje z kurierami, strefy
-dostawy, automatyczne ETA, SMS/email, drukarki kuchenne, RBAC, multi-language,
+dostawy, SMS/email, drukarki kuchenne, RBAC, multi-language,
 dark mode, PWA, audit log, dashboard przychodów, wyjątki godzin, galeria,
 file upload, multi-tenant.
 
+- Zaawansowane automatyczne ETA (ML-based, oparte na historii) — w Fazie 5
+  jest tylko stała `defaultPreparationMinutes` z settings, NIE ML
+
 Nie proponuj ich. Nie przygotowuj pod nie kodu. Nie twórz pustych interfejsów.
 YAGNI.
+
+## Hierarchia źródeł prawdy
+
+Gdy pojawia się decyzja UX/funkcjonalna, kolejność konsultacji:
+
+1. **`CLAUDE.md`** (ten plik) — konstytucja, zakazy, filozofia
+2. **`docs/PHASES.md`** — co jest w aktualnym scope fazy, co poza
+3. **`docs/UX_GAP_ANALYSIS.md`** — kategoria elementu (MVP-critical/ROADMAP/OUT)
+4. **`docs/UX_BIBLE.md`** — szczegóły implementacji (px, ms, copy)
+5. **`docs/ARCHITECTURE.md`** — decyzje techniczne (AD-001 ... AD-018)
+6. **`docs/ROADMAP.md`** — co jest świadomie odłożone
+
+Konflikty: niższy numer wygrywa. Jeśli `CLAUDE.md` zakazuje, a `UX_BIBLE.md`
+opisuje feature — biblia jest tylko referencją UX, nie zobowiązaniem.
+
+Gdy element nie pojawia się w żadnym z 1-3, ale jest w bibli (4) —
+zapytaj operatora przed implementacją. To jest sygnał że gap analysis
+może wymagać aktualizacji.
 
 ## Zasady pracy
 

@@ -2106,20 +2106,39 @@ manualny krok — patrz [deployment.md](./deployment.md).
   /api/admin/orders/stream` → 10 req/min/IP) w Fazie 5.
 
 ## Następne kroki
-Faza 5 (Polish + Deploy) zamknięta w kodzie — wszystkie deploy-blockery
-(BUG-1 access log, ETA guard, @Async pool, SSE rate limit) oraz carry-over
-tech debt (notes align, Locale.ROOT, setScale, ErrorBoundary, skeletony)
-rozwiązane. Pozostaje **manualny deploy na Railway** wg
-[deployment.md](./deployment.md):
-1. Utworzyć projekt Railway + Postgres plugin.
-2. Dodać serwis z GitHub repo (branch `main` po mergu `phase-5`).
-3. Ustawić env vars (`JWT_SECRET` wygenerowany `openssl rand -base64 48`,
-   `ADMIN_EMAIL`/`ADMIN_PASSWORD`, `CORS_ALLOWED_ORIGINS` na Railway URL,
-   `SPRING_PROFILES_ACTIVE=prod`, `DB_*` z refs `${{Postgres.*}}`).
-4. Healthcheck `/actuator/health`.
-5. Smoke: `/api/public/settings`, złożenie zamówienia public + obsługa
-   admin, tracking polling.
 
-Post-MVP (ROADMAP.md): SSE httpOnly cookie (AD-018 migracja), code
-splitting per route, Framer Motion transitions, mobile 375px audit,
-admin table card-view, seed V100/V101 gate po profilu.
+Dokumentacja UX wgrana (2026-05-04):
+- `docs/UX_BIBLE.md` — kompletna biblia UX (36 sekcji, ~20k słów)
+- `docs/UX_GAP_ANALYSIS.md` — synteza luk obecny kod vs biblia
+  z decyzjami MVP-critical / ROADMAP / OUT
+- `CLAUDE.md` — 4 nowe sekcje (filozofia produktowa UX, rozszerzony
+  rdzeń produktu, doprecyzowanie zakazu auto-ETA, hierarchia źródeł
+  prawdy)
+- `docs/PHASES.md` — Faza 5 cofnięta z DONE na PLANNED i przepisana
+  jako "Polish + Redesign + Deploy" zgodnie z biblią (sticky cart
+  sidebar, komentarze per pozycja, manual close, banner zamknięte,
+  micro polish menu, redesign tracking/confirmation, schema.org).
+  Część dotychczasowej pracy z `design/g10-polish` (deploy, error
+  boundaries, część polish) reużywalna.
+- `docs/ROADMAP.md` — 12 wave'ów post-MVP (R-1.1 ... R-12.3) +
+  sekcja OUT OF SCOPE.
+
+**Następna faza: Faza 5 (Polish + Redesign + Deploy)** — szczegółowy
+zakres w `docs/PHASES.md` i `docs/UX_GAP_ANALYSIS.md`.
+
+**Przed startem Fazy 5** etap przygotowania:
+1. Design brief — spisać konkretne ekrany i komponenty z biblii
+   (sticky sidebar, modal produktu z notatką, pasek zamknięte,
+   stepper trackingu) jako input do Claude Design.
+2. Praca w Claude Design — wygenerowanie handoffów wizualnych
+   (zgodnie z konwencją `docs/design/`) dla nowych/przebudowywanych
+   komponentów. Bez tego wchodzenie w plan mode Fazy 5 jest
+   przedwczesne — biblia daje px/ms/copy ale finalna kompozycja
+   ekranów wymaga handoffu.
+3. Dopiero po handoffach: plan mode Fazy 5 (CORE z PHASES.md →
+   M1-M3, F1-F11, A1-A6, C1-C4) i implementacja milestone'ami.
+
+Manualny deploy na Railway pozostaje otwarty (deployment-blockery
+z poprzedniej Fazy 5 zamknięte na branchu `design/g10-polish`),
+ale realizacja po zamknięciu nowej, rozszerzonej Fazy 5 — żeby nie
+deployować showcase'u przed redesignem.
