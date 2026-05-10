@@ -13,6 +13,15 @@ export interface SettingsDto {
   logoUrl: string | null;
   currency: string;
   updatedAt: string;
+  // Faza 5 M1 backend delta — pola opcjonalne, dopiero pojawią się gdy backend
+  // zostanie zmigrowany (RestaurantSettings + DTO + endpoint). Konsumenci
+  // (InfoBar M-014, FreeDeliveryProgress M-015, CartSidebar M-021,
+  // CartBottomSheet M-022) robią graceful fallback: gdy pole == null/undefined
+  // → moduł / sekcja się nie renderuje. Patrz docs/PHASES.md §Faza 5 → M1.
+  minOrderAmount?: number | null;
+  freeDeliveryFrom?: number | null;
+  defaultPreparationMinutes?: number | null;
+  deliveryFee?: number | null;
 }
 
 export interface UpdateSettingsPayload {

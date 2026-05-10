@@ -143,3 +143,12 @@
   50% { background-color: rgb(var(--color-primary) / 0.18); }
 }
 .is-urgent { animation: urgentPulse 2.5s ease-in-out infinite; }
+
+/* InfoBar status dot — zielony pulse gdy restauracja otwarta. Czerwony dot
+   (zamknięte) jest statyczny — operator nie chce pulsujących alertów dla stanu
+   informacyjnego. */
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+.is-pulsing-green { animation: pulseGreen 1.6s ease-in-out infinite; }

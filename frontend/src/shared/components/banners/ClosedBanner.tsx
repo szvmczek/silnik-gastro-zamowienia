@@ -18,6 +18,11 @@ import { Icon } from "@/shared/components/ui/Icon";
    bez aktywnego polling; to intencjonalna izolacja per-consumer, nie problem.
    Hook useIsRestaurantOpen nietkniety. */
 
+// NOTE: helpers duplikowane z ClosedBanner.tsx / InfoBar.tsx. Świadoma izolacja
+// per-komponent (rule of three) — refactor do shared/lib/openingHours.ts gdy
+// pojawi się 3-ci konsument (kandydaci: TrackingPage M-026, AdminLayout
+// "closing soon" warning).
+
 const TIME_ZONE = "Europe/Warsaw";
 const DAY_MAP: Record<string, DayOfWeek> = {
   Monday: "MONDAY",
