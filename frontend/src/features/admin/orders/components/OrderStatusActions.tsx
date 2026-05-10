@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import type { FulfillmentType, OrderStatus } from "@/shared/api/orderApi";
 import { isTerminal, nextAllowedStatuses } from "../lib/transitions";
-import { statusLabel } from "@/shared/components/OrderStatusBadge";
+import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 
 interface OrderStatusActionsProps {
   currentStatus: OrderStatus;

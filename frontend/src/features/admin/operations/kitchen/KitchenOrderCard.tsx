@@ -13,7 +13,7 @@ import {
   type OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
-import { statusLabel } from "@/shared/components/OrderStatusBadge";
+import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { statusTheme } from "../shared/statusColors";
 import { timerEscalation } from "../shared/timerColor";
 import { useElapsedTick } from "../shared/useElapsedTick";
