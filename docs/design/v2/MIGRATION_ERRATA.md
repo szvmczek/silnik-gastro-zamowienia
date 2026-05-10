@@ -103,4 +103,111 @@ Routing: `/admin/settings` (default GeneralSection) + 7 sub-route'ów
 
 ---
 
-**Wersja 2.0** · 2026-05-10 · Stage 5 setup delta nad commit 679a965.
+## Architectural deltas — discovered during Warstwa 3a implementation
+
+> 2026-05-11 · Warstwa 3a (M-014..M-022, public menu + cart flow) na
+> branchu `design/v2-stage5-handoff`. Commit range `2fe5b23..5e9d589`
+> (9 commitów: 2fe5b23 M-014, 8f633af M-015, 1021931 M-016, 959ea48 M-017,
+> dd1f357 M-020, 609957b M-021, 894310d M-022, 19bcf8e M-018, 5e9d589 M-019).
+> Trzy delty wykryte i zaakceptowane w plan mode
+> (`~/.claude/plans/robust-wiggling-toast.md`), powtórzone tu słowo w słowo
+> z planu — następna sesja ma kontekst bez czytania pliku planu (który
+> może zostać usunięty/przesunięty przez Claude Code housekeeping).
+
+### AD-Δ1: Wrapper sticky banner + nav (zastępuje sticky-on-each)
+
+`ClosedBanner.tsx` (M-013, commit `a1d72ef`) i `PublicNav.tsx` (M-008,
+commit `f9454b7`) obecnie mają każde własne `sticky top-0`
+(`z-40` i `z-20`). Współistniejąc sticky-na-tym-samym-top, banner przykryje nav.
+
+**Δ:**
+- `ClosedBanner.tsx` (`shared/components/banners/`) — usuń `sticky top-0 z-40` z root div'a.
+  Zostaje natural-flow `min-h-[48px] bg-[#B91C1C] ...`. Hook `useQuery(["public","opening-hours"])`
+  z polling 60 s — bez zmian.
+- `PublicNav.tsx` (`features/public/shared/`) — usuń `sticky top-0 z-20` z `<header>`.
+  Zostaje `border-b ... transition-shadow` + `scrolled && "shadow-sm"` (z M-008).
+- Mount w **M-018 LandingPage** i **M-019 MenuPage**:
+  ```tsx
+  <div className="sticky top-0 z-50">
+    <ClosedBanner />
+    <PublicNav active="..." onOpenCart={...} />
+  </div>
+  ```
+  Cały container sticky `top-0 z-50`. Banner ukrywa się sam (return `null` gdy
+  `state === null`) — wtedy container zwija się do wysokości tylko nav.
+
+**Wykonane:** M-018 (commit `19bcf8e`) i M-019 (commit `5e9d589`) usuwają
+sticky z obu komponentów i wprowadzają wrapper. W M-019 dodatkowo wrapper
+zawiera `<FreeDeliveryProgress />` (M-015) — wrapper rośnie/kurczy się
+dynamicznie gdy progress mount/unmount.
+
+### AD-Δ2: CartDrawer rozdzielony na CartSidebar + CartBottomSheet
+
+`features/public/cart/CartDrawer.tsx` (Faza 3) używał shadcn `<Sheet side="right|bottom">` z
+breakpointem 767 px. D-003 wymaga sticky 360 px sidebara na lg ≥ 1024 px + bottom sheet 90 vh
+poniżej.
+
+**Δ:**
+- `features/public/cart/CartSidebar.tsx` — nowy. Inline sticky aside 360 px, render warunkowy
+  w `MenuPage` (`hidden lg:flex`). Nie owija w shadcn Sheet — pozostaje natural DOM element
+  na siatce `MenuPage`.
+- `features/public/cart/CartBottomSheet.tsx` — nowy. Używa shadcn `<Sheet side="bottom">`
+  (już mamy w `shared/components/ui/Sheet`), 92 vh, drag handle 36×4 visual only.
+  Open trigger z `MobileCartBar` (klik) lub z `CartButton` (klik ikony w PublicNav).
+- `features/public/cart/CartDrawer.tsx` — usunięcie po M-019 podpięciu (bezpieczne, jedyni
+  konsumenci to LandingPage + MenuPage; oba dostają nowe wiring w M-018/M-019).
+- `MobileCartBar.tsx` — retrofit pod tokeny v2 (gradient shadow `0 8px 24px rgba(230,57,70,0.32)`,
+  font-mono total, layout dwukolumnowy z bundle Stage 2), zmiana breakpointu
+  `md:hidden` → `lg:hidden` (≥ 1024 px chowamy bo widać sidebar).
+- `useCartStore` API (`addItem`/`updateQuantity`/`removeItem`/`clear`), `useCartCount`,
+  `useCartTotal`, `lineTotal`, `buildLineKey`: zero zmian.
+
+Stany sidebar (D-003 + bundle Stage 2):
+- **empty** (items.length === 0): icon 64 px + headline „Tu pojawi się Twoje zamówienie" +
+  sub-copy + opcjonalny CTA „Przeglądaj menu" → scroll do top kategorii.
+- **with items**: lista CartRow (qty stepper + remove + edit-note placeholder) → opcjonalny
+  `<UpsellSection />` (gdy są kandydaci) → `<FreeDeliveryProgress />` → totals → CTA „Złóż
+  zamówienie · X,XX zł" → secondary „← Wróć do menu".
+- **min-order gating**: gdy `settings.minOrderAmount` jest `number` i `subtotal < min` →
+  CTA disabled + komunikat „Brakuje X zł do minimum zamówienia". Gdy `minOrderAmount`
+  undefined → gating wyłączone (graceful fallback).
+
+**Wykonane:** M-021 (`609957b`) + M-022 (`894310d`). Dodatkowo w M-022 wyciągnięto
+`CartRow` do shared `CartRow.tsx` (2 konsumentów: sidebar + sheet), commit `894310d`.
+
+### AD-Δ3: SettingsDto opcjonalne pola + graceful fallback
+
+`SettingsDto` (`shared/api/settingsApi.ts`) nie ma `minOrderAmount`, `freeDeliveryFrom`,
+`defaultPreparationMinutes`, `deliveryFee`. PHASES.md M1 doda je w osobnym backend tasku.
+**TS-only delta** (sygnatura, zero runtime):
+
+```ts
+export interface SettingsDto {
+  // ... existing 11 pól bez zmian
+  minOrderAmount?: number | null;            // Faza 5 M1 backend delta
+  freeDeliveryFrom?: number | null;          // Faza 5 M1 backend delta
+  defaultPreparationMinutes?: number | null; // Faza 5 M1 backend delta
+  deliveryFee?: number | null;               // Faza 5 M1 backend delta (lub zone-derived)
+}
+```
+
+Wszyscy konsumenci dostają TS hint że pole może być `undefined`. Komponenty:
+- **InfoBar (M-014)** — renderuje 4 moduły, ale każdy `defaultPreparationMinutes ?? null` /
+  `minOrderAmount ?? null` / `deliveryFee ?? null` decyduje czy moduł się pokazuje. Status
+  (open/closed) — bez fallback, używa `useQuery(["public","opening-hours"])` (jak w
+  ClosedBanner). Minimum: zawsze widoczny przynajmniej moduł status.
+- **FreeDeliveryProgress (M-015)** — `if (threshold == null) return null;`. Gdy backend
+  doda pole — komponent automatycznie zacznie renderować.
+- **CartSidebar / CartBottomSheet (M-021/M-022)** — `belowMin` warning + CTA gating tylko
+  gdy `minOrderAmount` jest number. Gdy null/undefined: CTA enabled bez gatingu. Wiersz
+  „Dostawa" w totals pomijany gdy `deliveryFee` undefined; total = subtotal.
+
+**Wykonane:** M-014 (`2fe5b23`) dodaje 4 opcjonalne pola do `SettingsDto`.
+Wszyscy konsumenci (InfoBar, FreeDeliveryProgress, CartSidebar, CartBottomSheet)
+implementują graceful fallback. Smoke Playwright potwierdza: na produkcyjnym backendzie
+(który nie wystawia tych pól) InfoBar pokazuje tylko status moduł, FreeDeliveryProgress
+return null, sidebar/sheet bez belowMin gating i bez wiersza „Dostawa".
+
+---
+
+**Wersja 2.1** · 2026-05-11 · Warstwa 3a complete + Architectural deltas zsumowane.
