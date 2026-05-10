@@ -182,7 +182,7 @@ export function ClosedBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="sticky top-0 z-40 flex min-h-[48px] items-center justify-center gap-2.5 bg-[#B91C1C] px-4 py-2 text-white"
+      className="flex min-h-[48px] items-center justify-center gap-2.5 bg-[#B91C1C] px-4 py-2 text-white"
     >
       <Icon name="clock" size={18} className="shrink-0" />
       <span className="text-[14px] font-medium">{state.message}</span>

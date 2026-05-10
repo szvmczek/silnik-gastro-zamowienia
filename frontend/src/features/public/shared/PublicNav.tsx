@@ -72,7 +72,7 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-20 border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card)/0.95)] backdrop-blur transition-shadow",
+        "border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card)/0.95)] backdrop-blur transition-shadow",
         scrolled && "shadow-sm"
       )}
     >
