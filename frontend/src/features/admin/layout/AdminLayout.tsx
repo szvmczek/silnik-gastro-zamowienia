@@ -9,22 +9,26 @@ import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { AdminSidebar, type AdminNavEntry } from "./AdminSidebar";
 import { AdminTopbar } from "./AdminTopbar";
 
-// Sections from top: Pulpit / operacyjne / archiwum / konfiguracja
-// (Faza 4.5 spec). Visual separators map to <hr> in AdminSidebar.
+// Sekcje wg D-005 + bundle Stage 3 A.Sidebar: Operacyjne / Archiwum
+// / Konfiguracja. Pulpit jako pierwszy item Operacyjne.
+// Ikony z M-006 Icon set, badge?: number prop ready (wartosci podpieta
+// dataflow w Warstwie 4 — patrz M-028 Dashboard summary consumer).
 const navItems: AdminNavEntry[] = [
-  { kind: "link", to: "/admin", label: "Pulpit", end: true },
+  { kind: "section", title: "Operacyjne" },
+  { kind: "link", to: "/admin", label: "Pulpit", end: true, icon: "dashboard" },
+  { kind: "link", to: "/admin/kitchen", label: "Kuchnia", icon: "kitchen" },
+  { kind: "link", to: "/admin/pickup", label: "Wydanie", icon: "pickup" },
+  { kind: "link", to: "/admin/delivery", label: "Dostawa", icon: "delivery" },
   { kind: "separator" },
-  { kind: "link", to: "/admin/kitchen", label: "Kuchnia" },
-  { kind: "link", to: "/admin/pickup", label: "Wydanie" },
-  { kind: "link", to: "/admin/delivery", label: "Dostawa" },
+  { kind: "section", title: "Archiwum" },
+  { kind: "link", to: "/admin/orders", label: "Wszystkie zamówienia", icon: "list" },
   { kind: "separator" },
-  { kind: "link", to: "/admin/orders", label: "Wszystkie zamówienia" },
-  { kind: "separator" },
-  { kind: "link", to: "/admin/menu", label: "Menu" },
-  { kind: "link", to: "/admin/settings", label: "Ustawienia" },
-  { kind: "link", to: "/admin/opening-hours", label: "Godziny otwarcia" },
-  { kind: "link", to: "/admin/page-content", label: "Treści stron" },
-  { kind: "link", to: "/admin/delivery-zones", label: "Strefy dostawy" },
+  { kind: "section", title: "Konfiguracja" },
+  { kind: "link", to: "/admin/menu", label: "Menu", icon: "menu" },
+  { kind: "link", to: "/admin/settings", label: "Ustawienia", icon: "cog" },
+  { kind: "link", to: "/admin/opening-hours", label: "Godziny otwarcia", icon: "clock" },
+  { kind: "link", to: "/admin/page-content", label: "Treści stron", icon: "note" },
+  { kind: "link", to: "/admin/delivery-zones", label: "Strefy dostawy", icon: "zones" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("pl-PL", {
@@ -69,7 +73,7 @@ export function AdminLayout() {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
       <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:w-60">
         <AdminSidebar
           items={navItems}
@@ -82,7 +86,7 @@ export function AdminLayout() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-60 border-r border-slate-200 p-0 sm:max-w-none"
+          className="w-60 border-r border-[rgb(var(--color-border-subtle))] p-0 sm:max-w-none"
           showClose={false}
         >
           <AdminSidebar
