@@ -139,7 +139,7 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
       <DialogContent
         showClose={false}
         className={cn(
-          "flex max-h-[90vh] flex-col gap-0 overflow-hidden border-0 p-0 shadow-2xl",
+          "flex max-h-[90vh] flex-col gap-0 overflow-hidden border-0 bg-[rgb(var(--color-bg-card))] p-0 shadow-[var(--shadow-lg)]",
           "sm:max-w-[760px] sm:rounded-2xl",
           // mobile: bottom sheet
           "max-sm:left-0 max-sm:top-auto max-sm:bottom-0 max-sm:w-full max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0",
@@ -150,12 +150,15 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
       >
         {/* Mobile drag handle */}
         <div className="flex shrink-0 justify-center pt-2.5 sm:hidden">
-          <div className="h-1 w-10 rounded-full bg-slate-300" aria-hidden="true" />
+          <div
+            className="h-1 w-10 rounded-full bg-[rgb(var(--color-border-strong))]"
+            aria-hidden="true"
+          />
         </div>
 
         <div className="relative shrink-0">
           {product.imageUrl ? (
-            <div className="aspect-[16/9] w-full overflow-hidden bg-[#f4ede3] sm:aspect-[21/9]">
+            <div className="aspect-[16/9] w-full overflow-hidden bg-[rgb(var(--color-bg-section))] sm:aspect-[21/9]">
               <img
                 src={product.imageUrl}
                 alt={product.name}
@@ -168,7 +171,7 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
           ) : null}
           <DialogClose
             aria-label="Zamknij"
-            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(var(--color-bg-card)/0.92)] text-[rgb(var(--color-text-primary))] shadow-sm backdrop-blur transition-colors hover:bg-[rgb(var(--color-bg-card))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
           >
             <X className="h-[18px] w-[18px]" />
           </DialogClose>
@@ -176,11 +179,11 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
 
         <div className="flex-1 overflow-y-auto px-6 pb-4 pt-6 sm:px-7">
           <DialogHeader className="gap-2">
-            <DialogTitle className="text-[22px] font-semibold tracking-tight sm:text-[28px]">
+            <DialogTitle className="text-[22px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))] sm:text-[28px]">
               {product.name}
             </DialogTitle>
             {product.description ? (
-              <DialogDescription className="text-[14px] leading-relaxed text-slate-600">
+              <DialogDescription className="text-[14px] leading-relaxed text-[rgb(var(--color-text-body))]">
                 {product.description}
               </DialogDescription>
             ) : null}
@@ -206,28 +209,28 @@ export function ProductModal({ product, open, onOpenChange, currency, defaults }
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-slate-200 bg-white px-6 py-4 sm:px-7">
+        <div className="shrink-0 border-t border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))] px-6 py-4 sm:px-7">
           {validationIssue ? (
             <p className="mb-3 text-[12px] font-medium text-rose-600">{validationIssue}</p>
           ) : null}
           <div className="flex items-center gap-3">
-            <div className="flex h-12 shrink-0 items-center rounded-md border border-slate-300">
+            <div className="flex h-12 shrink-0 items-center rounded-md border border-[rgb(var(--color-border-card))]">
               <button
                 type="button"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="flex h-11 w-11 items-center justify-center text-[rgb(var(--color-text-body))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] disabled:opacity-40"
                 disabled={quantity <= 1}
                 aria-label="Zmniejsz ilość"
               >
                 <Minus className="h-4 w-4" />
               </button>
-              <span className="w-10 text-center font-mono text-[15px] font-semibold text-slate-900">
+              <span className="w-10 text-center font-mono text-[15px] font-semibold text-[rgb(var(--color-text-primary))]">
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={() => setQuantity((q) => q + 1)}
-                className="flex h-11 w-11 items-center justify-center text-slate-600 hover:bg-slate-50"
+                className="flex h-11 w-11 items-center justify-center text-[rgb(var(--color-text-body))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
                 aria-label="Zwiększ ilość"
               >
                 <Plus className="h-4 w-4" />

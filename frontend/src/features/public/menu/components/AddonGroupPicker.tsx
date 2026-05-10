@@ -24,14 +24,16 @@ export function AddonGroupPicker({ group, selected, onToggle, currency }: Props)
   return (
     <fieldset>
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <legend className="text-[13px] font-semibold text-slate-900">
+        <legend className="text-[13px] font-semibold text-[rgb(var(--color-text-primary))]">
           {group.name}
           {group.required ? <span className="ml-1 text-rose-600">*</span> : null}
         </legend>
         <span
           className={cn(
             "text-[11px]",
-            invalid ? "font-medium text-rose-600" : "text-slate-500"
+            invalid
+              ? "font-medium text-rose-600"
+              : "text-[rgb(var(--color-text-muted))]"
           )}
         >
           {rangeLabel(group)}
@@ -47,8 +49,8 @@ export function AddonGroupPicker({ group, selected, onToggle, currency }: Props)
               className={cn(
                 "flex items-center justify-between gap-3 rounded-md border p-3 text-[13px] transition-colors",
                 checked
-                  ? "border-primary bg-primary/5"
-                  : "border-slate-200 hover:border-slate-300",
+                  ? "border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary-tint))]"
+                  : "border-[rgb(var(--color-border-card))] hover:border-[rgb(var(--color-border-strong))]",
                 disabled && "cursor-not-allowed opacity-50",
                 !disabled && "cursor-pointer"
               )}
@@ -61,14 +63,15 @@ export function AddonGroupPicker({ group, selected, onToggle, currency }: Props)
                 />
                 <span
                   className={cn(
-                    "text-slate-800",
-                    checked && "font-medium text-slate-900"
+                    "text-[rgb(var(--color-text-body))]",
+                    checked &&
+                      "font-medium text-[rgb(var(--color-text-primary))]"
                   )}
                 >
                   {addon.name}
                 </span>
               </span>
-              <span className="whitespace-nowrap text-[12px] text-slate-500">
+              <span className="whitespace-nowrap text-[12px] text-[rgb(var(--color-text-muted))]">
                 {Number(addon.price) === 0
                   ? "gratis"
                   : `+${formatPrice(addon.price, currency)}`}
