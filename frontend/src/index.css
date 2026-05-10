@@ -1,12 +1,12 @@
+@import "./styles/tokens.css";
 @import "tw-animate-css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-primary: 255 107 53; /* #FF6B35 — nadpisywane przez ThemeBootstrap po fetch /public/settings */
-}
+/* --color-primary fallback z tokens.css (#E63946 = 230 57 70).
+   ThemeBootstrap nadpisuje po fetch /public/settings. */
 
 html, body, #root {
   height: 100%;
