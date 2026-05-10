@@ -102,6 +102,7 @@ export function AdminLayout() {
         <AdminTopbar
           title={restaurantName}
           subtitle={today}
+          location={settings.data?.city ?? undefined}
           onMobileMenuToggle={() => setMobileOpen(true)}
           rightSlot={
             <>

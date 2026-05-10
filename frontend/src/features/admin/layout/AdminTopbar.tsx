@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { Kicker } from "@/shared/components/typography/Kicker";
 
 interface AdminTopbarProps {
   title: string;
   subtitle?: string;
+  location?: string;
   onMobileMenuToggle: () => void;
   rightSlot?: ReactNode;
   className?: string;
@@ -13,6 +15,7 @@ interface AdminTopbarProps {
 export function AdminTopbar({
   title,
   subtitle,
+  location,
   onMobileMenuToggle,
   rightSlot,
   className,
@@ -20,7 +23,7 @@ export function AdminTopbar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-slate-200 bg-white",
+        "sticky top-0 z-30 border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))]",
         className
       )}
     >
@@ -29,17 +32,18 @@ export function AdminTopbar({
           <button
             type="button"
             onClick={onMobileMenuToggle}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/40 md:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[rgb(var(--color-text-body))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:hidden"
             aria-label="Otwórz menu"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <h1 className="truncate text-[20px] font-semibold tracking-tight text-slate-900">
+            {location && <Kicker className="mb-0.5 block">{location}</Kicker>}
+            <h1 className="truncate text-[20px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
               {title}
             </h1>
             {subtitle && (
-              <div className="mt-0.5 truncate text-[12px] text-slate-500">
+              <div className="mt-0.5 truncate text-[12px] text-[rgb(var(--color-text-muted))]">
                 {subtitle}
               </div>
             )}
