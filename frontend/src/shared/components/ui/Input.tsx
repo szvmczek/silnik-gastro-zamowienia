@@ -21,9 +21,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       ref={ref}
       aria-invalid={error || undefined}
       className={cn(
-        "flex w-full rounded-md border bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:cursor-not-allowed disabled:opacity-60",
+        "flex w-full rounded-md border-[1.5px] bg-white px-3 py-2 text-sm placeholder:text-[rgb(var(--color-text-faint))] focus:outline-none focus:border-primary focus-visible:[box-shadow:var(--shadow-focus)] disabled:cursor-not-allowed disabled:opacity-60",
         SIZE_CLASS[size],
-        error ? "border-rose-300" : "border-slate-300",
+        error
+          ? "border-[rgb(var(--status-cancelled))]"
+          : "border-[rgb(var(--color-border-card))]",
         className
       )}
       {...props}
