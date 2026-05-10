@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu as MenuIcon } from "lucide-react";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
@@ -22,7 +22,7 @@ interface NavLinkSpec {
 }
 
 const PRIMARY_LINK_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white transition-colors hover:brightness-95 active:brightness-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2";
+  "inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white transition-colors hover:bg-[rgb(var(--color-primary-hover))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]";
 
 function buildNavLinks(onLanding: boolean): NavLinkSpec[] {
   return [
@@ -43,8 +43,16 @@ function buildNavLinks(onLanding: boolean): NavLinkSpec[] {
 export function PublicNav({ active = "home", onOpenCart }: Props) {
   const { data: settings } = usePublicSettings();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const links = buildNavLinks(location.pathname === "/");
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 0);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const brand = (
     <Link to="/" className="flex items-center gap-2">
@@ -55,14 +63,19 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
           className="h-8 w-8 rounded object-cover"
         />
       ) : null}
-      <span className="text-[15px] font-semibold tracking-tight text-slate-900 md:text-[17px]">
+      <span className="text-[15px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))] md:text-[17px]">
         {settings?.name ?? "Restauracja"}
       </span>
     </Link>
   );
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header
+      className={cn(
+        "sticky top-0 z-20 border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card)/0.95)] backdrop-blur transition-shadow",
+        scrolled && "shadow-sm"
+      )}
+    >
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:h-16 md:px-8">
         {/* Mobile: hamburger + brand */}
         <div className="flex items-center gap-2 md:hidden">
@@ -71,21 +84,22 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
               <button
                 type="button"
                 aria-label="Otwórz menu"
-                className="-ml-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-slate-800 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="-ml-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-[rgb(var(--color-text-primary))] hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
               >
                 <MenuIcon className="h-5 w-5" />
               </button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 p-6">
-              <div className="mb-8 mt-1 text-[15px] font-semibold tracking-tight text-slate-900">
+              <div className="mb-8 mt-1 text-[15px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
                 {settings?.name ?? "Restauracja"}
               </div>
               <nav className="flex flex-col gap-1 text-[15px]">
                 {links.map((link) => {
                   const isActive = link.to === "/menu" && active === "menu";
                   const commonClass = cn(
-                    "rounded-md px-3 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-900",
-                    isActive && "font-semibold text-slate-900"
+                    "rounded-md px-3 py-2 text-[rgb(var(--color-text-body))] hover:bg-[rgb(var(--color-bg-section))] hover:text-[rgb(var(--color-text-primary))]",
+                    isActive &&
+                      "font-semibold text-[rgb(var(--color-text-primary))]"
                   );
                   return link.isAnchor ? (
                     <a
@@ -129,8 +143,10 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
             {links.map((link) => {
               const isActive = link.to === "/menu" && active === "menu";
               const commonClass = cn(
-                "transition-colors hover:text-slate-900",
-                isActive ? "font-semibold text-slate-900" : "text-slate-700"
+                "transition-colors hover:text-[rgb(var(--color-text-primary))]",
+                isActive
+                  ? "font-semibold text-[rgb(var(--color-text-primary))]"
+                  : "text-[rgb(var(--color-text-body))]"
               );
               return link.isAnchor ? (
                 <a key={link.to} href={link.to} className={commonClass}>
