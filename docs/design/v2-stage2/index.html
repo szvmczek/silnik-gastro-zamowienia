@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stage 2 · Landing klienta · Pizza Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; }
+  #root { width: 100vw; height: 100vh; }
+  @keyframes pulseGreen { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.5); } 50% { box-shadow: 0 0 0 6px rgba(16,185,129,0); } }
+  .is-pulsing-green { animation: pulseGreen 1.8s ease-in-out infinite; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="menu-data.jsx"></script>
+<script type="text/babel" src="landing-shared.jsx"></script>
+<script type="text/babel" src="cart.jsx"></script>
+<script type="text/babel" src="product-modal.jsx"></script>
+<script type="text/babel" src="landing-desktop.jsx"></script>
+<script type="text/babel" src="landing-mobile.jsx"></script>
+<script type="text/babel" src="menu-desktop.jsx"></script>
+<script type="text/babel" src="menu-mobile.jsx"></script>
+
+<script type="text/babel">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "primary": "#E63946",
+    "primaryHover": "#D62937",
+    "primaryTint": "#FCEEEF",
+    "heroCopy": "smacznie",
+    "cartFull": true,
+    "closed": false,
+    "closedBanner": "none",
+    "freeDelivery": true,
+    "showUpsell": true
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const { useTweaks } = window;
+    const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const [openProduct, setOpenProduct] = React.useState(null);
+    const [openMobileSheet, setOpenMobileSheet] = React.useState(null);
+    const [openMenuProduct, setOpenMenuProduct] = React.useState(null);
+    const [openMenuMobileSheet, setOpenMenuMobileSheet] = React.useState(null);
+
+    React.useEffect(() => {
+      document.documentElement.style.setProperty('--color-primary', tweaks.primary);
+      document.documentElement.style.setProperty('--color-primary-hover', tweaks.primaryHover);
+      document.documentElement.style.setProperty('--color-primary-tint', tweaks.primaryTint);
+      document.documentElement.style.setProperty('--status-prep', tweaks.primary);
+      document.documentElement.style.setProperty('--status-prep-tint', tweaks.primaryTint);
+    }, [tweaks]);
+
+    return (
+      <>
+        <window.DesignCanvas>
+          <window.DCSection
+            id="landing"
+            title="01 · Landing / — desktop + mobile"
+            subtitle="Homepage publicznej strony. Hero + info-bar + O nas + Godziny + Kontakt z mapą OSM + footer. Bez menu, bez cart sidebar — CTA ‘Zobacz menu’ prowadzi do /menu (Sekcja 02). Single-tenant, brak loginu klienta, brak Śledź w nav."
+          >
+            <window.DCArtboard id="landing-desktop" label="Desktop · 1440 × scroll" width={1440} height={3300}>
+              <window.LandingDesktop tweaks={tweaks} onGoToMenu={() => {}} />
+            </window.DCArtboard>
+            <window.DCArtboard id="landing-mobile" label="Mobile · 375 (iOS frame)" width={430} height={900}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+                <window.IOSDevice width={402} height={874}>
+                  <div style={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
+                    <window.LandingMobile tweaks={tweaks} onGoToMenu={() => {}} />
+                  </div>
+                </window.IOSDevice>
+              </div>
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="menu-page"
+            title="02 · Menu /menu — desktop + mobile"
+            subtitle="Osobny route /menu. Sticky chips kategorii · 5 kat × 8 produktów · sticky cart sidebar 360 px (desktop). Karty otwierają modal/sheet z konfiguratorem. Tweaki: koszyk pełny/pusty, banner, free delivery."
+          >
+            <window.DCArtboard id="menu-desktop" label="Desktop · 1440 × scroll" width={1440} height={4400}>
+              <window.MenuPageDesktop tweaks={tweaks} onOpenProduct={setOpenMenuProduct} />
+              {openMenuProduct && <window.ProductModalDesktop item={openMenuProduct} onClose={() => setOpenMenuProduct(null)} />}
+            </window.DCArtboard>
+            <window.DCArtboard id="menu-mobile" label="Mobile · 375 (iOS frame)" width={430} height={900}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+                <window.IOSDevice width={402} height={874}>
+                  <div style={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
+                    <window.MenuPageMobile tweaks={tweaks} onOpenProduct={setOpenMenuMobileSheet} onOpenCart={() => {}} />
+                    {openMenuMobileSheet && <window.ProductSheetMobile item={openMenuMobileSheet} onClose={() => setOpenMenuMobileSheet(null)} />}
+                  </div>
+                </window.IOSDevice>
+              </div>
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="cart-states"
+            title="03 · Sticky cart sidebar — 4 stany"
+            subtitle="Pusty empty state · 3 pozycje z note · 6 pozycji z darmową dostawą · 3 pozycje z sekcją ‘A może jeszcze?’ (cross-sell). Operator: PRZED sumą/dostawą/totalami, po liście pozycji."
+          >
+            <window.DCArtboard id="cart-empty" label="Pusty" width={400} height={520}>
+              <div style={{ padding: 16, background: 'var(--color-bg-page)' }}>
+                <window.CartSidebar items={[]} />
+              </div>
+            </window.DCArtboard>
+            <window.DCArtboard id="cart-3" label="3 pozycje · z note" width={400} height={720}>
+              <div style={{ padding: 16, background: 'var(--color-bg-page)' }}>
+                <window.CartSidebar items={window.CART_SAMPLE_3} />
+              </div>
+            </window.DCArtboard>
+            <window.DCArtboard id="cart-5" label="6 pozycji · darmowa dostawa" width={400} height={820}>
+              <div style={{ padding: 16, background: 'var(--color-bg-page)' }}>
+                <window.CartSidebar items={window.CART_SAMPLE_5} />
+              </div>
+            </window.DCArtboard>
+            <window.DCArtboard id="cart-upsell" label="3 pozycje + A może jeszcze?" width={400} height={900}>
+              <div style={{ padding: 16, background: 'var(--color-bg-page)' }}>
+                <window.CartSidebar items={window.CART_SAMPLE_3} showUpsell />
+              </div>
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="cart-mobile-sheet"
+            title="04 · Mobile cart bottom sheet"
+            subtitle="Pełnooekranowy sheet po kliku ikony koszyka w nav. W jednym scrollu: header + lista pozycji + sekcja ‘A może jeszcze?’ + totals + CTA. Drag handle u góry, tap-overlay zamyka."
+          >
+            <window.DCArtboard id="mobile-sheet-3" label="3 pozycje + upsell" width={430} height={900}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+                <window.IOSDevice width={402} height={874}>
+                  <div style={{ height: '100%', position: 'relative', background: 'var(--color-bg-page)' }}>
+                    <window.HeaderMobile cartCount={4} />
+                    <div style={{ padding: '20px 16px', color: 'var(--color-text-muted)', font: '400 13px/1.5 var(--font-sans)' }}>
+                      Tu jest treść menu (przyciemniona overlay’em). Kliknij ikonę koszyka w naw’ie powyżej, żeby otworzyć bottom sheet.
+                    </div>
+                    <window.CartBottomSheet items={window.CART_SAMPLE_3} onClose={() => {}} />
+                  </div>
+                </window.IOSDevice>
+              </div>
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="closed-states"
+            title="05 · Restaurant closed — 3 warianty"
+            subtitle="Banner globalny pojawia się na każdym ekranie publicznym gdy isOpenNow() = false. Polling 60 s. Bez X — znika sam gdy restauracja otwarta."
+          >
+            <window.DCArtboard id="closed-planned" label="Planowane otwarcie" width={1200} height={140}>
+              <div style={{ background: '#fff' }}><window.ClosedBanner variant="planned" /></div>
+            </window.DCArtboard>
+            <window.DCArtboard id="closed-until" label="Manual close + until" width={1200} height={140}>
+              <div style={{ background: '#fff' }}><window.ClosedBanner variant="until" /></div>
+            </window.DCArtboard>
+            <window.DCArtboard id="closed-indefinite" label="Manual close · bez until" width={1200} height={140}>
+              <div style={{ background: '#fff' }}><window.ClosedBanner variant="indefinite" /></div>
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="modal"
+            title="06 · Modal produktu (desktop)"
+            subtitle="Konfigurator: rozmiar 30/40/50, dodatki (8), uwagi do zamówienia, qty stepper, dynamic price. Bottom sheet mobile w głównym artboardzie po kliknięciu karty."
+          >
+            <window.DCArtboard id="modal-desktop" label="Modal · Mafia 40 cm" width={700} height={780}>
+              <div style={{ width: 600, margin: '40px auto', background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <window.ProductConfigurator item={window.MENU[0].items[1]} />
+              </div>
+            </window.DCArtboard>
+          </window.DCSection>
+        </window.DesignCanvas>
+
+        <window.TweaksPanel title="Tweaks · Landing">
+          <window.TweakSection title="Hero copy">
+            <window.TweakRadio
+              value={tweaks.heroCopy}
+              onChange={v => setTweak('heroCopy', v)}
+              options={[
+                { value: 'smacznie', label: 'Smacznie i szybko.' },
+                { value: 'zamow',    label: 'Zamów online.' },
+                { value: 'ulubiona', label: 'Ulubiona pizza.' },
+              ]}
+            />
+          </window.TweakSection>
+          <window.TweakSection title="Stan strony">
+            <window.TweakToggle label="Koszyk pełny (3 poz)" value={tweaks.cartFull} onChange={v => setTweak('cartFull', v)} />
+            <window.TweakToggle label="Pasek darmowej dostawy" value={tweaks.freeDelivery} onChange={v => setTweak('freeDelivery', v)} />
+            <window.TweakToggle label="Sekcja ‘A może jeszcze?’ w cart" value={tweaks.showUpsell} onChange={v => setTweak('showUpsell', v)} />
+            <window.TweakSelect
+              label="Banner zamknięte"
+              value={tweaks.closedBanner}
+              onChange={v => setTweak('closedBanner', v)}
+              options={[
+                { value: 'none', label: 'Brak (otwarte)' },
+                { value: 'planned', label: 'Planowane otwarcie 11:00' },
+                { value: 'until', label: 'Zamknięte do 19:00 — awaria' },
+                { value: 'indefinite', label: 'Zamknięte bezterminowo' },
+              ]}
+            />
+            <window.TweakToggle label="Info-bar: zamknięte (godziny dnia)" value={tweaks.closed} onChange={v => setTweak('closed', v)} />
+          </window.TweakSection>
+          <window.TweakSection title="Primary color">
+            <window.TweakColor label="Primary" value={tweaks.primary} onChange={v => setTweak('primary', v)} />
+            <window.TweakColor label="Hover" value={tweaks.primaryHover} onChange={v => setTweak('primaryHover', v)} />
+            <window.TweakColor label="Tint" value={tweaks.primaryTint} onChange={v => setTweak('primaryTint', v)} />
+          </window.TweakSection>
+        </window.TweaksPanel>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

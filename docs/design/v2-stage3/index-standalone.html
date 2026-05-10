@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pizza Demo · Stage 3 — Admin Redesign</title>
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  /* Page chrome — design canvas host */
+  html, body { margin: 0; padding: 0; background: #ECEAE3; height: 100%; font-family: var(--font-sans); }
+  body { overflow: hidden; }
+  #root { height: 100vh; }
+
+  /* ─────────── Admin token overlay ───────────
+     Stage 3 keeps the public DS palette, but admin chrome leans denser
+     with a slightly cooler shell. These vars are scoped per artboard. */
+  .admin {
+    --admin-shell: #F4F2EC;       /* sidebar bg */
+    --admin-shell-border: #E2DED2;
+    --admin-canvas: #FAFAF8;      /* content area */
+    --admin-card: #FFFFFF;
+    --admin-card-border: #E5E1D6;
+    --admin-card-border-hover: #D4D0C2;
+    --admin-row-hover: #F7F4ED;
+    --admin-divider: #EDE9DF;
+
+    --admin-text-primary: #1A1A1A;
+    --admin-text-body: #3F3F3A;
+    --admin-text-muted: #6B6B66;
+    --admin-text-faint: #A8A59C;
+
+    --admin-nav-active-bg: #FCEEEF;
+    --admin-nav-active-text: #C0202E;
+    --admin-nav-hover-bg: #EFEBDF;
+
+    --admin-radius: 8px;
+    --admin-radius-sm: 6px;
+    --admin-radius-card: 10px;
+
+    background: var(--admin-canvas);
+    color: var(--admin-text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  .admin[data-tone="cool"] {
+    --admin-shell: #F2F4F7;
+    --admin-shell-border: #E4E7EC;
+    --admin-canvas: #FFFFFF;
+    --admin-card: #FFFFFF;
+    --admin-card-border: #E4E7EC;
+    --admin-card-border-hover: #D0D5DD;
+    --admin-row-hover: #F7F8FA;
+    --admin-divider: #EAECF0;
+    --admin-text-primary: #101828;
+    --admin-text-body: #344054;
+    --admin-text-muted: #667085;
+    --admin-text-faint: #98A2B0;
+    --admin-nav-hover-bg: #EAECF0;
+  }
+
+  /* compact / comfortable density */
+  .admin[data-density="compact"] { --admin-card-pad: 14px; --admin-row-h: 56px; --admin-card-gap: 10px; }
+  .admin[data-density="comfortable"] { --admin-card-pad: 20px; --admin-row-h: 72px; --admin-card-gap: 16px; }
+
+  /* small ui primitives reused across admin frames */
+  .admin button { font-family: inherit; }
+  .admin input, .admin select, .admin textarea { font-family: inherit; }
+
+  .scrollbox::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbox::-webkit-scrollbar-thumb { background: #D4D0C2; border-radius: 8px; }
+  .scrollbox::-webkit-scrollbar-track { background: transparent; }
+
+  /* placeholder image (used in dashboard / chart area) */
+  .ph-chart {
+    background:
+      linear-gradient(180deg, transparent 0 calc(100% - 1px), var(--admin-divider) 100%),
+      repeating-linear-gradient(0deg, transparent 0 39px, var(--admin-divider) 39px 40px);
+    border-radius: var(--admin-radius);
+  }
+
+  /* avatar circle */
+  .avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-weight: 700; }
+
+  /* status pill base */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+    line-height: 1; letter-spacing: 0.01em; white-space: nowrap;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
+
+  /* keyframes — admin specific */
+  @keyframes adminPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.42); }
+    50%      { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
+  }
+  .pulse-new { animation: adminPulse 1.8s ease-out infinite; }
+
+  @keyframes flashGreen {
+    0%   { background-color: rgba(16,185,129,0.18); }
+    100% { background-color: transparent; }
+  }
+  .flash-green { animation: flashGreen 600ms ease-out; }
+
+  /* slim divider */
+  .hr-soft { height: 1px; background: var(--admin-divider); border: 0; }
+</style>
+</head>
+<body>
+  <template id="__bundler_thumbnail" data-bg-color="#ECEAE3">
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="400" fill="#ECEAE3"/>
+      <circle cx="200" cy="200" r="120" fill="#E63946"/>
+      <text x="200" y="232" text-anchor="middle" font-family="ui-sans-serif,system-ui" font-size="120" font-weight="800" fill="#fff">P</text>
+    </svg>
+  </template>
+  <div id="root"></div>
+
+  <!-- React + Babel -->
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+
+  <!-- Admin shared primitives (icons, chrome, status pills, fixtures) -->
+  <script type="text/babel" src="admin-shared.jsx"></script>
+
+  <!-- Frame components -->
+  <script type="text/babel" src="frame-login.jsx"></script>
+  <script type="text/babel" src="frame-dashboard.jsx"></script>
+  <script type="text/babel" src="frame-kitchen.jsx"></script>
+  <script type="text/babel" src="frame-pickup.jsx"></script>
+  <script type="text/babel" src="frame-delivery.jsx"></script>
+  <script type="text/babel" src="frame-orders.jsx"></script>
+  <script type="text/babel" src="frame-order-detail.jsx"></script>
+  <script type="text/babel" src="frame-menu.jsx"></script>
+  <script type="text/babel" src="frame-product-edit.jsx"></script>
+
+  <!-- App shell (canvas composition + tweaks) -->
+  <script type="text/babel" src="app.jsx"></script>
+
+  <!-- EditMode persistence block -->
+  <script>
+    window.__STAGE3_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "tone": "cool",
+      "density": "compact",
+      "soundOn": true,
+      "sseSimulate": true,
+      "manualClose": false,
+      "highlightItemNote": true,
+      "newOrderCount": 12
+    }/*EDITMODE-END*/;
+  </script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Design System v2 · Confident Local · Stage 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; }
+  #root { width: 100vw; height: 100vh; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="foundations.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="patterns.jsx"></script>
+<script type="text/babel" src="proof.jsx"></script>
+
+<script type="text/babel">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "primary": "#E63946",
+    "primaryHover": "#D62937",
+    "primaryTint": "#FCEEEF",
+    "darkMode": false
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const { useTweaks } = window;
+    const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    React.useEffect(() => {
+      document.documentElement.style.setProperty('--color-primary', tweaks.primary);
+      document.documentElement.style.setProperty('--color-primary-hover', tweaks.primaryHover);
+      document.documentElement.style.setProperty('--color-primary-tint', tweaks.primaryTint);
+      // status-prep follows primary (primary IS the prep status)
+      document.documentElement.style.setProperty('--status-prep', tweaks.primary);
+      document.documentElement.style.setProperty('--status-prep-tint', tweaks.primaryTint);
+      document.documentElement.dataset.theme = tweaks.darkMode ? 'dark' : 'light';
+    }, [tweaks]);
+
+    const presets = [
+      { label: 'Pomidorowy (default)', p: '#E63946', ph: '#D62937', pt: '#FCEEEF' },
+      { label: 'Kebab amber', p: '#E07A1F', ph: '#C66515', pt: '#FBEFE0' },
+      { label: 'Burger deep red', p: '#B91C1C', ph: '#991616', pt: '#FBE9E9' },
+      { label: 'Sushi dark teal', p: '#0E7C7B', ph: '#0A6363', pt: '#E0F0F0' },
+      { label: 'Pierogi plum', p: '#7C3AED', ph: '#6929D1', pt: '#F0E9FB' },
+    ];
+
+    return (
+      <>
+        <window.DesignCanvas>
+          <window.DCSection
+            id="foundations"
+            title="01 · Foundations"
+            subtitle="Color · type · spacing · radii · shadow · motion. Confident Local — pizzeria osiedlowa, ale z dyscypliną Linear/Stripe/Vercel."
+          >
+            <window.DCArtboard id="foundations-1" label="Color · Type · Spacing · Radii · Shadow · Motion" width={1280} height={3500}>
+              <window.FoundationsArtboard />
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="components"
+            title="02 · Components"
+            subtitle="Buttons, badges, status pills, inputs, cards, modal, sheet, toast, banner."
+          >
+            <window.DCArtboard id="components-1" label="Buttons · Badges · Inputs · Cards · Overlays · Banners" width={1280} height={2200}>
+              <window.ComponentsArtboard />
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="patterns"
+            title="03 · Patterns"
+            subtitle="Kicker editorial label, czarny info-bar, tracking timeline (horyzontalny + wertykalny)."
+          >
+            <window.DCArtboard id="patterns-1" label="Kicker · Info-bar · Tracking timeline" width={1280} height={1500}>
+              <window.PatternsArtboard />
+            </window.DCArtboard>
+          </window.DCSection>
+
+          <window.DCSection
+            id="proof"
+            title="04 · Proof of concept"
+            subtitle="Trzy aplikacje tokenów: hero block, karta produktu, admin operations card. Bez nowego CSS."
+          >
+            <window.DCArtboard id="proof-1" label="Hero · Product card · Admin operations card" width={1280} height={1750}>
+              <window.ProofArtboard />
+            </window.DCArtboard>
+          </window.DCSection>
+        </window.DesignCanvas>
+
+        <window.TweaksPanel title="Tweaks · Design System">
+          <window.TweakSection title="Primary color">
+            <window.TweakColor label="Primary" value={tweaks.primary} onChange={v => setTweak('primary', v)} />
+            <window.TweakColor label="Hover" value={tweaks.primaryHover} onChange={v => setTweak('primaryHover', v)} />
+            <window.TweakColor label="Tint" value={tweaks.primaryTint} onChange={v => setTweak('primaryTint', v)} />
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ font: '600 11px/1 Inter', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#6B6B66' }}>Template presets</div>
+              {presets.map(p => (
+                <button key={p.label} onClick={() => setTweak({ primary: p.p, primaryHover: p.ph, primaryTint: p.pt })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#fff', border: '1px solid #E5E1D6', borderRadius: 6, cursor: 'pointer', font: '500 12px/1 Inter', color: '#1A1A1A' }}>
+                  <span style={{ width: 16, height: 16, background: p.p, borderRadius: 4 }} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </window.TweakSection>
+          <window.TweakSection title="Theme">
+            <window.TweakToggle label="Dark mode (ROADMAP — stress test)" value={tweaks.darkMode} onChange={v => setTweak('darkMode', v)} />
+          </window.TweakSection>
+        </window.TweaksPanel>
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
