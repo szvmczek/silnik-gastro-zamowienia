@@ -1,7 +1,12 @@
 import { ShoppingBag, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/Button";
-import { Sheet, SheetContent, SheetTitle } from "@/shared/components/ui/Sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/shared/components/ui/Sheet";
 import { cn } from "@/shared/lib/cn";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
@@ -88,6 +93,10 @@ export function CartBottomSheet({
           "flex max-h-[92vh] flex-col gap-0 rounded-t-2xl border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-0 shadow-[var(--shadow-lg)]"
         )}
       >
+        <SheetDescription className="sr-only">
+          Koszyk zamówienia z listą pozycji, sumą i przyciskiem złóż zamówienie.
+        </SheetDescription>
+
         {/* Drag handle (visual only) */}
         <div className="flex shrink-0 justify-center pt-2.5">
           <div

@@ -53,10 +53,10 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
   };
 
   return (
-    <div className="sticky top-14 z-10 -mx-6 border-y border-slate-200 bg-[#fbfaf7]/95 backdrop-blur sm:top-16 sm:mx-0">
+    <div className="border-y border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page)/0.95)] backdrop-blur">
       {/* Desktop — editorial "Skocz do" index */}
       <nav className="hidden h-14 items-center gap-1 px-6 sm:flex md:px-12">
-        <span className="mr-4 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-400">
+        <span className="mr-4 font-mono text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--color-text-faint))]">
           Skocz do
         </span>
         {tabs.map((tab, i) => {
@@ -68,22 +68,24 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "group inline-flex h-9 items-baseline gap-2 rounded-md px-3 text-[13px] transition-colors",
+                "group inline-flex h-9 items-baseline gap-2 rounded-md px-3 text-[13px] transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
                 isActive
-                  ? "font-semibold text-slate-900"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "font-semibold text-[rgb(var(--color-text-primary))]"
+                  : "text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-primary))]"
               )}
             >
               <span
                 className={cn(
                   "font-mono text-[10px] tabular-nums",
-                  isActive ? "text-primary" : "text-slate-400 group-hover:text-primary"
+                  isActive
+                    ? "text-[rgb(var(--color-primary))]"
+                    : "text-[rgb(var(--color-text-faint))] group-hover:text-[rgb(var(--color-primary))]"
                 )}
               >
                 {String(i + 1).padStart(2, "0")}
               </span>
               <span>{tab.name}</span>
-              <span className="font-mono text-[10px] tabular-nums text-slate-400">
+              <span className="font-mono text-[10px] tabular-nums text-[rgb(var(--color-text-faint))]">
                 / {tab.count}
               </span>
             </button>
@@ -102,16 +104,16 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[12px] leading-none transition-colors",
+                "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[12px] leading-none transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
                 isActive
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600"
+                  ? "bg-[rgb(var(--color-bg-dark))] text-white"
+                  : "text-[rgb(var(--color-text-body))]"
               )}
             >
               <span
                 className={cn(
                   "font-mono text-[9px] leading-none tabular-nums",
-                  isActive ? "text-white/60" : "text-slate-400"
+                  isActive ? "text-white/60" : "text-[rgb(var(--color-text-faint))]"
                 )}
               >
                 {String(i + 1).padStart(2, "0")}
