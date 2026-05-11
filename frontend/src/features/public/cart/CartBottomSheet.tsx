@@ -154,6 +154,7 @@ export function CartBottomSheet({
                 }
                 onRemove={() => handleRemove(item)}
                 onEdit={onEditItem ? () => onEditItem(item) : undefined}
+                compact={false}
               />
             ))}
           </ul>

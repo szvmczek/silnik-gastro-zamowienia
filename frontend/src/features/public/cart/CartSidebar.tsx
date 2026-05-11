@@ -84,10 +84,10 @@ export function CartSidebar({
       aria-label="Koszyk"
     >
       {/* Header */}
-      <div className="border-b border-[rgb(var(--color-border-subtle))] p-5">
-        <div className="t-kicker t-kicker--accent mb-1.5">Twój koszyk</div>
+      <div className="border-b border-[rgb(var(--color-border-subtle))] px-5 py-4">
+        <div className="t-kicker t-kicker--accent mb-0.5">Twój koszyk</div>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-[22px] font-bold leading-tight tracking-[-0.02em] text-[rgb(var(--color-text-primary))]">
+          <h2 className="text-[20px] font-bold leading-tight tracking-[-0.02em] text-[rgb(var(--color-text-primary))]">
             {empty
               ? "Pusty"
               : `${items.length} ${plural(items.length, ["pozycja", "pozycje", "pozycji"])}`}
@@ -136,6 +136,7 @@ export function CartSidebar({
               onDecrement={() => updateQuantity(item.lineKey, item.quantity - 1)}
               onRemove={() => handleRemove(item)}
               onEdit={onEditItem ? () => onEditItem(item) : undefined}
+              compact
             />
           ))}
         </ul>

@@ -19,6 +19,7 @@ export interface CartRowProps {
   onDecrement: () => void;
   onRemove: () => void;
   onEdit?: () => void;
+  compact?: boolean;
 }
 
 function formatLineMeta(item: CartItem): string {
@@ -34,6 +35,7 @@ export function CartRow({
   onDecrement,
   onRemove,
   onEdit,
+  compact = false,
 }: CartRowProps) {
   const meta = formatLineMeta(item);
   const lineTotalLabel = formatPrice(lineTotal(item), currency);
@@ -41,7 +43,7 @@ export function CartRow({
   return (
     <li
       className={cn(
-        "flex flex-col gap-2 py-3.5",
+        "flex flex-col gap-1.5 py-2.5",
         !last && "border-b border-[rgb(var(--color-border-subtle))]"
       )}
     >
@@ -91,17 +93,21 @@ export function CartRow({
 
         <div className="flex items-center gap-1.5">
           {/* TODO(F-005 placeholder): backend pole itemNote w OrderItem + CartItem
-              store. Po dodaniu — uncomment onClick + textarea inline edit. */}
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Wkrótce dostępne — komentarz do pozycji"
-            className="flex h-7 shrink-0 cursor-not-allowed items-center gap-1 rounded border border-[rgb(var(--color-border-card))] px-2 text-[11px] font-medium leading-none text-[rgb(var(--color-text-faint))] opacity-60"
-          >
-            <span aria-hidden="true">＋</span>
-            <span>dodaj uwagę</span>
-          </button>
+              store. Po dodaniu — uncomment onClick + textarea inline edit.
+              F-009: ukryty w compact (CartSidebar desktop), zachowany w
+              CartBottomSheet mobile gdzie viewport pressure mniejsza. */}
+          {!compact ? (
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              title="Wkrótce dostępne — komentarz do pozycji"
+              className="flex h-7 shrink-0 cursor-not-allowed items-center gap-1 rounded border border-[rgb(var(--color-border-card))] px-2 text-[11px] font-medium leading-none text-[rgb(var(--color-text-faint))] opacity-60"
+            >
+              <span aria-hidden="true">＋</span>
+              <span>dodaj uwagę</span>
+            </button>
+          ) : null}
           {onEdit ? (
             <button
               type="button"
