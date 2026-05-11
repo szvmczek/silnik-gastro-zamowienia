@@ -167,7 +167,6 @@ export function CartBottomSheet({
               cartItems={items}
               onAdd={onUpsellAdd}
               currency={currency}
-              compact
             />
 
             <div className="mt-3">

@@ -22,7 +22,6 @@ interface Props {
   cartItems: CartItem[];
   onAdd: (product: PublicProductDto) => void;
   currency?: string;
-  compact?: boolean;
 }
 
 function priceLabel(product: PublicProductDto, currency: string): string {
@@ -37,7 +36,6 @@ export function UpsellSection({
   cartItems,
   onAdd,
   currency = "PLN",
-  compact = false,
 }: Props) {
   const { data: menu } = usePublicMenu();
   const [removed, setRemoved] = useState<Set<number>>(new Set());
@@ -69,17 +67,17 @@ export function UpsellSection({
     <section
       className={cn(
         "border-t border-dashed border-[rgb(var(--color-border-card))]",
-        compact ? "mt-1 pt-3" : "mt-1 pt-4"
+        "mt-1 pt-2"
       )}
       aria-label="Sugerowane dodatki do zamówienia"
     >
-      <div className="mb-2.5 flex items-baseline justify-between gap-2">
+      <div className="mb-1.5 flex items-baseline justify-between gap-2">
         <span className="t-kicker t-kicker--accent">A może jeszcze?</span>
         <span className="font-mono text-[11px] text-[rgb(var(--color-text-faint))]">
           {suggestions.length} {suffix}
         </span>
       </div>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         {suggestions.map((product) => (
           <UpsellRow
             key={product.id}
@@ -108,7 +106,7 @@ function UpsellRow({ product, currency, leaving, onAdd }: UpsellRowProps) {
   return (
     <div
       className={cn(
-        "group flex min-h-[56px] items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-2.5 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))]",
+        "group flex min-h-[48px] items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-2.5 py-2 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))]",
         leaving && "translate-y-2 opacity-0"
       )}
     >
