@@ -42,61 +42,70 @@ interface Props {
   hours: OpeningHoursDto[] | undefined;
 }
 
+/* OpeningHoursSection — F-007 retrofit pod bundle Stage 2 HoursSection.
+   Centered max-w-720, table z border-radius 12px, każdy wiersz padding
+   16px 24px (desktop) / 14px 16px (mobile). DZIŚ row bg primary-tint
+   z DZIŚ label primary bg white text. */
+
 export function OpeningHoursSection({ hours }: Props) {
   const byDay = new Map((hours ?? []).map((h) => [h.dayOfWeek, h]));
   const today = resolveTodayInWarsaw();
 
   return (
-    <section id="hours" className="border-t border-slate-200 bg-white py-16 md:py-24">
-      <div className="mx-auto max-w-6xl px-4 md:px-8">
-        <div className="mb-8 md:mb-10">
-          <div className="mb-3 font-mono text-[11px] font-medium uppercase tracking-[0.22em] text-slate-400">
-            Godziny otwarcia
-          </div>
-          <h2 className="text-[28px] font-semibold leading-[1.1] tracking-tight text-slate-900 md:text-[40px] md:leading-[1.05]">
+    <section
+      id="hours"
+      className="border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page))] py-12 md:py-20"
+    >
+      <div className="mx-auto max-w-[720px] px-4 md:px-8">
+        <div className="mb-7 text-center md:mb-9">
+          <div className="t-kicker t-kicker--accent mb-3">GODZINY OTWARCIA</div>
+          <h2 className="text-[26px] font-extrabold leading-[1.1] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[40px]">
             Kiedy zapraszamy
+            <span className="text-[rgb(var(--color-primary))]">.</span>
           </h2>
         </div>
-        <div className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2.5 text-[14px] md:max-w-[460px]">
-          {DAY_ORDER.map((day) => {
+        <div className="overflow-hidden rounded-[12px] border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
+          {DAY_ORDER.map((day, i) => {
             const entry = byDay.get(day);
             const isToday = today === day;
             const isClosed = !entry || entry.closed;
+            const isLast = i === DAY_ORDER.length - 1;
             return (
-              <div key={day} className="contents">
-                <div
+              <div
+                key={day}
+                className={cn(
+                  "flex items-center justify-between gap-4 px-4 py-3.5 md:px-6 md:py-4",
+                  !isLast && "border-b border-[rgb(var(--color-border-card))]",
+                  isToday && "bg-[rgb(var(--color-primary-tint))]"
+                )}
+              >
+                <span
                   className={cn(
-                    "flex items-center gap-2",
+                    "inline-flex items-center gap-2 text-[14px] leading-none md:text-[15px]",
                     isToday
-                      ? "font-semibold text-slate-900"
-                      : "text-slate-600"
+                      ? "font-semibold text-[rgb(var(--color-primary))]"
+                      : "font-medium text-[rgb(var(--color-text-primary))]"
                   )}
                 >
+                  {DAY_LABELS[day]}
                   {isToday ? (
-                    <span
-                      aria-hidden="true"
-                      className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary"
-                    />
-                  ) : null}
-                  <span>{DAY_LABELS[day]}</span>
-                  {isToday ? (
-                    <span className="ml-1 font-mono text-[11px] font-medium tracking-[0.18em] text-primary">
-                      DZIŚ
+                    <span className="rounded-[3px] bg-[rgb(var(--color-primary))] px-1.5 py-1 font-mono text-[10px] font-bold uppercase leading-none tracking-[0.06em] text-white">
+                      dziś
                     </span>
                   ) : null}
-                </div>
-                <div
+                </span>
+                <span
                   className={cn(
-                    "text-right font-mono text-[13px] tabular-nums",
+                    "whitespace-nowrap font-mono text-[14px] tabular-nums md:text-[15px]",
                     isToday
-                      ? "font-semibold text-slate-900"
-                      : "text-slate-500"
+                      ? "font-semibold text-[rgb(var(--color-primary))]"
+                      : "font-medium text-[rgb(var(--color-text-body))]"
                   )}
                 >
                   {isClosed
                     ? "Zamknięte"
                     : `${entry.openTime} – ${entry.closeTime}`}
-                </div>
+                </span>
               </div>
             );
           })}

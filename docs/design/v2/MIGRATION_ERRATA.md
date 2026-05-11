@@ -241,8 +241,58 @@ bez parsowania/maskowania (admin wpisuje w preferowanym formacie).
 ten plik. Phone CTA `settings?.phone` graceful null (gdy backend nie wystawia
 — phone CTA się nie renderuje, CartButton sam wypełnia right actions).
 
+### AD-Δ5: AboutSection bez stats trio (świadomy mismatch vs bundle)
+
+> 2026-05-11 · Warstwa 3a fix-up · F-007 Landing sections retrofit.
+
+Bundle Stage 2 `landing-shared.jsx` AboutSection ma 3 stats hardcoded:
+"8 lat na rynku · 40+ pozycji w menu · 35 min średni czas dostawy".
+My pomijamy — backend `PageContentDto` (HERO / ABOUT entries z title /
+body / imageUrl / ctaLabel / ctaHref) nie ma pól stats, a hardcoded
+copy naruszyłby zasadę "Zero hardcoded contentu" z CLAUDE.md.
+
+**Δ:** AboutSection renderuje kicker "O NAS" + h2 z accent dot + body
+z `about.body`. Mobile image hidden (bundle pattern). Stats sekcja
+nie wchodzi do F-007.
+
+Post-MVP opcje:
+- A) Dodać pola `foundedYear?: number | null` i `quickStats?: string[]`
+  do `PageContentDto.ABOUT` entry + admin UI w PageContentPage edit form.
+- B) Derive z dostępnych źródeł — np. `menu.categories.flatMap(c => c.products).length`
+  dla "{N}+ pozycji w menu" + `RestaurantSettings.foundedYear` (gdy doda się
+  pole). 35 min — pewno z `defaultPreparationMinutes` (Faza 5 M1 backend delta).
+- C) Stats jako 4-ty PageContent entry "STATS" z body jako JSON lub
+  whitespace-separated triple.
+
+**Wykonane:** F-007 (`<commit>`) — AboutSection.tsx bez stats trio.
+
+### AD-Δ6: ContactSection bez sekcji "Strefa dostawy" (świadomy mismatch)
+
+> 2026-05-11 · Warstwa 3a fix-up · F-007 Landing sections retrofit.
+
+Bundle ContactMapSection ma 4-tą sekcję pod TELEFON / E-MAIL:
+"STREFA DOSTAWY" z listą miast (Warszawa Centrum / Mokotów / Wola / Ochota)
++ link "Sprawdź swój adres →". My pomijamy — `SettingsDto` nie ma pól
+zone copy ani aggregate listy stref.
+
+**Δ:** ContactSection renderuje 3 fields (ADRES / TELEFON / E-MAIL)
+plus map. Layout 1fr/1fr desktop, 1-col mobile. Map aspect 1:1 desktop /
+4:3 mobile, border tokens, rounded 12px.
+
+Post-MVP wire-up:
+- `features/admin/delivery-zones/` (osobna feature, M-040 w MIGRATION_PLAN)
+  już istnieje z `DeliveryZoneDto.areas: string[]` per zona.
+- Wystawić public endpoint `GET /public/delivery-zones-summary` zwracający
+  unikalne `areas` z aktywnych zon (filter `active = true`).
+- ContactSection dodać 4-ty field `STREFA DOSTAWY` z `useQuery(["public",
+  "delivery-zones-summary"])` + render "Dostarczamy do: {area1}, {area2},
+  {area3}+" (limit 3-4, "i więcej" link do delivery zone checker w
+  checkout flow).
+- Backend ma data, frontend public landing nie pokazuje listy w F-007.
+
+**Wykonane:** F-007 (`<commit>`) — ContactSection.tsx bez "Strefa dostawy".
+
 ---
 
-**Wersja 2.2** · 2026-05-11 · Warstwa 3a complete + 4 Architectural deltas
-(AD-Δ1..Δ4). AD-Δ5 / Δ6 mogą jeszcze dojść w F-007 (Landing sections retrofit
-— About stats hardcoded, Contact "Strefa dostawy" backend gap).
+**Wersja 2.3** · 2026-05-11 · Warstwa 3a + Warstwa 3a fix-up (F-001..F-007)
+complete + 6 Architectural deltas (AD-Δ1..Δ6).
