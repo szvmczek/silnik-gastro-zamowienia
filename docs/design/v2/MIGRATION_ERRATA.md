@@ -208,6 +208,41 @@ implementują graceful fallback. Smoke Playwright potwierdza: na produkcyjnym ba
 (który nie wystawia tych pól) InfoBar pokazuje tylko status moduł, FreeDeliveryProgress
 return null, sidebar/sheet bez belowMin gating i bez wiersza „Dostawa".
 
+### AD-Δ4: Mobile hamburger w PublicNav zachowany (świadomy mismatch vs bundle)
+
+> 2026-05-11 · Warstwa 3a fix-up · F-006 PublicNav telefon CTA + CartButton state-based.
+
+Bundle Stage 2 `landing-shared.jsx` HeaderMobile nie ma hamburgera — single-page
+landing scrolling do sekcji `#about` / `#contact`. Nasza architektura (D-002) ma
+split `/` (landing) + `/menu` (osobny route z sticky cart). Na `/menu` mobile bez
+hamburgera użytkownik nie ma jak wrócić do landing sections / kontaktu.
+
+**Δ:**
+- `PublicNav.tsx` mobile zachowuje hamburger Sheet z navigation links
+  (Menu / O nas / Kontakt + "Zamów online" fallback inside sheet).
+- Right actions section pod F-006: phone CTA (desktop label-full
+  `📞 +48 …` `md:inline-flex`; mobile icon-only square `md:hidden`)
+  + `CartButton` state-based.
+- 0-state cart button visible (zamiast bundle hidden-when-empty) —
+  świadoma decyzja UX consistency cross-state. Bundle pokazuje 0-state
+  outlined wariant gdy renderuje — to nie mismatch.
+- `CartButton.tsx` retrofit: slate kolory → tokens v2; state-based:
+  count=0 → 40×40 outlined kwadrat (border-card, text-primary),
+  count>0 → h-10 px-3 primary bg + white text + icon + mono count.
+- Drop "Zamów online" CTA z desktop right actions (bundle nie ma); CTA
+  zostaje wewnątrz mobile Sheet jako secondary fallback gdy klient
+  otworzy hamburger menu.
+
+Out of scope: bundle drag-to-close gesture, swipe-down nav close,
+PublicNav-level scroll-spy. Phone format display: raw `settings.phone`
+bez parsowania/maskowania (admin wpisuje w preferowanym formacie).
+
+**Wykonane:** F-006 (`<commit>`) — zmiany w PublicNav.tsx + CartButton.tsx +
+ten plik. Phone CTA `settings?.phone` graceful null (gdy backend nie wystawia
+— phone CTA się nie renderuje, CartButton sam wypełnia right actions).
+
 ---
 
-**Wersja 2.1** · 2026-05-11 · Warstwa 3a complete + Architectural deltas zsumowane.
+**Wersja 2.2** · 2026-05-11 · Warstwa 3a complete + 4 Architectural deltas
+(AD-Δ1..Δ4). AD-Δ5 / Δ6 mogą jeszcze dojść w F-007 (Landing sections retrofit
+— About stats hardcoded, Contact "Strefa dostawy" backend gap).

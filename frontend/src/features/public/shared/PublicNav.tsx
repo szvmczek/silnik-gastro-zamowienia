@@ -161,15 +161,29 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
           </nav>
         </div>
 
-        {/* Right actions */}
+        {/* Right actions — F-006: phone CTA (state-based desktop/mobile) + CartButton */}
         <div className="flex items-center gap-2 md:gap-3">
+          {settings?.phone ? (
+            <>
+              {/* Desktop: phone z pełnym labelem */}
+              <a
+                href={`tel:${settings.phone}`}
+                className="hidden h-10 items-center gap-2 rounded-md px-3 text-[14px] font-medium text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:inline-flex"
+              >
+                <span aria-hidden="true">📞</span>
+                <span>{settings.phone}</span>
+              </a>
+              {/* Mobile: phone icon-only square */}
+              <a
+                href={`tel:${settings.phone}`}
+                aria-label="Zadzwoń"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-text-primary))] md:hidden"
+              >
+                <span aria-hidden="true">📞</span>
+              </a>
+            </>
+          ) : null}
           <CartButton onClick={onOpenCart} />
-          <Link
-            to="/menu"
-            className={cn(PRIMARY_LINK_CLASSES, "hidden h-10 md:inline-flex")}
-          >
-            Zamów online
-          </Link>
         </div>
       </div>
     </header>

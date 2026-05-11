@@ -35,3 +35,15 @@ robi osobny task który dotyka frontendu + backendu spójnie:
    - Admin UI: SettingsLayout → Treści strony → tab Menu (lub
      extension istniejącego PageContent admin formularza)
    - Świadomie poza scope Warstwy 3a fix-up
+
+5. Walidacja formatu telefonu w admin Settings (Warstwa 3a fix-up F-006):
+   - PublicNav (desktop label, mobile icon button) renderuje raw
+     `settings.phone` z formatem zachowanym z admin form
+   - Post-MVP: walidacja w admin Settings → Ogólne (input phone):
+     sugestia maski `+48 XXX XXX XXX` lub similar PL standard
+     (np. react-input-mask lub native pattern attribute)
+   - Backend: regex `^\+?\d[\d\s-]{8,15}$` na endpoint update
+     (Bean Validation @Pattern), zwrócić błąd 422 gdy malformed
+   - Frontend: Zod schema walidacja przed PUT /admin/settings,
+     toast error gdy format niepoprawny
+   - Świadomie poza scope Warstwy 3a fix-up (UI walidacja gap)

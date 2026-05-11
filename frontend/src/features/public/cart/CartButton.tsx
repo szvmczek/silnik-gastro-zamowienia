@@ -7,8 +7,10 @@ interface Props {
   onClick: () => void;
 }
 
-/* CartButton — ikona koszyka w PublicNav. Po M-019: bump animation
-   200ms gdy cartCount wzrasta (klient dodał item z ProductModal).
+/* CartButton — state-based ikona w PublicNav (F-006 retrofit).
+   - count = 0: 40×40 outlined kwadrat (border-card, text-primary)
+   - count > 0: h-10 px-3 primary bg, white text, icon + mono count
+   Bump animation 200ms gdy count wzrasta (klient dodał item z ProductModal).
    prefers-reduced-motion wyłącza animację via tokens.css globalny
    media query. */
 
@@ -33,13 +35,16 @@ export function CartButton({ onClick }: Props) {
       onClick={onClick}
       aria-label={count > 0 ? `Koszyk (${count})` : "Koszyk"}
       className={cn(
-        "relative inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        "inline-flex h-10 shrink-0 items-center rounded-md transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+        count > 0
+          ? "gap-2 border border-transparent bg-[rgb(var(--color-primary))] px-3 text-white hover:bg-[rgb(var(--color-primary-hover))]"
+          : "w-10 justify-center border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-primary))] hover:border-[rgb(var(--color-border-strong))]",
         bumping && "is-bumping"
       )}
     >
       <ShoppingCart className="h-5 w-5" />
       {count > 0 ? (
-        <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold leading-none text-white ring-2 ring-white">
+        <span className="font-mono text-[13px] font-semibold leading-none tabular-nums">
           {count > 99 ? "99+" : count}
         </span>
       ) : null}
