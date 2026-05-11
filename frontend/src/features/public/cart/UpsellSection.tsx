@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { usePublicMenu } from "@/features/public/menu/hooks/usePublicMenu";
 import { formatPrice, minVariantPrice } from "@/features/public/menu/lib/formatPrice";
+import { getCategoryEmoji } from "@/features/public/menu/lib/categoryEmoji";
 import type { PublicProductDto } from "@/shared/api/menuApi";
 import type { CartItem } from "./cartStore";
 
@@ -31,17 +32,6 @@ function priceLabel(product: PublicProductDto, currency: string): string {
   }
   return formatPrice(product.basePrice, currency);
 }
-
-const MiniStripedPlaceholder = () => (
-  <div
-    className="h-10 w-10 shrink-0 rounded-md"
-    style={{
-      background:
-        "repeating-linear-gradient(135deg, rgba(15,23,42,0.04) 0, rgba(15,23,42,0.04) 6px, rgba(15,23,42,0.08) 6px, rgba(15,23,42,0.08) 12px)",
-    }}
-    aria-hidden="true"
-  />
-);
 
 export function UpsellSection({
   cartItems,
@@ -113,38 +103,26 @@ interface UpsellRowProps {
 
 function UpsellRow({ product, currency, leaving, onAdd }: UpsellRowProps) {
   const price = priceLabel(product, currency);
+  const emoji = getCategoryEmoji(product.categorySlug);
 
   return (
     <div
       className={cn(
-        "group flex items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-2.5 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))]",
+        "group flex min-h-[56px] items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-2.5 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))]",
         leaving && "translate-y-2 opacity-0"
       )}
     >
-      {product.imageUrl ? (
-        <img
-          src={product.imageUrl}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className="h-10 w-10 shrink-0 rounded-md object-cover"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      ) : (
-        <MiniStripedPlaceholder />
-      )}
+      <span
+        aria-hidden="true"
+        className="w-7 shrink-0 text-center text-[22px] leading-none"
+      >
+        {emoji}
+      </span>
 
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13.5px] font-semibold leading-tight text-[rgb(var(--color-text-primary))]">
           {product.name}
         </div>
-        {product.description ? (
-          <div className="truncate text-[11.5px] leading-tight text-[rgb(var(--color-text-muted))]">
-            {product.description}
-          </div>
-        ) : null}
       </div>
 
       <span className="whitespace-nowrap font-mono text-[13px] font-bold tabular-nums text-[rgb(var(--color-text-primary))]">
