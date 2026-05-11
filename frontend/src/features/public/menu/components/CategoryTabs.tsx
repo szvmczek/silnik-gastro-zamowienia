@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/shared/lib/cn";
+import { getCategoryEmoji } from "../lib/categoryEmoji";
 
 interface Tab {
   id: number;
@@ -54,71 +55,30 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
 
   return (
     <div className="border-y border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page)/0.95)] backdrop-blur">
-      {/* Desktop — editorial "Skocz do" index */}
-      <nav className="hidden h-14 items-center gap-1 px-6 sm:flex md:px-12">
-        <span className="mr-4 font-mono text-[11px] uppercase tracking-[0.18em] text-[rgb(var(--color-text-faint))]">
-          Skocz do
-        </span>
+      <nav
+        aria-label="Kategorie menu"
+        className="flex h-14 items-center gap-2 overflow-x-auto px-4 scrollbar-none md:h-16 md:px-12"
+      >
         {tabs.map((tab, i) => {
           const sectionId = sectionIds[i];
           const isActive = sectionId === activeId;
+          const emoji = getCategoryEmoji(tab.slug);
           return (
             <button
               key={tab.id}
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "group inline-flex h-9 items-baseline gap-2 rounded-md px-3 text-[13px] transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+                "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-3.5 text-[13px] font-semibold leading-none transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
                 isActive
-                  ? "font-semibold text-[rgb(var(--color-text-primary))]"
-                  : "text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-primary))]"
+                  ? "border-[1.5px] border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary-tint))] text-[rgb(var(--color-primary))]"
+                  : "border-[1.5px] border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-body))] hover:border-[rgb(var(--color-border-strong))] hover:text-[rgb(var(--color-text-primary))]"
               )}
             >
-              <span
-                className={cn(
-                  "font-mono text-[10px] tabular-nums",
-                  isActive
-                    ? "text-[rgb(var(--color-primary))]"
-                    : "text-[rgb(var(--color-text-faint))] group-hover:text-[rgb(var(--color-primary))]"
-                )}
-              >
-                {String(i + 1).padStart(2, "0")}
+              <span aria-hidden="true" className="leading-none">
+                {emoji}
               </span>
               <span>{tab.name}</span>
-              <span className="font-mono text-[10px] tabular-nums text-[rgb(var(--color-text-faint))]">
-                / {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Mobile — pills row, scrolls horizontally */}
-      <nav className="flex h-12 items-center gap-1 overflow-x-auto px-3 scrollbar-none sm:hidden">
-        {tabs.map((tab, i) => {
-          const sectionId = sectionIds[i];
-          const isActive = sectionId === activeId;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleClick(sectionId)}
-              className={cn(
-                "inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-full px-4 text-[12px] leading-none transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
-                isActive
-                  ? "bg-[rgb(var(--color-bg-dark))] text-white"
-                  : "text-[rgb(var(--color-text-body))]"
-              )}
-            >
-              <span
-                className={cn(
-                  "font-mono text-[9px] leading-none tabular-nums",
-                  isActive ? "text-white/60" : "text-[rgb(var(--color-text-faint))]"
-                )}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <span className="leading-none">{tab.name}</span>
             </button>
           );
         })}
