@@ -114,13 +114,12 @@ export function MenuPage() {
         <ClosedBanner />
         <PublicNav active="menu" onOpenCart={() => setCartOpen(true)} />
         <FreeDeliveryProgress />
+        {activeCategories.length > 0 ? (
+          <CategoryTabs tabs={tabs} sectionIds={sectionIds} />
+        ) : null}
       </div>
 
       <InfoBar />
-
-      {activeCategories.length > 0 ? (
-        <CategoryTabs tabs={tabs} sectionIds={sectionIds} />
-      ) : null}
 
       <main className="mx-auto w-full max-w-7xl pb-28 lg:pb-16">
         <div className="px-6 pt-8 md:px-12 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">

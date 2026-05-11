@@ -29,7 +29,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
           .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
         if (visible[0]) setActiveId(visible[0].target.id);
       },
-      { rootMargin: "-140px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
+      { rootMargin: "-200px 0px -60% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
     );
 
     sectionIds.forEach((id) => {
@@ -45,7 +45,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
     isScrollingRef.current = true;
     const el = document.getElementById(id);
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 120;
+      const y = el.getBoundingClientRect().top + window.scrollY - 200;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
     window.setTimeout(() => {

@@ -78,7 +78,7 @@ export function CartSidebar({
     <aside
       className={cn(
         "flex w-[360px] shrink-0 flex-col rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]",
-        "sticky top-32 max-h-[calc(100vh-9rem)]",
+        "sticky top-[200px] max-h-[calc(100vh-13rem)]",
         className
       )}
       aria-label="Koszyk"
