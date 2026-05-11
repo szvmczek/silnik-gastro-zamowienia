@@ -7,8 +7,9 @@ import { lineTotal, type CartItem } from "./cartStore";
    Pierwotnie inline w CartSidebar, wyciągnięty gdy pojawił się 2-gi konsument.
 
    Layout per bundle Stage 2 cart.jsx CartRow, retrofit pod tokens v2.
-   Bez note edit / display (Q3 plan mode skip — itemNote pojawi się
-   w osobnym logic delta tasku po Warstwie 3a/3b). */
+   F-005 dodaje placeholder UI dla note button (disabled). Logika edit
+   note (textarea inline, OrderItem.itemNote field) pojawi się w osobnym
+   logic delta tasku po Warstwie 3a/3b — patrz docs/PHASE5_FINDINGS.md §1. */
 
 export interface CartRowProps {
   item: CartItem;
@@ -89,6 +90,18 @@ export function CartRow({
         </div>
 
         <div className="flex items-center gap-1.5">
+          {/* TODO(F-005 placeholder): backend pole itemNote w OrderItem + CartItem
+              store. Po dodaniu — uncomment onClick + textarea inline edit. */}
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Wkrótce dostępne — komentarz do pozycji"
+            className="flex h-7 shrink-0 cursor-not-allowed items-center gap-1 rounded border border-[rgb(var(--color-border-card))] px-2 text-[11px] font-medium leading-none text-[rgb(var(--color-text-faint))] opacity-60"
+          >
+            <span aria-hidden="true">＋</span>
+            <span>dodaj uwagę</span>
+          </button>
           {onEdit ? (
             <button
               type="button"
