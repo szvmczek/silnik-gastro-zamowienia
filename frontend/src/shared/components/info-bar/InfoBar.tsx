@@ -6,6 +6,7 @@ import {
 } from "@/shared/api/openingHoursApi";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { cn } from "@/shared/lib/cn";
+import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 
 /* InfoBar — czarny pasek 4-modułowy widoczny pod hero (LandingPage) i pod
    sticky banner+nav wrapper (MenuPage M-019). Renderuje:
@@ -160,10 +161,6 @@ function resolveOpenStatus(
   };
 }
 
-function formatPLN(amount: number): string {
-  return `${amount.toFixed(2).replace(".", ",")} zł`;
-}
-
 interface Props {
   compact?: boolean;
 }
@@ -201,10 +198,10 @@ export function InfoBar({ compact = false }: Props) {
     modules.push({ icon: "🚗", label: "Dostawa", value: `${prepMinutes} min` });
   }
   if (minOrder != null) {
-    modules.push({ icon: "💰", label: "Min.", value: formatPLN(minOrder) });
+    modules.push({ icon: "💰", label: "Min.", value: formatPrice(minOrder) });
   }
   if (deliveryFee != null) {
-    modules.push({ icon: "🛵", label: "Dowóz od", value: formatPLN(deliveryFee) });
+    modules.push({ icon: "🛵", label: "Dowóz od", value: formatPrice(deliveryFee) });
   }
 
   return (

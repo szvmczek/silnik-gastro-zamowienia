@@ -1,5 +1,6 @@
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { cn } from "@/shared/lib/cn";
+import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { useCartTotal } from "./cartStore";
 
 /* FreeDeliveryProgress — sticky strip widoczny pod wrapper banner+nav (M-019)
@@ -18,10 +19,6 @@ import { useCartTotal } from "./cartStore";
 
 interface Props {
   compact?: boolean;
-}
-
-function formatPLN(amount: number): string {
-  return `${amount.toFixed(2).replace(".", ",")} zł`;
 }
 
 export function FreeDeliveryProgress({ compact = false }: Props) {
@@ -64,7 +61,7 @@ export function FreeDeliveryProgress({ compact = false }: Props) {
           <>
             Brakuje{" "}
             <strong className="font-mono font-semibold">
-              {formatPLN(remaining)}
+              {formatPrice(remaining)}
             </strong>{" "}
             do darmowej dostawy.
           </>
@@ -83,7 +80,7 @@ export function FreeDeliveryProgress({ compact = false }: Props) {
         />
       </div>
       <span className="font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))]">
-        {formatPLN(subtotal).replace(" zł", "")} / {threshold} zł
+        {formatPrice(subtotal).replace(" zł", "")} / {threshold} zł
       </span>
     </div>
   );
