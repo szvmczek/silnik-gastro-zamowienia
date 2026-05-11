@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { usePublicMenu } from "./hooks/usePublicMenu";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { CategoryTabs } from "./components/CategoryTabs";
+import { getCategoryEmoji } from "./lib/categoryEmoji";
 import { ProductModal, type ProductModalDefaults } from "./components/ProductModal";
 import { ClosedBanner } from "@/shared/components/banners/ClosedBanner";
 import { InfoBar } from "@/shared/components/info-bar/InfoBar";
@@ -124,13 +125,12 @@ export function MenuPage() {
       <main className="mx-auto w-full max-w-7xl pb-28 lg:pb-16">
         <div className="px-6 pt-8 md:px-12 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">
           <div className="min-w-0">
-            <header className="flex items-baseline justify-between gap-5 pb-6">
-              <h1 className="text-[28px] font-semibold leading-none tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[36px]">
-                Menu<span className="font-normal italic">.</span>
+            <header className="pb-8 md:pb-10">
+              <div className="t-kicker t-kicker--accent mb-2 md:mb-3">MENU</div>
+              <h1 className="text-[28px] font-black leading-[1.05] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[48px] md:tracking-[-0.03em]">
+                Wybierz, co zjesz
+                <span className="text-[rgb(var(--color-primary))]">.</span>
               </h1>
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--color-text-faint))] md:text-[11px]">
-                Pełna karta
-              </div>
             </header>
 
             {isLoading ? (
@@ -151,35 +151,44 @@ export function MenuPage() {
               </div>
             ) : null}
 
-            {activeCategories.map((category, catIdx) => (
+            {activeCategories.map((category) => (
               <section
                 key={category.id}
                 id={categoryAnchorId(category.slug)}
                 aria-labelledby={`${categoryAnchorId(category.slug)}-title`}
                 className="scroll-mt-32 border-t border-[rgb(var(--color-border-card))] pt-10 first:border-t-0 first:pt-0"
               >
-                <div className="flex items-baseline justify-between gap-4 pb-5">
-                  <div className="flex items-baseline gap-4">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-[rgb(var(--color-text-faint))]">
-                      {String(catIdx + 1).padStart(2, "0")} —
-                    </span>
-                    <h2
-                      id={`${categoryAnchorId(category.slug)}-title`}
-                      className="text-[26px] font-semibold leading-none tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[34px]"
-                    >
-                      {category.name}
-                      <span className="font-normal italic">.</span>
-                    </h2>
+                <header className="pb-5 md:pb-6">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="flex min-w-0 items-baseline gap-3">
+                      <span
+                        aria-hidden="true"
+                        className="text-[22px] leading-none md:text-[32px]"
+                      >
+                        {getCategoryEmoji(category.slug)}
+                      </span>
+                      <h2
+                        id={`${categoryAnchorId(category.slug)}-title`}
+                        className="text-[22px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[36px] md:tracking-[-0.025em]"
+                      >
+                        {category.name}
+                      </h2>
+                    </div>
+                    <div className="shrink-0 font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))] md:text-[13px]">
+                      {category.products.length}{" "}
+                      {category.products.length === 1
+                        ? "pozycja"
+                        : category.products.length < 5
+                          ? "pozycje"
+                          : "pozycji"}
+                    </div>
                   </div>
-                  <div className="font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-faint))]">
-                    {category.products.length}{" "}
-                    {category.products.length === 1
-                      ? "pozycja"
-                      : category.products.length < 5
-                        ? "pozycje"
-                        : "pozycji"}
-                  </div>
-                </div>
+                  {category.description ? (
+                    <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[rgb(var(--color-text-muted))] md:text-[14px]">
+                      {category.description}
+                    </p>
+                  ) : null}
+                </header>
 
                 {category.products.length === 0 ? (
                   <div className="mb-6 rounded-lg border border-dashed border-[rgb(var(--color-border-card))] py-8 text-center text-sm text-[rgb(var(--color-text-muted))]">
