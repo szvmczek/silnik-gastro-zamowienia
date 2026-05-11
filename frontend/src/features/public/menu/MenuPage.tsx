@@ -121,7 +121,7 @@ export function MenuPage() {
 
       <InfoBar />
 
-      <main className="mx-auto w-full max-w-7xl pb-28 lg:pb-16">
+      <main className="mx-auto w-full max-w-[1440px] pb-28 lg:pb-16">
         <div className="px-6 pt-8 md:px-12 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">
           <div className="min-w-0">
             <header className="pb-8 md:pb-10">
