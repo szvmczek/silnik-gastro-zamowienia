@@ -78,3 +78,19 @@ robi osobny task który dotyka frontendu + backendu spójnie:
      - `features/admin/delivery-zones/` już istnieje (M-040 done lub
        in-progress) — backend ma model, tylko brak public projection
    - Świadomie poza scope Warstwy 3a fix-up
+
+8. Footer social icons (Warstwa 3a fix-up #2 F-013):
+   - Bundle Stage 2 footer Brand col ma 2 social icons (Facebook / Instagram)
+     z `rgba(255,255,255,0.15)` border, 36×36px, hardcoded href="#"
+   - Backend `SettingsDto` NIE ma pola `socialLinks` → świadomie pominięte
+     w F-013 (bez backend touch w fix-upie)
+   - Tagline (`SettingsDto.tagline: string | null`) JUŻ istnieje w DTO i jest
+     używane w PublicFooter Brand col (graceful fallback null → element skip,
+     pattern identyczny z Fazą 5 M1 modułami)
+   - Post-MVP wire-up social:
+     - Backend: dodać `socialLinks: SocialLinkDto[]` (provider + url) lub
+       proste pola `facebookUrl?: string`, `instagramUrl?: string` w SettingsDto
+     - Frontend: PublicFooter Brand col render conditional gdy links present,
+       komponent `<SocialIconLink>` z mapowaniem provider→ikona (lucide-react
+       Facebook, Instagram)
+     - Admin SettingsPage tab "Social" lub inline w Ogólne
