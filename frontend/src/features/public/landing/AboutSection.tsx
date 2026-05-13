@@ -18,18 +18,14 @@ export function AboutSection({ about }: Props) {
       className="border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] py-12 md:py-20"
     >
       <div className="mx-auto max-w-6xl px-4 md:px-8">
-        <div className="grid gap-8 md:grid-cols-12 md:items-center md:gap-12">
-          {about.imageUrl ? (
-            <div className="hidden md:col-span-5 md:block">
-              <img
-                src={about.imageUrl}
-                alt={about.title}
-                className="aspect-[4/3] w-full rounded-[12px] border border-[rgb(var(--color-border-card))] object-cover"
-                loading="lazy"
-              />
-            </div>
-          ) : null}
-          <div className={about.imageUrl ? "md:col-span-7" : "md:col-span-12"}>
+        <div
+          className={
+            about.imageUrl
+              ? "grid gap-8 md:grid-cols-[5fr_6fr] md:items-center md:gap-16"
+              : "grid gap-8 md:grid-cols-1 md:items-center md:gap-16"
+          }
+        >
+          <div>
             <div className="t-kicker t-kicker--accent mb-3">O NAS</div>
             <h2 className="text-[28px] font-extrabold leading-[1.1] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[44px]">
               {about.title}
@@ -39,6 +35,16 @@ export function AboutSection({ about }: Props) {
               <p className="whitespace-pre-line">{about.body}</p>
             </div>
           </div>
+          {about.imageUrl ? (
+            <div className="hidden md:block">
+              <img
+                src={about.imageUrl}
+                alt={about.title}
+                className="aspect-[4/3] w-full rounded-[12px] border border-[rgb(var(--color-border-card))] object-cover"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
