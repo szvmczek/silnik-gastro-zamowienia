@@ -94,3 +94,27 @@ robi osobny task który dotyka frontendu + backendu spójnie:
        komponent `<SocialIconLink>` z mapowaniem provider→ikona (lucide-react
        Facebook, Instagram)
      - Admin SettingsPage tab "Social" lub inline w Ogólne
+
+9. CategoryTabs scroll-spy dynamiczny offset (Warstwa 3a fix-up #3 follow-up):
+   - `frontend/src/features/public/menu/components/CategoryTabs.tsx:32` ma
+     `IntersectionObserver` z `rootMargin: "-200px 0px -60% 0px"` oraz scroll
+     target offset `-200` w `getBoundingClientRect().top + window.scrollY - 200`
+     (linia 48). Magic `-200` zakłada statyczny sticky stack 200px.
+   - Po F-014 sticky stack jest dynamiczny (115-220px zależnie od stanu
+     ClosedBanner / FreeDeliveryProgress / CategoryTabs sam siebie). Active
+     pill aktywuje się z lekkim opóźnieniem przy scroll przez kategorie,
+     bo IntersectionObserver triggeruje gdy section krzyżuje -200px linię
+     niezależnie od rzeczywistej pozycji sticky stacka.
+   - Akceptowalny kompromis w fix-upie #3 — niezauważalny w typowym
+     scroll. NIE dotykane.
+   - Post-MVP fix: zastąpić `-200` przez odczyt
+     `parseInt(getComputedStyle(document.documentElement)
+       .getPropertyValue("--sticky-stack-height")) || 200` w obu miejscach
+     (rootMargin musi być string, więc template literal). Wymaga że
+     ResizeObserver z F-014 odpalił przed IntersectionObserver setup —
+     w praktyce useEffect order zapewnia to (MenuPage ResizeObserver
+     useEffect odpala wcześniej niż CategoryTabs IntersectionObserver
+     useEffect, bo MenuPage rendering parent → first).
+   - Świadomie poza scope Warstwy 3a fix-up #3 — wymaga ostrożnego
+     dorobienia z testem (cross-cat scroll smoke) i niewielki impact
+     na UX (~50ms delay przy aktywacji pill).
