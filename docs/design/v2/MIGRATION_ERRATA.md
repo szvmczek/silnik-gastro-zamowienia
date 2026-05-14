@@ -294,5 +294,45 @@ Post-MVP wire-up:
 
 ---
 
-**Wersja 2.3** · 2026-05-11 · Warstwa 3a + Warstwa 3a fix-up (F-001..F-007)
-complete + 6 Architectural deltas (AD-Δ1..Δ6).
+### AD-Δ7: TrackingTimeline ikony — lucide vs MIGRATION_PLAN emoji spec
+
+> 2026-05-14 · Warstwa 3b · M-025 TrackingTimeline retrofit.
+
+`MIGRATION_PLAN.md` M-025 spec mówi: emoji ikony per stage `(⏳ ✓ 👨‍🍳 🛵 🎉)`
++ 6th cancelled `(✕)`. Bundle Stage 2 `confirmation-and-tracking.jsx`
+(L92-99 desktop, L181-182 mobile) używa lucide-react: `checkCircle / flame
+/ pkg / truck / home`.
+
+**Δ:**
+- `frontend/src/features/public/order/components/TrackingTimeline.tsx`
+  L24-32 mapuje `STATUS_ICONS: Record<OrderStatus, LucideIcon>`:
+  ```ts
+  NEW: CircleCheck,
+  CONFIRMED: ClipboardCheck,
+  IN_PREPARATION: Flame,
+  READY: PackageCheck,
+  OUT_FOR_DELIVERY: Truck,
+  DELIVERED: Home,
+  CANCELED: CircleCheck,  // placeholder — canceled state rendered
+                          // jako separate alert card w TrackingPage
+  ```
+- Wybór lucide vs emoji: spójność z resztą Warstwy 3a (CartButton,
+  FulfillmentTile, PaymentTile, MenuPage section h2 — wszystko lucide
+  poza category emoji per slug). Bundle Stage 2 też lucide. Emoji
+  wprowadzałyby visual inconsistency + zależność od OS emoji renderingu
+  (Windows vs macOS render różnie, vs Pomidorowy red brand).
+
+**Wykonane:** M-025 (`1d089c2`) zachowuje obecny lucide STATUS_ICONS
+mapping bez zmian, retrofit visual tokens (status-ready done, primary
+active z pulse, border-card pending) per plan.
+
+Post-MVP rationalizacja: jeśli ikony wymagają unifikacji — wybór lucide
+jest zgodny z rest of Warstwa 3a; emoji w bundle Stage 2 to specific
+to admin operations panel (gdzie operator widzi emoji dla muscle memory),
+NIE public tracking. MIGRATION_PLAN spec mógł odzwierciedlać wcześniejszą
+fazę designu pre-bundle Stage 2.
+
+---
+
+**Wersja 2.4** · 2026-05-14 · Warstwa 3b (M-023..M-026) complete +
+AD-Δ7 (TrackingTimeline lucide vs emoji audit trail).
