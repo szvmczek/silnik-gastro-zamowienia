@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/Dialog";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { DeliveryOrderCard } from "./DeliveryOrderCard";
 import { SectionHeader } from "../shared/SectionHeader";
 import { sectionTheme, type SectionKind } from "../shared/statusColors";
@@ -107,16 +108,19 @@ export function DeliveryPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">
+        <Kicker className="block">Operacyjne · Dostawa</Kicker>
+        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
           Dostawa
+          <span className="text-[rgb(var(--color-primary))]">.</span>
         </h1>
-        <p className="mt-1 text-[14px] text-slate-500">
-          Zamówienia gotowe do zabrania i te w drodze. Najstarsze na górze.
+        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
+          {readyRows.length} do zabrania · {outRows.length} w drodze. Najstarsze
+          na górze.
         </p>
       </header>
 
       {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
@@ -219,7 +223,7 @@ function Section({
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-80 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+              className="h-80 animate-pulse rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))]"
             />
           ))}
         </div>
