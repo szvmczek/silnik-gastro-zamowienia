@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/shared/components/ui/Button";
@@ -74,6 +75,42 @@ export function CartSidebar({
     toast.success(`Usunięto: ${item.productName}`);
   };
 
+  const listRef = useRef<HTMLUListElement>(null);
+  const prevItemsCount = useRef(items.length);
+  const [canScrollMore, setCanScrollMore] = useState(false);
+
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) {
+      setCanScrollMore(false);
+      return;
+    }
+    const check = () => {
+      setCanScrollMore(
+        el.scrollHeight > el.clientHeight + 4 &&
+          el.scrollTop + el.clientHeight < el.scrollHeight - 4
+      );
+    };
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", check);
+      ro.disconnect();
+    };
+  }, [items.length]);
+
+  useEffect(() => {
+    if (items.length > prevItemsCount.current && listRef.current) {
+      listRef.current.scrollTo({
+        top: listRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+    prevItemsCount.current = items.length;
+  }, [items.length]);
+
   return (
     <aside
       className={cn(
@@ -129,21 +166,33 @@ export function CartSidebar({
           </Button>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto px-5">
-          {items.map((item, idx) => (
-            <CartRow
-              key={item.lineKey}
-              item={item}
-              currency={currency}
-              last={idx === items.length - 1}
-              onIncrement={() => updateQuantity(item.lineKey, item.quantity + 1)}
-              onDecrement={() => updateQuantity(item.lineKey, item.quantity - 1)}
-              onRemove={() => handleRemove(item)}
-              onEdit={onEditItem ? () => onEditItem(item) : undefined}
-              compact
-            />
-          ))}
-        </ul>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <ul
+            ref={listRef}
+            className="flex-1 overflow-y-auto px-5 [scrollbar-color:rgb(var(--color-border-card))_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-[rgb(var(--color-border-strong))] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgb(var(--color-border-card))] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
+          >
+            {items.map((item, idx) => (
+              <CartRow
+                key={item.lineKey}
+                item={item}
+                currency={currency}
+                last={idx === items.length - 1}
+                onIncrement={() => updateQuantity(item.lineKey, item.quantity + 1)}
+                onDecrement={() => updateQuantity(item.lineKey, item.quantity - 1)}
+                onRemove={() => handleRemove(item)}
+                onEdit={onEditItem ? () => onEditItem(item) : undefined}
+                compact
+              />
+            ))}
+          </ul>
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[rgb(var(--color-bg-card))] to-transparent transition-opacity duration-150",
+              canScrollMore ? "opacity-100" : "opacity-0"
+            )}
+          />
+        </div>
       )}
 
       {/* Footer */}
