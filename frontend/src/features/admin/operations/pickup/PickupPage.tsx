@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/Dialog";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { PickupOrderCard } from "./PickupOrderCard";
 import { SectionHeader } from "../shared/SectionHeader";
 import { sectionTheme } from "../shared/statusColors";
@@ -82,16 +83,20 @@ export function PickupPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">
+        <Kicker className="block">Operacyjne · Wydanie</Kicker>
+        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
           Wydanie
+          <span className="text-[rgb(var(--color-primary))]">.</span>
         </h1>
-        <p className="mt-1 text-[14px] text-slate-500">
-          Zamówienia gotowe do wydania klientowi. Najstarsze na górze.
+        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
+          {rows.length > 0
+            ? `${rows.length} ${rows.length === 1 ? "zamówienie gotowe" : "zamówień gotowych"} do wydania.`
+            : "Zamówienia gotowe do wydania pojawią się tutaj automatycznie."}
         </p>
       </header>
 
       {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
@@ -101,7 +106,7 @@ export function PickupPage() {
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-72 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+              className="h-72 animate-pulse rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))]"
             />
           ))}
         </div>
