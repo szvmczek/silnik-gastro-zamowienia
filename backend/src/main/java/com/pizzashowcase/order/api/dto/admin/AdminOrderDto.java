@@ -14,6 +14,11 @@ public record AdminOrderDto(
         Long id,
         Long version,
         String orderNumber,
+        // AD-Δ13: Wyjątek od "Zero Backend Touch" w Warstwie 4 (M-033).
+        // Pole wystawione żeby OrderDetailPage mógł zlinkować operator do
+        // public trackera klienta przez /track/{token}. Wymaga support
+        // workflow gdy klient dzwoni z pytaniem "gdzie moje zamówienie".
+        String trackingToken,
         OrderStatus status,
         Integer etaMinutes,
         Instant etaSetAt,

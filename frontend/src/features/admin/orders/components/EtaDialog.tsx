@@ -88,23 +88,25 @@ export function EtaDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-md bg-slate-50 p-3 text-sm">
+          <div className="rounded-md bg-[rgb(var(--color-bg-section))] p-3 text-sm">
             {currentEtaMinutes !== null ? (
               <>
-                <div className="text-slate-700">
+                <div className="text-[rgb(var(--color-text-body))]">
                   Aktualne ETA:{" "}
-                  <span className="font-mono font-semibold text-slate-900">
+                  <span className="font-mono font-semibold text-[rgb(var(--color-text-primary))]">
                     {currentEtaMinutes} min
                   </span>
                 </div>
                 {currentEtaSetAt && (
-                  <div className="mt-0.5 text-xs text-slate-500">
+                  <div className="mt-0.5 text-xs text-[rgb(var(--color-text-muted))]">
                     ustawione {computeEtaRelativeTime(currentEtaSetAt, now)}
                   </div>
                 )}
               </>
             ) : (
-              <div className="text-slate-500">Brak ustawionego ETA</div>
+              <div className="text-[rgb(var(--color-text-muted))]">
+                Brak ustawionego ETA
+              </div>
             )}
           </div>
 
@@ -123,10 +125,10 @@ export function EtaDialog({
                       setCustomValue("");
                     }}
                     className={cn(
-                      "h-12 rounded-md border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                      "h-12 rounded-md border text-sm font-medium transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
                       isActive
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                        ? "border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary-tint))] text-[rgb(var(--color-primary))]"
+                        : "border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-body))] hover:bg-[rgb(var(--color-bg-section))]"
                     )}
                   >
                     +{minutes} min
@@ -148,7 +150,9 @@ export function EtaDialog({
               value={customValue}
               onChange={(e) => setCustomValue(e.target.value)}
             />
-            <p className="text-xs text-slate-500">Zakres 0–480 minut (8h).</p>
+            <p className="text-xs text-[rgb(var(--color-text-muted))]">
+              Zakres 0–480 minut (8h).
+            </p>
           </div>
         </div>
 

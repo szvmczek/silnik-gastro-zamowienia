@@ -3,8 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/Card";
+import { Skeleton } from "@/shared/components/ui/Skeleton";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import {
   fetchAdminOrderById,
   updateOrderEta,
@@ -17,7 +19,6 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { OrderStatusBadge, statusLabel } from "@/shared/components/ui/OrderStatusBadge";
-import { Skeleton } from "@/shared/components/ui/Skeleton";
 import { OrderStatusActions } from "./components/OrderStatusActions";
 import { OrderStatusHistory } from "./components/OrderStatusHistory";
 import { EtaDialog } from "./components/EtaDialog";
@@ -150,7 +151,9 @@ export function OrderDetailPage() {
     return (
       <div className="space-y-3">
         <BackLink />
-        <p className="text-sm text-slate-500">Nieprawidłowy identyfikator zamówienia.</p>
+        <p className="text-sm text-[rgb(var(--color-text-muted))]">
+          Nieprawidłowy identyfikator zamówienia.
+        </p>
       </div>
     );
   }
@@ -163,7 +166,7 @@ export function OrderDetailPage() {
     return (
       <div className="space-y-3">
         <BackLink />
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
           {errorMessage ?? "Nie udało się pobrać zamówienia."}
         </div>
         <div>
@@ -181,19 +184,31 @@ export function OrderDetailPage() {
     <div className="space-y-6">
       <BackLink />
 
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-baseline gap-4">
-          <h1 className="font-mono text-[40px] font-semibold tracking-tight text-slate-900">
+      <header>
+        <Kicker className="block">Archiwum › Wszystkie zamówienia</Kicker>
+        <div className="mt-2 flex flex-wrap items-baseline gap-4">
+          <h1 className="font-mono text-[56px] font-semibold leading-none tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
             {order.orderNumber}
           </h1>
           <OrderStatusBadge status={order.status} size="lg" />
+          {order.trackingToken && (
+            <Link
+              to={`/track/${order.trackingToken}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            >
+              Otwórz tracker klienta
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </Link>
+          )}
         </div>
-        <div className="text-sm text-slate-500">
+        <div className="mt-2 text-[14px] text-[rgb(var(--color-text-muted))]">
           Złożone {formatPlacedRelative(order.placedAt)} ·{" "}
           {fulfillmentLabel(order.fulfillmentType)} ·{" "}
           {paymentLabel(order.paymentMethod)}
         </div>
-      </div>
+      </header>
 
       <OrderStatusActions
         currentStatus={order.status}
@@ -208,70 +223,64 @@ export function OrderDetailPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pozycje</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <DetailCard title="Pozycje">
+            <div className="space-y-3">
               {order.items.map((item, idx) => (
                 <OrderItemRow key={idx} item={item} />
               ))}
-              <div className="space-y-1 border-t border-slate-200 pt-3 text-sm">
-                <div className="flex justify-between text-slate-600">
+              <div className="space-y-1 border-t border-[rgb(var(--color-border-subtle))] pt-3 text-sm">
+                <div className="flex justify-between text-[rgb(var(--color-text-body))]">
                   <span>Suma częściowa</span>
-                  <span className="tabular-nums">{formatCurrency(order.subtotal)}</span>
+                  <span className="font-mono tabular-nums">{formatCurrency(order.subtotal)}</span>
                 </div>
                 {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName !== null && (
-                  <div className="flex justify-between text-slate-600">
+                  <div className="flex justify-between text-[rgb(var(--color-text-body))]">
                     <span>Dostawa — {order.deliveryZoneName}</span>
-                    <span className="tabular-nums">{formatCurrency(order.deliveryFee)}</span>
+                    <span className="font-mono tabular-nums">{formatCurrency(order.deliveryFee)}</span>
                   </div>
                 )}
                 {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName === null && (
-                  <div className="flex justify-between text-slate-500">
+                  <div className="flex justify-between text-[rgb(var(--color-text-muted))]">
                     <span>Dostawa</span>
                     <span>—</span>
                   </div>
                 )}
-                <div className="flex justify-between pt-1 text-base font-semibold text-slate-900">
-                  <span>Razem</span>
-                  <span className="tabular-nums">{formatCurrency(order.total)}</span>
+                <div className="flex justify-between pt-2 text-base">
+                  <span className="font-bold text-[rgb(var(--color-text-primary))]">
+                    Razem
+                  </span>
+                  <span className="font-mono font-semibold tabular-nums text-[rgb(var(--color-text-primary))]">
+                    {formatCurrency(order.total)}
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </DetailCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Klient</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+          <DetailCard title="Klient">
+            <div className="space-y-3 text-sm">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <div className="text-xs uppercase tracking-wider text-slate-500">
-                    Imię i nazwisko
+                  <Kicker className="block">Imię i nazwisko</Kicker>
+                  <div className="mt-1 text-[rgb(var(--color-text-primary))]">
+                    {order.customerName}
                   </div>
-                  <div className="text-slate-900">{order.customerName}</div>
                 </div>
                 <div>
-                  <div className="text-xs uppercase tracking-wider text-slate-500">
-                    Telefon
-                  </div>
+                  <Kicker className="block">Telefon</Kicker>
                   <a
                     href={`tel:${order.customerPhone}`}
-                    className="text-primary hover:underline"
+                    className="mt-1 inline-block font-mono text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
                   >
                     {order.customerPhone}
                   </a>
                 </div>
                 {order.customerEmail && (
                   <div className="sm:col-span-2">
-                    <div className="text-xs uppercase tracking-wider text-slate-500">
-                      E-mail
-                    </div>
+                    <Kicker className="block">E-mail</Kicker>
                     <a
                       href={`mailto:${order.customerEmail}`}
-                      className="text-primary hover:underline"
+                      className="mt-1 inline-block text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
                     >
                       {order.customerEmail}
                     </a>
@@ -280,45 +289,48 @@ export function OrderDetailPage() {
               </div>
 
               {order.fulfillmentType === "DELIVERY" && order.deliveryAddress && (
-                <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
-                  <div className="text-xs uppercase tracking-wider text-slate-500">
-                    Adres dostawy
-                  </div>
-                  <div className="mt-1 text-slate-900">
+                <div className="rounded-md border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-section))] p-3">
+                  <Kicker className="block">Adres dostawy</Kicker>
+                  <div className="mt-1 text-[rgb(var(--color-text-primary))]">
                     <DeliveryAddressLines address={order.deliveryAddress} />
                   </div>
                   <a
                     href={buildMapsHref(order.deliveryAddress)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
+                    className="mt-2 inline-flex text-xs font-semibold text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
                   >
                     Otwórz w mapie →
                   </a>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </DetailCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Płatność</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-slate-700">
+          <DetailCard title="Płatność">
+            <div className="text-sm text-[rgb(var(--color-text-body))]">
               {paymentLabel(order.paymentMethod)}
-            </CardContent>
-          </Card>
+            </div>
+          </DetailCard>
         </div>
 
         <div className="space-y-6">
           {order.customerNotes && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-                Uwagi klienta
+            <div className="rounded-xl border border-[rgb(var(--status-new))]/40 border-l-4 border-l-[rgb(var(--status-new))] bg-[rgb(var(--status-new-tint))] p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--status-new))]"
+                  aria-hidden
+                />
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgb(var(--status-new))]">
+                    Uwagi klienta
+                  </div>
+                  <p className="mt-1 whitespace-pre-line text-[14px] text-[rgb(var(--color-text-primary))]">
+                    {order.customerNotes}
+                  </p>
+                </div>
               </div>
-              <p className="mt-1 whitespace-pre-line text-sm text-amber-900">
-                {order.customerNotes}
-              </p>
             </div>
           )}
 
@@ -327,14 +339,9 @@ export function OrderDetailPage() {
             etaSetAt={order.etaSetAt}
           />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Historia statusów</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <OrderStatusHistory history={order.statusHistory} />
-            </CardContent>
-          </Card>
+          <DetailCard title="Historia statusów">
+            <OrderStatusHistory history={order.statusHistory} />
+          </DetailCard>
         </div>
       </div>
 
@@ -367,6 +374,21 @@ export function OrderDetailPage() {
   );
 }
 
+function DetailCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
+      <Kicker className="mb-3 block">{title}</Kicker>
+      {children}
+    </section>
+  );
+}
+
 function DarkEtaCard({
   etaMinutes,
   etaSetAt,
@@ -375,25 +397,27 @@ function DarkEtaCard({
   etaSetAt: string | null;
 }) {
   return (
-    <div className="rounded-lg bg-slate-900 p-6 text-white">
-      <div className="text-xs font-semibold uppercase tracking-wider text-white/60">
+    <div className="rounded-xl bg-[rgb(var(--color-bg-dark))] p-6 text-[rgb(var(--color-text-on-dark))]">
+      <Kicker className="block text-[rgb(var(--color-text-on-dark))]/60">
         ETA
-      </div>
+      </Kicker>
       {etaMinutes !== null ? (
         <>
-          <div className="mt-1 font-mono text-[48px] font-semibold leading-none tracking-tight">
-            {etaMinutes}{" "}
-            <span className="text-2xl font-normal text-white/70">min</span>
+          <div className="mt-2 font-mono text-[48px] font-semibold leading-none tracking-[-0.01em]">
+            {etaMinutes}
+            <span className="ml-2 text-[22px] font-normal text-[rgb(var(--color-text-on-dark))]/70">
+              min
+            </span>
           </div>
           {etaSetAt && (
-            <div className="mt-2 text-sm text-white/60">
+            <div className="mt-3 text-[13px] text-[rgb(var(--color-text-on-dark))]/60">
               ustawione {computeEtaRelativeTime(etaSetAt)}
             </div>
           )}
         </>
       ) : (
-        <div className="mt-2 text-sm text-white/60">
-          Brak ustawionego ETA — kliknij „Ustaw ETA" powyżej.
+        <div className="mt-3 text-[14px] text-[rgb(var(--color-text-on-dark))]/60">
+          Brak ustawionego ETA — kliknij „Zmień ETA" powyżej.
         </div>
       )}
     </div>
@@ -411,7 +435,9 @@ function DeliveryAddressLines({ address }: { address: OrderTrackingAddressDto })
         {address.postalCode} {address.city}
       </div>
       {address.notes && (
-        <div className="pt-1 text-xs text-slate-500">{address.notes}</div>
+        <div className="pt-1 text-xs text-[rgb(var(--color-text-muted))]">
+          {address.notes}
+        </div>
       )}
     </div>
   );
@@ -422,22 +448,23 @@ function OrderDetailSkeleton() {
     <div className="space-y-6">
       <BackLink />
       <div className="space-y-2">
+        <Skeleton className="h-3 w-48 bg-[rgb(var(--color-border-card))]" />
         <div className="flex flex-wrap items-baseline gap-4">
-          <Skeleton className="h-10 w-48 bg-slate-200" />
-          <Skeleton className="h-7 w-24 rounded-full bg-slate-200" />
+          <Skeleton className="h-14 w-48 bg-[rgb(var(--color-border-card))]" />
+          <Skeleton className="h-7 w-24 rounded-full bg-[rgb(var(--color-border-card))]" />
         </div>
-        <Skeleton className="h-4 w-72 bg-slate-200" />
+        <Skeleton className="h-4 w-72 bg-[rgb(var(--color-border-card))]" />
       </div>
-      <Skeleton className="h-20 rounded-lg bg-slate-200" />
+      <Skeleton className="h-24 rounded-xl bg-[rgb(var(--color-border-card))]" />
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
-          <Skeleton className="h-56 rounded-lg bg-slate-200" />
-          <Skeleton className="h-48 rounded-lg bg-slate-200" />
-          <Skeleton className="h-24 rounded-lg bg-slate-200" />
+          <Skeleton className="h-56 rounded-xl bg-[rgb(var(--color-border-card))]" />
+          <Skeleton className="h-48 rounded-xl bg-[rgb(var(--color-border-card))]" />
+          <Skeleton className="h-24 rounded-xl bg-[rgb(var(--color-border-card))]" />
         </div>
         <div className="space-y-6">
-          <Skeleton className="h-32 rounded-lg bg-slate-900/80" />
-          <Skeleton className="h-48 rounded-lg bg-slate-200" />
+          <Skeleton className="h-32 rounded-xl bg-[rgb(var(--color-bg-dark))]/80" />
+          <Skeleton className="h-48 rounded-xl bg-[rgb(var(--color-border-card))]" />
         </div>
       </div>
     </div>
@@ -448,7 +475,7 @@ function BackLink() {
   return (
     <Link
       to="/admin/orders"
-      className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-primary"
+      className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors hover:text-[rgb(var(--color-primary))]"
     >
       ← Wróć do listy
     </Link>
@@ -460,19 +487,21 @@ function OrderItemRow({ item }: { item: OrderTrackingItemDto }) {
     <div className="flex items-start justify-between gap-3 text-sm">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-2">
-          <span className="font-medium text-slate-900">
-            {item.quantity}× {item.productName}
+          <span className="font-medium text-[rgb(var(--color-text-primary))]">
+            <span className="font-mono">{item.quantity}×</span> {item.productName}
           </span>
           {item.variantName && (
-            <span className="text-xs text-slate-500">({item.variantName})</span>
+            <span className="text-xs text-[rgb(var(--color-text-muted))]">
+              ({item.variantName})
+            </span>
           )}
         </div>
         {item.addons.length > 0 && (
-          <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
+          <ul className="mt-1 space-y-0.5 text-xs text-[rgb(var(--color-text-muted))]">
             {item.addons.map((addon, idx) => (
               <li key={idx}>
                 + {addon.name}
-                <span className="text-slate-400">
+                <span className="text-[rgb(var(--color-text-faint))]">
                   {" · "}
                   {addon.groupName}
                   {" · "}
@@ -484,8 +513,10 @@ function OrderItemRow({ item }: { item: OrderTrackingItemDto }) {
         )}
       </div>
       <div className="whitespace-nowrap text-right">
-        <div className="text-xs text-slate-500">{formatCurrency(item.unitPrice)}</div>
-        <div className="font-medium tabular-nums text-slate-900">
+        <div className="text-xs text-[rgb(var(--color-text-muted))]">
+          {formatCurrency(item.unitPrice)}
+        </div>
+        <div className="font-mono font-semibold tabular-nums text-[rgb(var(--color-text-primary))]">
           {formatCurrency(item.lineTotal)}
         </div>
       </div>

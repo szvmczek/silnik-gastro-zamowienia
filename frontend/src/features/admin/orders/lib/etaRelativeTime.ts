@@ -10,5 +10,5 @@ export function computeEtaRelativeTime(
   if (minutes < 1) return "przed chwilą";
   if (minutes < 60) return `${minutes} min temu`;
   if (minutes < 120) return "ponad godzinę temu";
-  return "ustawione dawno";
+  return "dawno";
 }

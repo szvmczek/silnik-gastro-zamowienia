@@ -149,6 +149,9 @@ export interface AdminOrderDto {
   id: number;
   version: number;
   orderNumber: string;
+  // AD-Δ13: backend wystawia pole od Warstwy 4 M-033. Frontend Order Detail
+  // używa do linka "Otwórz tracker klienta →" do /track/{token}.
+  trackingToken: string;
   status: OrderStatus;
   etaMinutes: number | null;
   etaSetAt: string | null;

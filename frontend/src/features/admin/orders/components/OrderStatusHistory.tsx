@@ -9,7 +9,11 @@ interface OrderStatusHistoryProps {
 
 export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
   if (history.length === 0) {
-    return <p className="text-sm text-slate-500">Brak historii statusów.</p>;
+    return (
+      <p className="text-sm text-[rgb(var(--color-text-muted))]">
+        Brak historii statusów.
+      </p>
+    );
   }
 
   const sorted = [...history].sort(
@@ -19,7 +23,7 @@ export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
   return (
     <ol className="relative space-y-5 pl-5">
       <span
-        className="absolute bottom-2 left-[10px] top-2 w-px bg-slate-200"
+        className="absolute bottom-2 left-[10px] top-2 w-px bg-[rgb(var(--color-border-subtle))]"
         aria-hidden="true"
       />
       {sorted.map((entry, idx) => {
@@ -33,27 +37,29 @@ export function OrderStatusHistory({ history }: OrderStatusHistoryProps) {
               className={cn(
                 "absolute -left-4 top-1 h-3 w-3 rounded-full",
                 isLatest
-                  ? "bg-primary ring-2 ring-primary/30"
-                  : "bg-emerald-500"
+                  ? "bg-[rgb(var(--color-primary))] ring-2 ring-[rgb(var(--color-primary))]/30 motion-safe:[animation:dotpulse_1.5s_ease-in-out_infinite]"
+                  : "bg-[rgb(var(--status-ready))]"
               )}
               aria-hidden="true"
             />
-            <div className="text-sm font-medium text-slate-900">
+            <div className="text-sm font-semibold text-[rgb(var(--color-text-primary))]">
               {statusLabel(entry.status)}
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="font-mono text-xs text-[rgb(var(--color-text-muted))]">
               <time dateTime={entry.changedAt}>
                 {formatDateTime(entry.changedAt)}
               </time>
               {entry.changedBy && (
                 <>
                   {" · "}
-                  <span className="text-slate-600">{entry.changedBy}</span>
+                  <span className="text-[rgb(var(--color-text-body))]">
+                    {entry.changedBy}
+                  </span>
                 </>
               )}
             </div>
             {entry.reason && (
-              <p className="mt-1 whitespace-pre-line text-xs italic text-slate-600">
+              <p className="mt-1 whitespace-pre-line text-xs italic text-[rgb(var(--color-text-body))]">
                 {entry.reason}
               </p>
             )}

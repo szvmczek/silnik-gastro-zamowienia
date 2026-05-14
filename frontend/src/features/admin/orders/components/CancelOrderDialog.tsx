@@ -55,15 +55,15 @@ export function CancelOrderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[520px]">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--status-cancelled-tint))] text-[rgb(var(--status-cancelled))]">
             <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">
               Anulować zamówienie{" "}
               <span className="font-mono">{orderNumber}</span>?
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1 text-sm text-[rgb(var(--color-text-body))]">
               Klient zobaczy zmianę statusu na stronie śledzenia. Tej akcji
               nie można cofnąć.
             </p>
@@ -81,18 +81,24 @@ export function CancelOrderDialog({
               onChange={(e) => setReason(e.target.value)}
               placeholder="np. brak składnika, klient odwołał, błędne dane…"
               aria-invalid={showReasonError}
-              className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 aria-[invalid=true]:border-rose-300"
+              className="w-full rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-3 py-2 text-sm text-[rgb(var(--color-text-primary))] placeholder:text-[rgb(var(--color-text-faint))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] aria-[invalid=true]:border-[rgb(var(--status-cancelled))]"
             />
             <div className="flex items-start justify-between text-xs">
               {showReasonError ? (
-                <span className="text-rose-600">Podaj powód anulowania.</span>
+                <span className="text-[rgb(var(--status-cancelled))]">
+                  Podaj powód anulowania.
+                </span>
               ) : (
-                <span className="text-slate-500">
+                <span className="text-[rgb(var(--color-text-muted))]">
                   Powód zapisuje się w historii statusów zamówienia.
                 </span>
               )}
               <span
-                className={tooLong ? "text-rose-600" : "text-slate-400"}
+                className={
+                  tooLong
+                    ? "text-[rgb(var(--status-cancelled))]"
+                    : "text-[rgb(var(--color-text-faint))]"
+                }
               >
                 {reason.length} / {REASON_MAX}
               </span>
@@ -108,7 +114,7 @@ export function CancelOrderDialog({
             />
             <Label
               htmlFor="cancel-confirmed"
-              className="cursor-pointer text-sm font-normal text-slate-700"
+              className="cursor-pointer text-sm font-normal text-[rgb(var(--color-text-body))]"
             >
               Rozumiem, że ta akcja jest nieodwracalna.
             </Label>

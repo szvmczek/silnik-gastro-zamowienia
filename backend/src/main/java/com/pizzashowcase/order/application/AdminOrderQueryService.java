@@ -239,6 +239,7 @@ public class AdminOrderQueryService {
                 order.getId(),
                 order.getVersion(),
                 order.getOrderNumber(),
+                order.getPublicTrackingToken().toString(),
                 order.getStatus(),
                 order.getEtaMinutes(),
                 order.getEtaSetAt(),
