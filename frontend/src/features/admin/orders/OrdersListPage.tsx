@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { FileText, Inbox } from "lucide-react";
 import { Button } from "@/shared/components/ui/Button";
 import {
   Table,
@@ -24,7 +25,7 @@ import { cn } from "@/shared/lib/cn";
 import { OrderStatusBadge } from "@/shared/components/ui/OrderStatusBadge";
 import { Skeleton } from "@/shared/components/ui/Skeleton";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
-import { Inbox } from "lucide-react";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { OrderFilters, type OrderFiltersValue } from "./components/OrderFilters";
 
 const PAGE_SIZE = 20;
@@ -142,20 +143,23 @@ export function OrdersListPage() {
   const rows = data?.content ?? [];
   const totalPages = data?.totalPages ?? 0;
   const currentPage = data?.number ?? 0;
+  const totalElements = data?.totalElements ?? 0;
   const errorMessage = listQuery.isError
     ? extractProblem(listQuery.error)?.detail ?? "Spróbuj odświeżyć stronę."
     : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Zamówienia</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Lista odświeża się automatycznie co 10 sekund.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-5">
+      <header>
+        <Kicker className="block">Archiwum · Wszystkie zamówienia</Kicker>
+        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
+          Zamówienia
+          <span className="text-[rgb(var(--color-primary))]">.</span>
+        </h1>
+        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
+          Lista odświeża się automatycznie co 10 sekund.
+        </p>
+      </header>
 
       <OrderFilters
         value={filters}
@@ -165,12 +169,12 @@ export function OrdersListPage() {
       />
 
       {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white">
+      <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
         {listQuery.isPending ? (
           <OrdersListSkeleton />
         ) : rows.length === 0 ? (
@@ -200,20 +204,22 @@ export function OrdersListPage() {
           <Table>
             <colgroup>
               <col className="w-[148px]" />
-              <col className="w-[108px]" />
+              <col className="w-[100px]" />
               <col />
-              <col className="w-[84px]" />
+              <col className="w-[60px]" />
+              <col className="w-[44px]" />
               <col className="w-[108px]" />
               <col className="w-[160px]" />
               <col className="w-[72px]" />
-              <col className="w-[96px]" />
+              <col className="w-[100px]" />
             </colgroup>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-[11px]">Numer</TableHead>
                 <TableHead className="text-[11px]">Złożone</TableHead>
                 <TableHead className="text-[11px]">Klient</TableHead>
-                <TableHead className="text-center text-[11px]">Pozycje</TableHead>
+                <TableHead className="text-center text-[11px]">Poz.</TableHead>
+                <TableHead className="text-center text-[11px]">Not.</TableHead>
                 <TableHead className="text-[11px]">Typ</TableHead>
                 <TableHead className="text-[11px]">Status</TableHead>
                 <TableHead className="text-[11px]">ETA</TableHead>
@@ -231,8 +237,13 @@ export function OrdersListPage() {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-500">
-            Strona {currentPage + 1} z {totalPages}
+          <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
+            Strona{" "}
+            <strong className="font-semibold text-[rgb(var(--color-text-primary))]">
+              {currentPage + 1}
+            </strong>{" "}
+            z {totalPages} · {totalElements}{" "}
+            {totalElements === 1 ? "wynik" : "wyników"}
           </span>
           <div className="flex gap-2">
             <Button
@@ -265,44 +276,56 @@ function OrderRow({ row, index }: { row: AdminOrderListItemDto; index: number })
     <TableRow
       className={cn(
         "animate-in fade-in slide-in-from-bottom-1 duration-300",
-        isNew && "bg-primary/[0.03]"
+        isNew && "bg-[rgb(var(--color-primary))]/[0.03]"
       )}
       style={{ animationDelay: `${delayMs}ms` }}
     >
       <TableCell className="font-mono text-sm">
         <Link
           to={`/admin/orders/${row.id}`}
-          className="inline-flex items-center gap-2 font-medium text-slate-900 hover:text-primary"
+          className="inline-flex items-center gap-2 font-semibold text-[rgb(var(--color-text-primary))] hover:text-[rgb(var(--color-primary))]"
         >
           {isNew && (
             <span
               aria-label="Nowe zamówienie"
-              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary"
+              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-[rgb(var(--color-primary))]"
             />
           )}
           {row.orderNumber}
         </Link>
       </TableCell>
-      <TableCell className="font-mono text-xs text-slate-600">
+      <TableCell className="font-mono text-xs text-[rgb(var(--color-text-muted))]">
         {formatTime(row.placedAt)}
       </TableCell>
       <TableCell>
-        <div className="text-slate-900">{row.customerName}</div>
-        <div className="text-xs text-slate-500">{row.customerPhone}</div>
+        <div className="text-[rgb(var(--color-text-primary))]">{row.customerName}</div>
+        <div className="font-mono text-xs text-[rgb(var(--color-text-muted))]">
+          {row.customerPhone}
+        </div>
       </TableCell>
-      <TableCell className="text-center font-mono text-slate-700">
+      <TableCell className="text-center font-mono text-[rgb(var(--color-text-body))]">
         {row.itemsCount}
       </TableCell>
-      <TableCell className="text-slate-600">
+      <TableCell className="text-center">
+        {row.customerNotes && (
+          <span
+            className="inline-flex h-5 w-5 items-center justify-center rounded bg-[rgb(var(--status-new-tint))] text-[rgb(var(--status-new))]"
+            title="Zawiera notkę klienta"
+          >
+            <FileText className="h-3 w-3" aria-hidden />
+          </span>
+        )}
+      </TableCell>
+      <TableCell className="text-[rgb(var(--color-text-body))]">
         {fulfillmentLabel(row.fulfillmentType)}
       </TableCell>
       <TableCell>
         <OrderStatusBadge status={row.status} />
       </TableCell>
-      <TableCell className="font-mono text-sm text-slate-700">
+      <TableCell className="font-mono text-sm text-[rgb(var(--color-text-body))]">
         {row.etaMinutes !== null ? `${row.etaMinutes} min` : "—"}
       </TableCell>
-      <TableCell className="text-right font-mono font-medium text-slate-900">
+      <TableCell className="text-right font-mono font-semibold text-[rgb(var(--color-text-primary))]">
         {formatCurrency(row.total)}
       </TableCell>
     </TableRow>
@@ -314,20 +337,22 @@ function OrdersListSkeleton() {
     <Table>
       <colgroup>
         <col className="w-[148px]" />
-        <col className="w-[108px]" />
+        <col className="w-[100px]" />
         <col />
-        <col className="w-[84px]" />
+        <col className="w-[60px]" />
+        <col className="w-[44px]" />
         <col className="w-[108px]" />
         <col className="w-[160px]" />
         <col className="w-[72px]" />
-        <col className="w-[96px]" />
+        <col className="w-[100px]" />
       </colgroup>
       <TableHeader>
         <TableRow>
           <TableHead className="text-[11px]">Numer</TableHead>
           <TableHead className="text-[11px]">Złożone</TableHead>
           <TableHead className="text-[11px]">Klient</TableHead>
-          <TableHead className="text-center text-[11px]">Pozycje</TableHead>
+          <TableHead className="text-center text-[11px]">Poz.</TableHead>
+          <TableHead className="text-center text-[11px]">Not.</TableHead>
           <TableHead className="text-[11px]">Typ</TableHead>
           <TableHead className="text-[11px]">Status</TableHead>
           <TableHead className="text-[11px]">ETA</TableHead>
@@ -337,17 +362,18 @@ function OrdersListSkeleton() {
       <TableBody>
         {Array.from({ length: 5 }).map((_, idx) => (
           <TableRow key={idx}>
-            <TableCell><Skeleton className="h-4 w-20 bg-slate-200" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-12 bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-20 bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-12 bg-[rgb(var(--color-border-card))]" /></TableCell>
             <TableCell>
-              <Skeleton className="h-4 w-28 bg-slate-200" />
-              <Skeleton className="mt-1 h-3 w-20 bg-slate-200" />
+              <Skeleton className="h-4 w-28 bg-[rgb(var(--color-border-card))]" />
+              <Skeleton className="mt-1 h-3 w-20 bg-[rgb(var(--color-border-card))]" />
             </TableCell>
-            <TableCell><Skeleton className="mx-auto h-4 w-6 bg-slate-200" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-16 bg-slate-200" /></TableCell>
-            <TableCell><Skeleton className="h-5 w-20 rounded-full bg-slate-200" /></TableCell>
-            <TableCell><Skeleton className="h-4 w-10 bg-slate-200" /></TableCell>
-            <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-16 bg-slate-200" /></TableCell>
+            <TableCell><Skeleton className="mx-auto h-4 w-6 bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell><Skeleton className="mx-auto h-5 w-5 rounded bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-16 bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell><Skeleton className="h-5 w-20 rounded-full bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell><Skeleton className="h-4 w-10 bg-[rgb(var(--color-border-card))]" /></TableCell>
+            <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-16 bg-[rgb(var(--color-border-card))]" /></TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -25,7 +25,10 @@ export const TableHeader = forwardRef<
 >(({ className, ...props }, ref) => (
   <thead
     ref={ref}
-    className={cn("border-b border-slate-200 bg-slate-50", className)}
+    className={cn(
+      "border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-section))]",
+      className
+    )}
     {...props}
   />
 ));
@@ -37,7 +40,7 @@ export const TableBody = forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("divide-y divide-slate-100", className)}
+    className={cn("divide-y divide-[rgb(var(--color-border-subtle))]", className)}
     {...props}
   />
 ));
@@ -50,7 +53,7 @@ export const TableRow = forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "transition-colors hover:bg-slate-50/60 data-[state=selected]:bg-slate-100",
+      "transition-colors hover:bg-[rgb(var(--color-bg-section))]/60 data-[state=selected]:bg-[rgb(var(--color-bg-section))]",
       className
     )}
     {...props}
@@ -65,7 +68,7 @@ export const TableHead = forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-10 px-3 text-left align-middle text-xs font-semibold uppercase tracking-wider text-slate-500",
+      "h-10 px-3 text-left align-middle text-xs font-semibold uppercase tracking-[0.06em] text-[rgb(var(--color-text-muted))]",
       className
     )}
     {...props}
@@ -79,7 +82,10 @@ export const TableCell = forwardRef<
 >(({ className, ...props }, ref) => (
   <td
     ref={ref}
-    className={cn("px-3 py-3 align-middle text-sm text-slate-800", className)}
+    className={cn(
+      "px-3 py-3 align-middle text-sm text-[rgb(var(--color-text-body))]",
+      className
+    )}
     {...props}
   />
 ));

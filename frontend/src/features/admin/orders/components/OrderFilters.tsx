@@ -1,4 +1,5 @@
 import { Button } from "@/shared/components/ui/Button";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { cn } from "@/shared/lib/cn";
 import type { FulfillmentType, OrderStatus } from "@/shared/api/orderApi";
 
@@ -16,15 +17,23 @@ interface OrderFiltersProps {
   hasActiveFilters: boolean;
 }
 
-const statusOptions: { value: OrderStatus | null; label: string }[] = [
-  { value: null, label: "Wszystkie" },
-  { value: "NEW", label: "Nowe" },
-  { value: "CONFIRMED", label: "Potwierdzone" },
-  { value: "IN_PREPARATION", label: "W przygotowaniu" },
-  { value: "READY", label: "Gotowe" },
-  { value: "OUT_FOR_DELIVERY", label: "W drodze" },
-  { value: "DELIVERED", label: "Dostarczone" },
-  { value: "CANCELED", label: "Anulowane" },
+interface StatusChipOption {
+  value: OrderStatus | null;
+  label: string;
+  /** CSS var name (no `var()` wrap) for the chip's status dot. null for
+   * the "all" chip — no dot, just label. D-009 muscle-memory mapping. */
+  dotVar: string | null;
+}
+
+const statusOptions: StatusChipOption[] = [
+  { value: null, label: "Wszystkie", dotVar: null },
+  { value: "NEW", label: "Nowe", dotVar: "--status-new" },
+  { value: "CONFIRMED", label: "Potwierdzone", dotVar: "--status-confirmed" },
+  { value: "IN_PREPARATION", label: "W przygotowaniu", dotVar: "--status-prep" },
+  { value: "READY", label: "Gotowe", dotVar: "--status-ready" },
+  { value: "OUT_FOR_DELIVERY", label: "W drodze", dotVar: "--status-out" },
+  { value: "DELIVERED", label: "Dostarczone", dotVar: "--status-delivered" },
+  { value: "CANCELED", label: "Anulowane", dotVar: "--status-cancelled" },
 ];
 
 const fulfillmentOptions: { value: FulfillmentType | null; label: string }[] = [
@@ -36,28 +45,33 @@ const fulfillmentOptions: { value: FulfillmentType | null; label: string }[] = [
 interface FilterChipProps {
   active: boolean;
   onClick: () => void;
+  dotVar?: string | null;
   children: React.ReactNode;
 }
 
-function FilterChip({ active, onClick, children }: FilterChipProps) {
+function FilterChip({ active, onClick, dotVar, children }: FilterChipProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 items-center rounded-full border px-3 text-[13px] font-medium transition-colors",
+        "inline-flex h-8 items-center gap-2 rounded-full border px-3 text-[13px] font-medium transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
         active
-          ? "border-slate-900 bg-slate-900 text-white"
-          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+          ? "border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary))] text-white"
+          : "border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-body))] hover:bg-[rgb(var(--color-bg-section))]"
       )}
     >
+      {dotVar && (
+        <span
+          className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ background: `rgb(var(${dotVar}))` }}
+          aria-hidden
+        />
+      )}
       {children}
     </button>
   );
 }
-
-const SECTION_LABEL =
-  "text-[11px] font-semibold uppercase tracking-wider text-slate-500";
 
 export function OrderFilters({
   value,
@@ -66,14 +80,15 @@ export function OrderFilters({
   hasActiveFilters,
 }: OrderFiltersProps) {
   return (
-    <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+    <div className="space-y-3 rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4">
       <div className="space-y-2">
-        <div className={SECTION_LABEL}>Status</div>
+        <Kicker as="div">Status</Kicker>
         <div className="flex flex-wrap gap-2">
           {statusOptions.map((opt) => (
             <FilterChip
               key={opt.value ?? "all"}
               active={value.status === opt.value}
+              dotVar={opt.dotVar}
               onClick={() => onChange({ ...value, status: opt.value })}
             >
               {opt.label}
@@ -83,7 +98,7 @@ export function OrderFilters({
       </div>
 
       <div className="space-y-2">
-        <div className={SECTION_LABEL}>Typ</div>
+        <Kicker as="div">Typ</Kicker>
         <div className="flex flex-wrap gap-2">
           {fulfillmentOptions.map((opt) => (
             <FilterChip
@@ -101,9 +116,7 @@ export function OrderFilters({
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <label htmlFor="filter-date-from" className={SECTION_LABEL}>
-            Od
-          </label>
+          <Kicker as="label" {...{ htmlFor: "filter-date-from" }}>Od</Kicker>
           <input
             id="filter-date-from"
             type="date"
@@ -111,13 +124,11 @@ export function OrderFilters({
             onChange={(e) =>
               onChange({ ...value, dateFrom: e.target.value || null })
             }
-            className="h-8 rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="h-9 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-3 text-[13px] text-[rgb(var(--color-text-body))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
           />
         </div>
         <div className="space-y-1">
-          <label htmlFor="filter-date-to" className={SECTION_LABEL}>
-            Do
-          </label>
+          <Kicker as="label" {...{ htmlFor: "filter-date-to" }}>Do</Kicker>
           <input
             id="filter-date-to"
             type="date"
@@ -125,7 +136,7 @@ export function OrderFilters({
             onChange={(e) =>
               onChange({ ...value, dateTo: e.target.value || null })
             }
-            className="h-8 rounded-md border border-slate-200 bg-white px-3 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="h-9 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-3 text-[13px] text-[rgb(var(--color-text-body))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
           />
         </div>
         {hasActiveFilters && (
