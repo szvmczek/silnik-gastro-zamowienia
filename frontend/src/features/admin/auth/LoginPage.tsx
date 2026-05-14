@@ -12,6 +12,7 @@ import { useAuth } from "@/shared/auth/useAuth";
 import { Button } from "@/shared/components/ui/Button";
 import { Input } from "@/shared/components/ui/Input";
 import { Label } from "@/shared/components/ui/Label";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 
 const schema = z.object({
@@ -30,7 +31,9 @@ export function LoginPage() {
   const location = useLocation();
   const { isAuthenticated, setSession } = useAuth();
   const settings = usePublicSettings();
-  const restaurantName = settings.data?.name ?? "Panel";
+  const restaurantName = settings.data?.name ?? "Pizza Demo";
+  const tagline = settings.data?.tagline ?? "Smacznie i szybko";
+  const city = settings.data?.city ?? null;
 
   const redirectTo = (location.state as LocationState | null)?.from?.pathname ?? "/admin";
 
@@ -66,33 +69,70 @@ export function LoginPage() {
     },
   });
 
+  const initialLetter = restaurantName.charAt(0).toUpperCase();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-[420px]">
-        <div className="mb-7 text-center">
-          <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-slate-400">
-            Panel administracyjny
+    <div className="grid min-h-screen bg-[rgb(var(--color-bg-page))] lg:grid-cols-[5fr_7fr]">
+      <aside
+        className="relative hidden flex-col justify-between overflow-hidden bg-[rgb(var(--color-bg-dark))] p-12 text-[rgb(var(--color-text-on-dark))] lg:flex"
+        aria-hidden="true"
+      >
+        <div
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-[10px] bg-[rgb(var(--color-primary))] font-serif text-[20px] font-bold text-white">
+            {initialLetter}
           </div>
-          <div className="mt-1 truncate text-[24px] font-semibold tracking-tight text-slate-900">
-            {restaurantName}
+          <div>
+            <div className="text-[15px] font-bold tracking-tight">{restaurantName}</div>
+            <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgb(var(--color-text-faint))]">
+              Panel admina
+            </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
-            Zaloguj się
-          </h1>
-          <p className="mt-1 text-[13px] text-slate-500">
-            Panel dostępny dla uprawnionych pracowników.
+        <div className="relative z-10 max-w-[380px]">
+          {city && (
+            <Kicker className="mb-3 block text-[rgb(var(--color-accent-yellow))]">
+              {city}
+            </Kicker>
+          )}
+          <h2 className="font-sans text-[44px] font-extrabold leading-[1.05] tracking-[-0.02em] text-[rgb(var(--color-bg-page))]">
+            {tagline}
+            <span className="text-[rgb(var(--color-primary))]">.</span>
+          </h2>
+          <p className="mt-4 text-[15px] leading-[1.55] text-[rgb(var(--color-text-on-dark))]/80">
+            Zarządzanie zamówieniami, menu i godzinami otwarcia w&nbsp;jednym miejscu.
           </p>
+        </div>
+
+        <div className="relative z-10 text-[12px] text-[rgb(var(--color-text-faint))]">
+          Single-tenant · {restaurantName}
+        </div>
+      </aside>
+
+      <main className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
+        <div className="w-full max-w-[380px]">
+          <Kicker className="mb-3 block">Zaloguj się</Kicker>
+          <h1 className="text-[30px] font-extrabold leading-[1.15] tracking-[-0.02em] text-[rgb(var(--color-text-primary))]">
+            Witaj z&nbsp;powrotem
+            <span className="text-[rgb(var(--color-primary))]">.</span>
+          </h1>
 
           <form
             onSubmit={handleSubmit((values) => mutation.mutate(values))}
-            className="mt-6 space-y-4"
+            className="mt-8 space-y-5"
             noValidate
           >
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
@@ -103,7 +143,9 @@ export function LoginPage() {
                 {...register("email")}
               />
               {errors.email && (
-                <p className="mt-1 text-[12px] text-rose-600">{errors.email.message}</p>
+                <p className="mt-1.5 text-[12px] text-[rgb(var(--status-cancelled))]">
+                  {errors.email.message}
+                </p>
               )}
             </div>
             <div>
@@ -115,10 +157,13 @@ export function LoginPage() {
                 size="lg"
                 disabled={mutation.isPending}
                 error={Boolean(errors.password)}
+                className="font-mono"
                 {...register("password")}
               />
               {errors.password && (
-                <p className="mt-1 text-[12px] text-rose-600">{errors.password.message}</p>
+                <p className="mt-1.5 text-[12px] text-[rgb(var(--status-cancelled))]">
+                  {errors.password.message}
+                </p>
               )}
             </div>
             <Button
@@ -128,20 +173,22 @@ export function LoginPage() {
               className="w-full"
               disabled={mutation.isPending}
             >
-              {mutation.isPending ? "Logowanie…" : "Zaloguj się"}
+              {mutation.isPending ? "Logowanie…" : "Zaloguj"}
             </Button>
           </form>
-        </div>
 
-        <div className="mt-5 text-center">
-          <Link
-            to="/"
-            className="text-[12px] text-slate-400 transition-colors hover:text-slate-700"
-          >
-            ← Wróć na stronę
-          </Link>
+          <div className="mt-9 border-t border-[rgb(var(--color-border-subtle))] pt-6 text-center text-[12px] text-[rgb(var(--color-text-muted))]">
+            Tylko dla uprawnionych pracowników.
+            <br />
+            <Link
+              to="/"
+              className="mt-1 inline-block font-medium text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-primary))]"
+            >
+              ← Wróć na stronę
+            </Link>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
