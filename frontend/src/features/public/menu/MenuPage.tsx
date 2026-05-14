@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { usePublicMenu } from "./hooks/usePublicMenu";
@@ -108,9 +108,28 @@ export function MenuPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const stickyStackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = stickyStackRef.current;
+    if (!el) return;
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        "--sticky-stack-height",
+        `${el.offsetHeight}px`
+      );
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--sticky-stack-height");
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[rgb(var(--color-bg-page))] text-[rgb(var(--color-text-primary))]">
-      <div className="sticky top-0 z-50">
+      <div ref={stickyStackRef} className="sticky top-0 z-50">
         <ClosedBanner />
         <PublicNav active="menu" onOpenCart={() => setCartOpen(true)} />
         <FreeDeliveryProgress />
