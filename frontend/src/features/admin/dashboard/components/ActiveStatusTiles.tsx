@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
 import type { AdminDashboardActiveCounts } from "@/shared/api/orderApi";
 
 interface ActiveStatusTilesProps {
@@ -10,15 +9,36 @@ interface Tile {
   label: string;
   value: number;
   to: string;
+  statusVar: string;
 }
 
 export function ActiveStatusTiles({ counts }: ActiveStatusTilesProps) {
   const tiles: Tile[] = [
-    { label: "Nowe", value: counts.new, to: "/admin/kitchen" },
-    { label: "W przygotowaniu", value: counts.inPreparation, to: "/admin/kitchen" },
-    { label: "Do wydania", value: counts.readyForPickup, to: "/admin/pickup" },
-    { label: "Do wysyłki", value: counts.readyForDelivery, to: "/admin/delivery" },
-    { label: "W dostawie", value: counts.outForDelivery, to: "/admin/delivery" },
+    { label: "Nowe", value: counts.new, to: "/admin/kitchen", statusVar: "--status-new" },
+    {
+      label: "W przygotowaniu",
+      value: counts.inPreparation,
+      to: "/admin/kitchen",
+      statusVar: "--status-prep",
+    },
+    {
+      label: "Do wydania",
+      value: counts.readyForPickup,
+      to: "/admin/pickup",
+      statusVar: "--status-ready",
+    },
+    {
+      label: "Do wysyłki",
+      value: counts.readyForDelivery,
+      to: "/admin/delivery",
+      statusVar: "--status-ready",
+    },
+    {
+      label: "W dostawie",
+      value: counts.outForDelivery,
+      to: "/admin/delivery",
+      statusVar: "--status-out",
+    },
   ];
 
   return (
@@ -27,16 +47,22 @@ export function ActiveStatusTiles({ counts }: ActiveStatusTilesProps) {
         <Link
           key={tile.label}
           to={tile.to}
-          className="group rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+          style={{
+            borderLeft: `3px solid rgb(var(${tile.statusVar}))`,
+          }}
         >
-          <div className="flex items-center justify-between text-[12px] text-slate-500">
-            <span className="truncate">{tile.label}</span>
-            <ChevronRight
-              className="h-4 w-4 shrink-0 text-slate-300 transition-colors group-hover:text-slate-400"
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-2 w-2 shrink-0 rounded-full"
+              style={{ background: `rgb(var(${tile.statusVar}))` }}
               aria-hidden
             />
+            <span className="truncate text-[12px] font-semibold text-[rgb(var(--color-text-body))]">
+              {tile.label}
+            </span>
           </div>
-          <div className="mt-2 font-mono text-[28px] font-semibold leading-none text-slate-900">
+          <div className="mt-2 font-mono text-[28px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
             {tile.value}
           </div>
         </Link>

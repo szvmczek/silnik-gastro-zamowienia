@@ -1,25 +1,53 @@
 import { cn } from "@/shared/lib/cn";
+import { Kicker } from "@/shared/components/typography/Kicker";
 
 interface StatTileProps {
   label: string;
   value: string;
   hint?: string;
+  delta?: string;
+  deltaPositive?: boolean;
   isLoading?: boolean;
 }
 
-export function StatTile({ label, value, hint, isLoading = false }: StatTileProps) {
+export function StatTile({
+  label,
+  value,
+  hint,
+  delta,
+  deltaPositive,
+  isLoading = false,
+}: StatTileProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="text-[13px] text-slate-500">{label}</div>
-      <div
-        className={cn(
-          "mt-4 font-mono text-[36px] font-semibold leading-none tracking-tight text-slate-900",
-          isLoading && "text-slate-300",
+    <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
+      <Kicker className="block">{label}</Kicker>
+      <div className="mt-3 flex flex-wrap items-baseline gap-2.5">
+        <span
+          className={cn(
+            "font-mono text-[30px] font-semibold leading-none tracking-[-0.01em] text-[rgb(var(--color-text-primary))]",
+            isLoading && "text-[rgb(var(--color-text-faint))]",
+          )}
+        >
+          {isLoading ? "—" : value}
+        </span>
+        {delta && !isLoading && (
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 text-[12px] font-semibold",
+              deltaPositive
+                ? "bg-[rgb(var(--status-ready-tint))] text-[rgb(var(--status-ready))]"
+                : "bg-[rgb(var(--status-cancelled-tint))] text-[rgb(var(--status-cancelled))]",
+            )}
+          >
+            {deltaPositive ? "↑" : "↓"} {delta}
+          </span>
         )}
-      >
-        {isLoading ? "—" : value}
       </div>
-      {hint && <div className="mt-3 text-[12px] text-slate-400">{hint}</div>}
+      {hint && (
+        <div className="mt-2 text-[12px] text-[rgb(var(--color-text-faint))]">
+          {hint}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,28 +7,28 @@ interface TopProductsListProps {
 export function TopProductsList({ items }: TopProductsListProps) {
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-white p-6 text-[14px] text-slate-500 shadow-sm">
+      <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-6 text-[14px] text-[rgb(var(--color-text-muted))]">
         Brak danych z ostatnich 30 dni.
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <ul className="divide-y divide-slate-100">
+    <div className="overflow-hidden rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
+      <ul className="divide-y divide-[rgb(var(--color-border-subtle))]">
         {items.map((item, idx) => (
           <li
             key={item.productName}
-            className="flex items-center justify-between gap-4 px-5 py-3 text-[14px]"
+            className="grid grid-cols-[32px_1fr_90px] items-center gap-3 px-5 py-3 text-[14px]"
           >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="font-mono text-[12px] text-slate-400">
-                {String(idx + 1).padStart(2, "0")}
-              </span>
-              <span className="truncate text-slate-900">{item.productName}</span>
-            </div>
-            <span className="font-mono font-medium text-slate-900">
-              {item.totalSold}
+            <span className="font-mono text-[12px] text-[rgb(var(--color-text-faint))]">
+              {String(idx + 1).padStart(2, "0")}
+            </span>
+            <span className="truncate text-[rgb(var(--color-text-primary))]">
+              {item.productName}
+            </span>
+            <span className="text-right font-mono font-semibold text-[rgb(var(--color-text-primary))]">
+              {item.totalSold} szt.
             </span>
           </li>
         ))}

@@ -15,6 +15,10 @@ interface Last7DaysLineChartProps {
   data: AdminDashboardDailyStats[];
 }
 
+const AXIS_COLOR = "rgb(107 107 102)";
+const GRID_COLOR = "rgb(237 233 223)";
+const LINE_COLOR = "rgb(230 57 70)";
+
 export function Last7DaysLineChart({ data }: Last7DaysLineChartProps) {
   const enriched = data.map((d) => ({
     ...d,
@@ -22,22 +26,22 @@ export function Last7DaysLineChart({ data }: Last7DaysLineChartProps) {
   }));
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
       <div className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={enriched} margin={{ top: 8, right: 8, bottom: 8, left: -12 }}>
-            <CartesianGrid stroke="#f1f5f9" vertical={false} />
+            <CartesianGrid stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: "#64748b" }}
+              tick={{ fontSize: 12, fill: AXIS_COLOR }}
               tickLine={false}
-              axisLine={{ stroke: "#e2e8f0" }}
+              axisLine={{ stroke: GRID_COLOR }}
             />
             <YAxis
               allowDecimals={false}
-              tick={{ fontSize: 11, fill: "#64748b" }}
+              tick={{ fontSize: 11, fill: AXIS_COLOR }}
               tickLine={false}
-              axisLine={{ stroke: "#e2e8f0" }}
+              axisLine={{ stroke: GRID_COLOR }}
             />
             <Tooltip
               labelFormatter={(label, payload) => {
@@ -52,9 +56,9 @@ export function Last7DaysLineChart({ data }: Last7DaysLineChartProps) {
             <Line
               type="monotone"
               dataKey="orderCount"
-              stroke="rgb(var(--primary))"
+              stroke={LINE_COLOR}
               strokeWidth={2}
-              dot={{ r: 3, fill: "rgb(var(--primary))" }}
+              dot={{ r: 3, fill: LINE_COLOR }}
               activeDot={{ r: 5 }}
             />
           </LineChart>
