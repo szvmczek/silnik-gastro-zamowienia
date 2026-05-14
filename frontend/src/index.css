@@ -26,3 +26,15 @@ body {
     color: rgb(148 163 184); /* slate-400 */
   }
 }
+
+/* Toast offset above MobileCartBar (visible <lg=1024px).
+   Sonner sets CSS vars inline on the [data-sonner-toaster] OL element, so !important
+   is required to override them from a stylesheet. MobileCartBar height ≈ 76px (h-14
+   + pt-2 + pb-3). Sonner's toast translateY on enter can keep the toast extended
+   ~54px below the offset anchor, so total clearance = 76 + 54 + 20 gap ≈ 150px. */
+@media (max-width: 1023.98px) {
+  [data-sonner-toaster] {
+    --offset-bottom: 150px !important;
+    --mobile-offset-bottom: 150px !important;
+  }
+}
