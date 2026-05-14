@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { usePublicMenu } from "@/features/public/menu/hooks/usePublicMenu";
 import { formatPrice, minVariantPrice } from "@/features/public/menu/lib/formatPrice";
@@ -37,8 +37,11 @@ export function UpsellSection({
   onAdd,
   currency = "PLN",
 }: Props) {
+  const [isOpen, setIsOpen] = useState(cartItems.length === 1);
   const { data: menu } = usePublicMenu();
   const [removed, setRemoved] = useState<Set<number>>(new Set());
+
+  if (cartItems.length === 0) return null;
 
   const inCartIds = new Set(cartItems.map((ci) => ci.productId));
   const allProducts: PublicProductDto[] = (menu?.categories ?? []).flatMap(
@@ -71,22 +74,48 @@ export function UpsellSection({
       )}
       aria-label="Sugerowane dodatki do zamówienia"
     >
-      <div className="mb-1.5 flex items-baseline justify-between gap-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        aria-controls="upsell-list"
+        className="mb-1.5 flex w-full items-baseline justify-between gap-2 focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+      >
         <span className="t-kicker t-kicker--accent">A może jeszcze?</span>
-        <span className="font-mono text-[11px] text-[rgb(var(--color-text-faint))]">
-          {suggestions.length} {suffix}
-        </span>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        {suggestions.map((product) => (
-          <UpsellRow
-            key={product.id}
-            product={product}
-            currency={currency}
-            leaving={removed.has(product.id)}
-            onAdd={handleAdd}
+        <span className="flex items-baseline gap-1.5">
+          <span className="font-mono text-[11px] text-[rgb(var(--color-text-faint))]">
+            {suggestions.length} {suffix}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            strokeWidth={2.4}
+            className={cn(
+              "h-3.5 w-3.5 self-center text-[rgb(var(--color-text-faint))] transition-transform duration-200",
+              isOpen && "rotate-180"
+            )}
           />
-        ))}
+        </span>
+      </button>
+      <div
+        id="upsell-list"
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-1.5 pt-1.5">
+            {suggestions.map((product) => (
+              <UpsellRow
+                key={product.id}
+                product={product}
+                currency={currency}
+                leaving={removed.has(product.id)}
+                onAdd={handleAdd}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
