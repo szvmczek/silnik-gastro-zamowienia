@@ -144,7 +144,112 @@ robi osobny task który dotyka frontendu + backendu spójnie:
     - Świadomie poza scope Warstwy 3b — wymaga backend touch (poza
       "Backend bez touch" constraint M-025/M-026).
 
-11. TrackingTimeline ikony — lucide vs MIGRATION_PLAN emoji (Warstwa 3b · M-025 audit trail):
+12. AdminDashboardStatsToday brak `preparationAverageMinutes` + `canceledLast24h` (Warstwa 4 · M-028 / AD-Δ9):
+    - Bundle Stage 3 `frame-dashboard.jsx` pokazuje 4 KPI: Zamówienia /
+      Sprzedaż / Czas przygotowania / Anulowane (24h). My zachowujemy
+      Zamówienia / Sprzedaż / Średnia / Aktywne bo backend
+      `AdminDashboardStatsToday` (`AdminDashboardStatsDto.java`) wystawia
+      `orderCount`, `totalRevenue`, `averageOrderValue`, `deliveryCount`,
+      `pickupCount`, `canceledCount`. Brak preparation avg ani 24h rolling
+      canceled.
+    - Post-MVP backend M2 delta:
+      A) `preparationAverageMinutes: Integer | null` — rolling avg z
+         `order_status_history` (transition CONFIRMED→READY lub
+         IN_PREPARATION→READY), last 24h window
+      B) `canceledLast24h: Long` — count CANCELED orders w sliding 24h
+         (vs canceledCount today only)
+    - Frontend StatTile + dashboard layout gotowy do dodania 5/6 KPI gdy
+      backend doda pole — wystarczy mapowanie w DashboardPage.
+    - Świadomie poza scope Warstwy 4 — AD-Δ9 w MIGRATION_ERRATA.
+
+13. AdminDashboardTopProductStats brak `revenue` + `salesShare` (Warstwa 4 · M-028 / AD-Δ10):
+    - Bundle Stage 3 Top Products row pokazuje grid 5-col: rank + name +
+      qty + revenue mono + share % progress bar. Backend wystawia tylko
+      `productName` + `totalSold`.
+    - Post-MVP backend M2 delta:
+      A) `revenue: BigDecimal` — sum `OrderItem.lineTotal` per product per
+         30 days (exclude CANCELED orders)
+      B) `salesShare: BigDecimal` — `revenue / totalRevenue30d * 100`
+         (server-computed pour ergonomic frontend)
+    - Frontend `TopProductsList.tsx` gotowy do dodania kolumn — wystarczy
+      rozszerzyć grid template + render revenue + share progress bar.
+    - Świadomie poza scope Warstwy 4 — AD-Δ10 w MIGRATION_ERRATA.
+
+14. AdminOrderDto `trackingToken` field — RESOLVED w Warstwie 4 via AD-Δ13:
+    - Backend `AdminOrderDto.java` zawiera `String trackingToken` od M-033
+      (commit e030b93). `AdminOrderQueryService.toDto()` mapuje
+      `order.getPublicTrackingToken().toString()`.
+    - Frontend OrderDetailPage używa do linka "Otwórz tracker klienta →"
+      do `/track/{token}` (target="_blank").
+    - Operator's N3 decyzja: świadomy wyjątek od "Zero Backend Touch"
+      bo gap funkcjonalny support workflow, zmiana trywialna.
+
+15. AdminOrderDto brak `paidAt` flag — payment status snapshot (Warstwa 4 · M-033 follow-up):
+    - Bundle Stage 3 `frame-order-detail.jsx` Płatność card pokazuje
+      paid status pill ("Opłacone" / "Nieopłacone") + button "Oznacz jako
+      opłacone" gdy `!paid`. Backend `AdminOrderDto` brak `paidAt`
+      timestamp ani `paid` boolean — wszystkie zamówienia w MVP są
+      gotówka pre-fulfillment, więc payment-confirmed-by-operator workflow
+      nie był implementowany.
+    - Post-MVP backend M2 delta:
+      A) `Order` entity dodać kolumnę `paid_at: TIMESTAMPTZ NULL`
+      B) Endpoint `PATCH /admin/orders/{id}/mark-paid` z
+         `OrderStatusService.markAsPaid()` — set `paid_at = now()`
+         + audit entry w `order_status_history` (typ "PAYMENT_CONFIRMED"
+         lub osobny event log)
+      C) `AdminOrderDto.paidAt: Instant | null` w response
+    - Frontend OrderDetailPage Płatność card gotowy do dodania button +
+      conditional pill — wystarczy `markAsPaid` mutation hook + `paidAt`
+      state machine.
+    - Świadomie poza scope Warstwy 4 — operator's N4 decyzja batch.
+
+16. OrderTrackingItemDto brak per-item `note` field (Warstwa 4 · M-033 follow-up):
+    - Bundle Stage 3 `frame-order-detail.jsx` items list pokazuje per-item
+      yellow note alert "Notka: bez bazylii proszę" jako focal. Backend
+      `OrderTrackingItemDto` wystawia `productName`, `variantName`,
+      `quantity`, `unitPrice`, `lineTotal`, `addons` — brak per-item note.
+    - Customer-level `customerNotes` field istnieje (od Fazy 2 F2) i jest
+      already rendered w OrderDetailPage right-col yellow banner — pokrycie
+      80% use cases ("notka do całego zamówienia").
+    - Post-MVP backend M2 delta — wymaga PHASES.md F2-related work:
+      A) `OrderItem` entity kolumna `customer_note: TEXT NULL` (max 200 zn)
+      B) `OrderTrackingItemDto.note: String | null` w response
+      C) Frontend cart/checkout: per-item textarea w ProductModal lub
+         CartSidebar/Sheet (bundle pattern), max 200 zn, persisted w
+         CartItem store + serialized w place-order payload
+    - Świadomie poza scope Warstwy 4 — szerszy gap niż display-only.
+
+17. AdminOrdersQuery brak per-status count aggregate (Warstwa 4 · M-032 / AD-Δ14):
+    - Bundle Stage 3 `frame-orders.jsx` filter chips pokazują per-status
+      count ("Nowe 3", "Potwierdzone 4", itd.). Backend `/admin/orders`
+      zwraca `SpringPage<AdminOrderListItemDto>` z `totalElements` (one
+      number) — brak `Map<OrderStatus, Long>` aggregate.
+    - Post-MVP backend M2 delta:
+      A) Osobny endpoint `GET /admin/orders/counts?dateFrom=X&dateTo=Y`
+         zwraca `Map<OrderStatus, Long>` per filtered range, lub
+      B) Embedded `statusCounts` w SpringPage response wrapper
+         (`AdminOrdersPageResponse extends SpringPage` z dodatkowym polem)
+    - Frontend OrderFilters chips gotowe do dodania count — wystarczy
+      hook `useOrdersCountsQuery({dateFrom, dateTo})` + render mono count
+      w chip span.
+    - Świadomie poza scope Warstwy 4 — AD-Δ14 w MIGRATION_ERRATA.
+
+18. SettingsDto brak `foundedYear` field (Warstwa 4 · M-027 / AD-Δ8):
+    - Bundle Stage 3 `frame-login.jsx` brand panel kicker accent-yellow
+      pokazuje "ŁOMIANKI · OD 2018". Drugi fragment "OD {rok}" wymaga
+      `foundedYear: Integer | null` w SettingsDto.
+    - W M-027 renderowane jest tylko `settings.data?.city` (graceful skip
+      gdy null); "OD {rok}" pominięte.
+    - Post-MVP backend M2 delta (tani):
+      A) `RestaurantSettings` entity dodać `founded_year: SMALLINT NULL`
+      B) `SettingsDto.foundedYear: Integer | null` w response
+      C) Admin UI: numeric input w Settings → Ogólne (rok min 1900,
+         max current year)
+    - Frontend LoginPage gotowy do dodania — wystarczy template literal
+      kicker `{city}{foundedYear ? ` · OD ${foundedYear}` : ''}`.
+    - Świadomie poza scope Warstwy 4 — AD-Δ8 w MIGRATION_ERRATA.
+
+19. TrackingTimeline ikony — lucide vs MIGRATION_PLAN emoji (Warstwa 3b · M-025 audit trail):
     - `MIGRATION_PLAN.md` M-025 spec mówi: emoji ikony per stage
       `(⏳ ✓ 👨‍🍳 🛵 🎉)` + 6th cancelled `(✕)`.
     - Bundle Stage 2 `confirmation-and-tracking.jsx` (L92-99, L181-182)

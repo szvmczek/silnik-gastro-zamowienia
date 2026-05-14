@@ -336,3 +336,183 @@ fazę designu pre-bundle Stage 2.
 
 **Wersja 2.4** · 2026-05-14 · Warstwa 3b (M-023..M-026) complete +
 AD-Δ7 (TrackingTimeline lucide vs emoji audit trail).
+
+---
+
+## Architectural deltas — Warstwa 4 (admin operations)
+
+> 2026-05-15 · Warstwa 4 (M-027..M-033, admin operations retrofit) na
+> branchu `design/v2-stage5-handoff`. Commit range `61db175..e030b93`
+> (7 commits: 61db175 M-027, 17cfd3d M-028, f68f942 M-029, e02f13b M-030,
+> 81f89fe M-031, 5ab7ca4 M-032, e030b93 M-033). 7 delta zaakceptowane
+> w plan mode (operator's N1-N4 decisions z plan akceptem).
+
+### AD-Δ8: Login brand-panel uses settings.tagline (świadomy mismatch demo copy)
+
+> 2026-05-15 · Warstwa 4 · M-027 LoginPage retrofit.
+
+Bundle Stage 3 `frame-login.jsx` brand panel ma hardcoded headline
+"Smacznie i szybko." + kicker "ŁOMIANKI · OD 2018". Oba demo copy.
+
+**Δ:**
+- `LoginPage.tsx` brand panel renderuje `settings.data?.tagline` z fallback
+  `"Smacznie i szybko"` (graceful default). `tagline` jest pełnoprawnym polem
+  SettingsDto (od Fazy 4), restauracja podmienia z admin Settings → Ogólne.
+- City kicker (accent-yellow) renderuje `settings.data?.city` only gdy
+  niezerowe. Drop "OD {rok}" sub-fragment bo brak `foundedYear` w SettingsDto
+  (post-MVP backend delta — zob. PHASE5_FINDINGS #18 sentencja podana
+  w naszym Warstwa 3a fix-up #2 F-013 footer social paragraph).
+- "Wersja 5.0 · Faza redesign" footer (bundle) zastąpione "Single-tenant ·
+  {restaurantName}" — design tool string zastąpiony pożyteczną informacją.
+
+**Wykonane:** M-027 (`61db175`).
+
+### AD-Δ9: Dashboard 4 KPI per backend fields (mismatch vs bundle 4 KPI)
+
+> 2026-05-15 · Warstwa 4 · M-028 DashboardPage retrofit.
+
+Bundle Stage 3 `frame-dashboard.jsx` pokazuje 4 KPI: Zamówienia dziś /
+Sprzedaż dziś / Czas przygotowania / Anulowane (24h). Backend
+`AdminDashboardStatsToday` (`order/api/dto/admin/AdminDashboardStatsDto.java`)
+wystawia: `orderCount`, `totalRevenue`, `averageOrderValue`, `deliveryCount`,
+`pickupCount`, `canceledCount`. **Brak** `preparationAverageMinutes` ani
+`canceledLast24h` aggregate.
+
+**Δ:** Zachowuję istniejące 4 KPI dla operator-relevant data:
+1. Zamówienia dziś — `today.orderCount` + delta vs wczoraj (computeDelta)
+2. Sprzedaż dziś — `today.totalRevenue` + hint "{N} dostawy · {N} odbiory"
+3. Średnia wartość — `today.averageOrderValue`
+4. Aktywne zamówienia — `activeCounts` sum + hint "{N} anulowanych dziś"
+   (gdy `canceledCount > 0`)
+
+Post-MVP: PHASE5_FINDINGS #12 zapisuje backend delta wymagana dla bundle
+4 KPI exact match — `preparationAverageMinutes` (rolling avg per status
+transition NEW→READY) + `canceledLast24h` (snapshot window).
+
+**Wykonane:** M-028 (`17cfd3d`).
+
+### AD-Δ10: Dashboard Top Products bez revenue/share kolumn (backend gap)
+
+> 2026-05-15 · Warstwa 4 · M-028 DashboardPage retrofit.
+
+Bundle Stage 3 Top Products row pokazuje 5-col grid: rank mono + name + qty
++ revenue mono + share % progress bar. Backend `AdminDashboardTopProductStats`
+wystawia tylko `productName` + `totalSold`.
+
+**Δ:** `TopProductsList.tsx` renderuje grid 32px-1fr-90px (rank mono + name +
+qty mono). Drop revenue + share % kolumny.
+
+Post-MVP: PHASE5_FINDINGS #13 zapisuje backend delta — wymaga rozszerzenia
+`AdminDashboardTopProductStats` o `revenue: BigDecimal` (sum lineTotal per
+product per 30 days, exclude CANCELED) + `salesShare: BigDecimal` (per
+total revenue 30d).
+
+**Wykonane:** M-028 (`17cfd3d`).
+
+### AD-Δ11: Kitchen AD-023 collapse + visual state differentiation
+
+> 2026-05-15 · Warstwa 4 · M-029 KitchenPage retrofit.
+
+Brief Warstwy 4 M-029 wymaga "3-step CTA: Potwierdź / Rozpocznij / Gotowe".
+AD-023 (`docs/ARCHITECTURE.md`) collapsuje NEW + CONFIRMED do jednokliku
+"Przyjmij → IN_PREPARATION" dla muscle memory Pani Kasi.
+
+**Konflikt rozwiązany przez visual differentiation:**
+- `KitchenOrderCard.primaryAction()` zwraca `{label, next, bgVar, textColor}`
+- NEW → "Przyjmij" status-new amber bg / text-primary (dark text na amber
+  per WCAG contrast); `next = IN_PREPARATION` (AD-023 skip CONFIRMED)
+- CONFIRMED → "Rozpocznij przygotowanie →" status-confirmed blue bg /
+  text-white; `next = IN_PREPARATION` (gdy admin postawił CONFIRMED z
+  OrderDetail back-office flow per AD-023)
+- IN_PREPARATION → "Gotowe ✓" status-ready emerald bg / text-white;
+  `next = READY`
+
+Backend transitions zachowane (`transitions.canTransitionTo`): NEW dopuszcza
+zarówno CONFIRMED jak i IN_PREPARATION, kuchnia używa skip. Operator widzi
+3 distinct visual states (NEW = waiting acceptance, CONFIRMED = admin-
+acknowledged, IN_PREPARATION = active cook), single-tap workflow preserved.
+
+**Wykonane:** M-029 (`f68f942`).
+
+### AD-Δ12: PickupPage zachowuje cards layout (cash banner focal UX)
+
+> 2026-05-15 · Warstwa 4 · M-030 PickupPage retrofit.
+
+Bundle Stage 3 `frame-pickup.jsx` pokazuje **tabelę** list-style 6-col (slot
+mono 24px focal + klient name 22px + items compact + telefon + kwota + akcja
+"Szczegóły →"). Obecna implementacja PickupPage używa **kart 2-col grid**
+z cash banner "POBIERZ GOTÓWKĘ {kwota}" focal pattern dla CASH_ON_PICKUP.
+
+**Δ:** Zachowuję karty layout. Rationale:
+- Cash banner jest critical UX dla operatora przy ladzie — pełna kwota
+  w `status-cancelled-tint` focal bg + mono 24px bold + kicker "Pobierz
+  gotówkę". Tabela degradowała by signal do small cell
+- Customer name 28px focal też dominuje karta — w tabeli mieści się tylko
+  w 22px bez line-clamp
+- Single-tenant małej pizzerii nie ma volume order pour tabela vs karty
+  workflow (bundle table optimized dla multi-order retail; my single-flow)
+
+PickupOrderCard.tsx token audit zachowane (mono order# 16px small +
+customer name 28px focal + phone link primary mono + items compact + cash
+banner / payment label fallback + Wydano CTA xl primary).
+
+**Wykonane:** M-030 (`e02f13b`).
+
+### AD-Δ13: Backend touch trackingToken (świadomy wyjątek od "Zero Backend Touch")
+
+> 2026-05-15 · Warstwa 4 · M-033 OrderDetailPage retrofit + backend.
+
+Brief Warstwy 4 zawiera explicit drobnostka #1: link "Otwórz tracker
+klienta →" do `/track/{token}` w OrderDetailPage header. Backend
+`AdminOrderDto` przed Warstwą 4 NIE wystawiał `trackingToken` field — pole
+`UUID publicTrackingToken` istnieje w Order entity (Faza 1, migracja V100)
+ale było eksponowane tylko w `OrderConfirmationDto` przy place order.
+
+**Operator's N3 decyzja:** świadomy wyjątek od konstytucji "Zero Backend
+Touch" (CLAUDE.md). Argumentacja:
+- Gap funkcjonalny support workflow (operator dzwoni klient, link szybki
+  do trackera) — nie polish
+- Zmiana trywialna: 1 pole record + 1 mapper line, brak migracji DB
+- Tests bez touch (AdminOrderDto konstruowane tylko via toDto)
+- Alternatywa (manual UUID lookup w bazie) niewygodna na produkcji
+
+**Δ:**
+- `AdminOrderDto.java`: dodane pole `String trackingToken`
+- `AdminOrderQueryService.toDto()`: mapper rozszerzony o
+  `order.getPublicTrackingToken().toString()` w 4-tym argumencie
+- Frontend `orderApi.ts`: `trackingToken: string` w `AdminOrderDto` interface
+- Frontend `OrderDetailPage.tsx`: link `<Link to="/track/{order.trackingToken}"
+  target="_blank">Otwórz tracker klienta ↗</Link>` z ExternalLink Lucide icon
+
+Pozostałe backend gaps z planu Warstwy 4 (#12, #13, #15, #16, #17, #18)
+zostają w PHASE5_FINDINGS dla post-Warstwa 6 backend M2 batch task per
+N4 operator decision.
+
+**Wykonane:** M-033 (`e030b93`).
+
+### AD-Δ14: OrdersList filter chips bez per-status count (backend aggregate gap)
+
+> 2026-05-15 · Warstwa 4 · M-032 OrdersListPage retrofit.
+
+Bundle Stage 3 `frame-orders.jsx` filter chips row pokazuje per-status count
+mono ("Nowe 3", "Potwierdzone 4", itd.). Backend `AdminOrdersQuery` zwraca
+filtered `SpringPage<AdminOrderListItemDto>` — brak aggregate `Map<OrderStatus,
+Long>` per query.
+
+**Δ:** OrderFilters chips renderują tylko status dot + label bez count.
+Active = primary bg + white. Inactive = border-card + text-body + hover
+bg-section. D-009 muscle-memory dot mapping zachowany (NEW amber, CONFIRMED
+blue, IN_PREPARATION primary, READY emerald, OUT_FOR_DELIVERY indigo,
+DELIVERED slate, CANCELED red).
+
+Post-MVP: PHASE5_FINDINGS #17 zapisuje backend delta — wymaga osobnego
+endpoint `/admin/orders/counts?dateFrom=X&dateTo=Y` lub embedded
+`statusCounts` w `SpringPage` response wrapper.
+
+**Wykonane:** M-032 (`5ab7ca4`).
+
+---
+
+**Wersja 2.5** · 2026-05-15 · Warstwa 4 (M-027..M-033) complete +
+AD-Δ8..14 entries (admin operations retrofit + AD-Δ13 backend touch
+exception). Total deltas: 14.
