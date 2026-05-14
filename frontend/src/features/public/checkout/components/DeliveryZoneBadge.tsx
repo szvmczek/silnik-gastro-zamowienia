@@ -12,7 +12,7 @@ interface Props {
 export function DeliveryZoneBadge({ result, loading, currency }: Props) {
   if (loading) {
     return (
-      <div className="rounded-md border border-slate-200 bg-slate-50 p-2.5 text-[13px] text-slate-500">
+      <div className="rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))] p-2.5 text-[13px] text-[rgb(var(--color-text-muted))]">
         Sprawdzam dostępność dostawy…
       </div>
     );
@@ -21,7 +21,7 @@ export function DeliveryZoneBadge({ result, loading, currency }: Props) {
 
   if (result.status === "FREE") {
     return (
-      <div className={cn(badgeBase, "border-emerald-200 bg-emerald-50 text-emerald-800")}>
+      <div className={cn(badgeBase, "border-[rgb(var(--status-ready))]/30 bg-[rgb(var(--status-ready-tint))] text-[rgb(var(--status-ready))]")}>
         <CheckCircle2 className="h-4 w-4 shrink-0" />
         <span>
           Darmowa dostawa{result.zoneName ? <> — strefa: <strong>{result.zoneName}</strong></> : null}
@@ -31,7 +31,7 @@ export function DeliveryZoneBadge({ result, loading, currency }: Props) {
   }
   if (result.status === "PAID") {
     return (
-      <div className={cn(badgeBase, "border-amber-200 bg-amber-50 text-amber-800")}>
+      <div className={cn(badgeBase, "border-[rgb(var(--color-primary))]/30 bg-[rgb(var(--color-primary-tint))] text-[rgb(var(--color-primary))]")}>
         <AlertCircle className="h-4 w-4 shrink-0" />
         <span>
           Dostawa: <strong>{formatPrice(result.fee, currency)}</strong>
@@ -41,7 +41,7 @@ export function DeliveryZoneBadge({ result, loading, currency }: Props) {
     );
   }
   return (
-    <div className={cn(badgeBase, "border-rose-200 bg-rose-50 text-rose-800")}>
+    <div className={cn(badgeBase, "border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] text-[rgb(var(--status-cancelled))]")}>
       <XCircle className="h-4 w-4 shrink-0" />
       <span>
         {result.zoneName

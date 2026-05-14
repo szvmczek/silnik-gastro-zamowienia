@@ -257,12 +257,12 @@ export function CheckoutPage() {
   const submitDisabled = mutation.isPending || !restaurantIsOpen || deliveryUnavailable;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/95 backdrop-blur">
+    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] text-[rgb(var(--color-text-primary))]">
+      <header className="sticky top-0 z-20 border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))]/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-10">
           <Link
             to="/menu"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-600 hover:text-slate-900"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-primary))]"
           >
             <ArrowLeft className="h-4 w-4" />
             Wróć do menu
@@ -273,7 +273,7 @@ export function CheckoutPage() {
         </div>
       </header>
 
-      <div className="md:hidden border-b border-slate-200 bg-white">
+      <div className="md:hidden border-b border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
         <button
           type="button"
           onClick={() => setSummaryOpen((v) => !v)}
@@ -281,23 +281,23 @@ export function CheckoutPage() {
           className="flex w-full items-center justify-between px-4 py-3 text-left"
         >
           <div>
-            <div className="text-[12px] text-slate-500">Podsumowanie</div>
-            <div className="text-[15px] font-semibold text-slate-900">
+            <div className="text-[12px] text-[rgb(var(--color-text-muted))]">Podsumowanie</div>
+            <div className="text-[15px] font-semibold text-[rgb(var(--color-text-primary))]">
               {formatPrice(total, currency)}{" "}
-              <span className="text-[12px] font-normal text-slate-500">
+              <span className="text-[12px] font-normal text-[rgb(var(--color-text-muted))]">
                 · {items.length} {itemsNoun(items.length)}
               </span>
             </div>
           </div>
           <ChevronDown
             className={cn(
-              "h-5 w-5 text-slate-400 transition-transform duration-base",
+              "h-5 w-5 text-[rgb(var(--color-text-faint))] transition-transform duration-base",
               summaryOpen && "rotate-180"
             )}
           />
         </button>
         {summaryOpen ? (
-          <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+          <div className="border-t border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-section))] px-4 py-3">
             <SummaryCardContents
               items={items}
               subtotal={total}
@@ -311,12 +311,13 @@ export function CheckoutPage() {
       </div>
 
       <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 md:px-10 md:pb-16 md:pt-10">
-        <h1 className="mb-6 text-[28px] font-semibold tracking-tight text-slate-900 md:mb-8 md:text-[36px]">
-          Zamówienie
+        <div className="t-kicker t-kicker--accent mb-2 md:mb-3">ZAMÓWIENIE</div>
+        <h1 className="mb-6 text-[28px] font-black tracking-tight text-[rgb(var(--color-text-primary))] md:mb-8 md:text-[48px]">
+          Twoje zamówienie<span className="text-[rgb(var(--color-primary))]">.</span>
         </h1>
 
         {!restaurantIsOpen ? (
-          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="mb-6 rounded-md border border-[rgb(var(--color-primary))]/30 bg-[rgb(var(--color-primary-tint))] p-4 text-sm text-[rgb(var(--color-primary))]">
             Restauracja jest teraz zamknięta. Zamówienia przyjmujemy w godzinach otwarcia.
           </div>
         ) : null}
@@ -556,7 +557,7 @@ export function CheckoutPage() {
             <Section kicker={isDelivery ? "5 · Uwagi do zamówienia" : "4 · Uwagi do zamówienia"}>
               <Label htmlFor="customerNotes">
                 Uwagi{" "}
-                <span className="font-normal text-slate-500">· opcjonalne</span>
+                <span className="font-normal text-[rgb(var(--color-text-muted))]">· opcjonalne</span>
               </Label>
               <Textarea
                 id="customerNotes"
@@ -573,9 +574,9 @@ export function CheckoutPage() {
           </form>
 
           <aside className="hidden lg:block">
-            <div className="sticky top-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-              <div className="border-b border-slate-200 px-6 py-5">
-                <div className="text-[15px] font-semibold text-slate-900">
+            <div className="sticky top-6 overflow-hidden rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
+              <div className="border-b border-[rgb(var(--color-border-card))] px-6 py-5">
+                <div className="text-[15px] font-semibold text-[rgb(var(--color-text-primary))]">
                   Podsumowanie
                 </div>
               </div>
@@ -597,7 +598,7 @@ export function CheckoutPage() {
                 >
                   {submitCtaLabel}
                 </Button>
-                <p className="mt-3 text-center text-[11px] text-slate-400">
+                <p className="mt-3 text-center text-[11px] text-[rgb(var(--color-text-faint))]">
                   Klikając potwierdzasz, że Twoje dane są poprawne.
                 </p>
               </div>
@@ -606,7 +607,7 @@ export function CheckoutPage() {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-4px_12px_rgba(15,23,42,0.05)] backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]/95 px-4 py-3 shadow-[0_-4px_12px_rgba(26,26,26,0.06)] backdrop-blur lg:hidden">
         <Button
           type="submit"
           form="checkout-form"
@@ -629,8 +630,8 @@ interface SectionProps {
 
 function Section({ kicker, children }: SectionProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 md:p-6">
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.22em] text-slate-400">
+    <section className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5 md:p-6">
+      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--color-text-faint))]">
         {kicker}
       </div>
       <div className="space-y-4">{children}</div>
@@ -657,7 +658,7 @@ function Field({ label, htmlFor, error, children }: FieldProps) {
 
 function InlineError({ message }: { message: string }) {
   return (
-    <p className="mt-1.5 flex items-center gap-1 text-[12px] font-medium text-rose-600">
+    <p className="mt-1.5 flex items-center gap-1 text-[12px] font-medium text-[rgb(var(--status-cancelled))]">
       <AlertCircle className="h-3.5 w-3.5 shrink-0" />
       <span>{message}</span>
     </p>
@@ -687,26 +688,26 @@ function FulfillmentTile({
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "flex items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 md:p-5",
+        "flex items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:p-5",
         selected
           ? "border-2 border-primary bg-primary/5"
-          : "border border-slate-200 bg-white hover:border-slate-300"
+          : "border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] hover:border-[rgb(var(--color-border-strong))]"
       )}
     >
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-          selected ? "border-primary" : "border-slate-300"
+          selected ? "border-primary" : "border-[rgb(var(--color-border-strong))]"
         )}
       >
         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
       </span>
       <span className="flex flex-col">
-        <span className="flex items-center gap-2 text-slate-900">
-          <span className={selected ? "text-primary" : "text-slate-700"}>{icon}</span>
+        <span className="flex items-center gap-2 text-[rgb(var(--color-text-primary))]">
+          <span className={selected ? "text-primary" : "text-[rgb(var(--color-text-body))]"}>{icon}</span>
           <span className="text-[14px] font-semibold">{title}</span>
         </span>
-        <span className="mt-0.5 text-[12px] text-slate-500">{subtitle}</span>
+        <span className="mt-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">{subtitle}</span>
       </span>
     </button>
   );
@@ -727,23 +728,23 @@ function PaymentTile({ selected, title, subtitle, onSelect }: PaymentTileProps) 
       aria-checked={selected}
       onClick={onSelect}
       className={cn(
-        "flex w-full items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "flex w-full items-start gap-3 rounded-lg p-4 text-left transition-colors duration-fast focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
         selected
           ? "border-2 border-primary bg-primary/5"
-          : "border border-slate-200 bg-white hover:border-slate-300"
+          : "border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] hover:border-[rgb(var(--color-border-strong))]"
       )}
     >
       <span
         className={cn(
           "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2",
-          selected ? "border-primary" : "border-slate-300"
+          selected ? "border-primary" : "border-[rgb(var(--color-border-strong))]"
         )}
       >
         {selected ? <span className="h-2.5 w-2.5 rounded-full bg-primary" /> : null}
       </span>
       <span className="flex flex-col">
-        <span className="text-[14px] font-semibold text-slate-900">{title}</span>
-        <span className="mt-0.5 text-[12px] text-slate-500">{subtitle}</span>
+        <span className="text-[14px] font-semibold text-[rgb(var(--color-text-primary))]">{title}</span>
+        <span className="mt-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">{subtitle}</span>
       </span>
     </button>
   );
@@ -770,7 +771,7 @@ function SummaryCardContents({
     <>
       <ul
         className={cn(
-          "divide-y divide-slate-100",
+          "divide-y divide-[rgb(var(--color-border-subtle))]",
           compact ? "px-0" : "px-6"
         )}
       >
@@ -783,12 +784,12 @@ function SummaryCardContents({
               className="flex items-start justify-between gap-3 py-3"
             >
               <div className="min-w-0">
-                <p className="text-[14px] font-medium text-slate-900">
-                  <span className="text-slate-500">{item.quantity}× </span>
+                <p className="text-[14px] font-medium text-[rgb(var(--color-text-primary))]">
+                  <span className="text-[rgb(var(--color-text-muted))]">{item.quantity}× </span>
                   {item.productName}
                 </p>
                 {(item.variantName || item.addons.length > 0) && (
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 text-[11px] text-[rgb(var(--color-text-muted))]">
                     {[
                       item.variantName,
                       ...item.addons.map((a) => `+${a.name}`),
@@ -797,11 +798,11 @@ function SummaryCardContents({
                       .join(" · ")}
                   </p>
                 )}
-                <p className="mt-0.5 text-[11px] text-slate-400">
+                <p className="mt-0.5 text-[11px] text-[rgb(var(--color-text-faint))]">
                   {item.quantity} × {formatPrice(unit, currency)}
                 </p>
               </div>
-              <span className="shrink-0 text-[14px] font-semibold text-slate-900">
+              <span className="shrink-0 text-[14px] font-semibold text-[rgb(var(--color-text-primary))]">
                 {formatPrice(lineTotal(item), currency)}
               </span>
             </li>
@@ -810,23 +811,23 @@ function SummaryCardContents({
       </ul>
       <div
         className={cn(
-          "border-t border-slate-200 bg-slate-50 space-y-1.5",
+          "border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))] space-y-1.5",
           compact ? "mt-3 rounded-md px-3 py-3" : "px-6 py-4"
         )}
       >
-        <div className="flex items-center justify-between text-[13px] text-slate-600">
+        <div className="flex items-center justify-between text-[13px] text-[rgb(var(--color-text-body))]">
           <span>Suma produktów</span>
           <span>{formatPrice(subtotal, currency)}</span>
         </div>
         {deliveryFee !== null && (
-          <div className="flex items-center justify-between text-[13px] text-slate-600">
+          <div className="flex items-center justify-between text-[13px] text-[rgb(var(--color-text-body))]">
             <span>Dostawa</span>
             <span>{formatPrice(deliveryFee, currency)}</span>
           </div>
         )}
         <div className="flex items-center justify-between pt-1.5">
-          <span className="text-[14px] font-semibold text-slate-900">Razem</span>
-          <span className="text-[20px] font-semibold text-slate-900">
+          <span className="text-[14px] font-semibold text-[rgb(var(--color-text-primary))]">Razem</span>
+          <span className="text-[20px] font-semibold text-[rgb(var(--color-text-primary))]">
             {formatPrice(total, currency)}
           </span>
         </div>
