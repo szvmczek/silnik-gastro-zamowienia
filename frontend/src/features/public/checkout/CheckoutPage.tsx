@@ -197,7 +197,13 @@ export function CheckoutPage() {
       clearCart();
       toast.success(`Zamówienie ${data.orderNumber} przyjęte`);
       navigate(`/order/confirmation/${data.orderNumber}`, {
-        state: { trackingToken: data.trackingToken, total: data.total },
+        state: {
+          trackingToken: data.trackingToken,
+          total: data.total,
+          items: [...items],
+          subtotal: Number(total),
+          deliveryFee: isDelivery ? deliveryFee : null,
+        },
       });
     },
     onError: (error) => {
