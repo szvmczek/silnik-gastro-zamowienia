@@ -62,7 +62,7 @@ export function DeliveryOrderCard({
 
   return (
     <article
-      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.border} ${
+      className={`flex flex-col rounded-lg border border-slate-200 border-l-4 bg-white p-5 shadow-sm ${theme.accent} ${
         timer.pulse
           ? "motion-safe:animate-urgent-pulse motion-reduce:border-red-500 motion-reduce:ring-1 motion-reduce:ring-red-200"
           : ""

@@ -1,3 +1,4 @@
+import { cn } from "@/shared/lib/cn";
 import type { StatusTheme } from "./statusColors";
 
 interface SectionHeaderProps {
@@ -9,12 +10,25 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, count, theme }: SectionHeaderProps) {
   return (
     <header
-      className={`mb-3 flex items-center gap-3 rounded-md px-3 py-2 ${theme.sectionBg}`}
+      className={cn(
+        "mb-4 flex items-center gap-3 rounded-md border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))] px-4 py-2.5"
+      )}
     >
-      <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+      <span
+        className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+        style={{ background: `rgb(var(${theme.dotVar}))` }}
+        aria-hidden
+      />
+      <h2 className="text-[15px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
+        {title}
+      </h2>
       {count !== null && (
         <span
-          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold ${theme.badgeBg} ${theme.badgeText}`}
+          className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-[12px] font-semibold",
+            theme.badgeBg,
+            theme.badgeText
+          )}
         >
           {count}
         </span>

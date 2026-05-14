@@ -12,6 +12,7 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
+import { Kicker } from "@/shared/components/typography/Kicker";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
 import { KitchenOrderCard } from "./KitchenOrderCard";
 import { SectionHeader } from "../shared/SectionHeader";
@@ -99,19 +100,25 @@ export function KitchenPage() {
   const isEmpty =
     !isLoading && newRows.length === 0 && inPrepRows.length === 0;
 
+  const totalInFlight = newRows.length + inPrepRows.length;
+
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-[28px] font-semibold tracking-tight text-slate-900">
+        <Kicker className="block">Operacyjne · Kuchnia</Kicker>
+        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
           Kuchnia
+          <span className="text-[rgb(var(--color-primary))]">.</span>
         </h1>
-        <p className="mt-1 text-[14px] text-slate-500">
-          Nowe zamówienia i te w przygotowaniu. Najstarsze na górze.
+        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
+          {totalInFlight > 0
+            ? `W toku: ${totalInFlight} zamówień. Najstarsze na górze.`
+            : "Czekamy na nowe zamówienia. Najstarsze na górze."}
         </p>
       </header>
 
       {errorMessage && (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
@@ -187,7 +194,7 @@ function Section({
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-72 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+              className="h-72 animate-pulse rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))]"
             />
           ))}
         </div>
