@@ -118,3 +118,45 @@ robi osobny task który dotyka frontendu + backendu spójnie:
    - Świadomie poza scope Warstwy 3a fix-up #3 — wymaga ostrożnego
      dorobienia z testem (cross-cat scroll smoke) i niewielki impact
      na UX (~50ms delay przy aktywacji pill).
+
+10. TrackingTimeline per-step timestamps (Warstwa 3b · M-025 follow-up):
+    - Bundle Stage 2 `confirmation-and-tracking.jsx` TrackingDesktop (L103)
+      i TrackingMobile (L190) pokazują per-step `time` font-mono 10-11px
+      `text-slate-400` z wartościami `'18:12' / '~18:32'` (rzeczywisty
+      timestamp dla done/active stages, szacowany ETA dla pending).
+    - `frontend/src/features/public/order/components/TrackingTimeline.tsx`
+      pomija per-step timestamps w obu layoutach. Backend
+      `OrderTrackingDto` (`shared/api/orderApi.ts`) wystawia tylko
+      `placedAt`, `etaSetAt`, `etaMinutes` — brak per-status timestamp
+      historii.
+    - Aby per-step time działało, backend musiałby wystawić
+      `statusHistory: { status: OrderStatus, timestamp: string }[]`
+      (plus migracja Flyway dodająca tabelę `order_status_history`
+      lub kolumnę JSON snapshot na `orders`).
+    - Aktualnie graceful skip — global ETA pokazuje EtaCard w
+      TrackingPage (M-026) z `live`/`legacy`/`pending` modes. Per-step
+      timestamps nie są krytyczne dla MVP — klient widzi current state
+      + overall ETA, czego potrzebuje.
+    - Post-MVP backend M3 task: dodać `OrderStatusHistoryDto`,
+      endpoint zwraca historię z `OrderTrackingDto`. Frontend renderuje
+      `<div className="font-mono text-[10px] text-[rgb(var(--color-text-faint))] mt-0.5">{formatTime(historyEntry.timestamp)}</div>`
+      pod label per stage (horizontal + vertical layout).
+    - Świadomie poza scope Warstwy 3b — wymaga backend touch (poza
+      "Backend bez touch" constraint M-025/M-026).
+
+11. TrackingTimeline ikony — lucide vs MIGRATION_PLAN emoji (Warstwa 3b · M-025 audit trail):
+    - `MIGRATION_PLAN.md` M-025 spec mówi: emoji ikony per stage
+      `(⏳ ✓ 👨‍🍳 🛵 🎉)` + 6th cancelled `(✕)`.
+    - Bundle Stage 2 `confirmation-and-tracking.jsx` (L92-99, L181-182)
+      używa lucide-react: `checkCircle / flame / pkg / truck / home`.
+    - W M-025 wybrano **lucide** (per bundle + spójność z resztą
+      Warstwy 3a — CartButton, FulfillmentTile, PaymentTile używają
+      lucide). Emoji wprowadzałyby visual inconsistency.
+    - `STATUS_ICONS` mapping (TrackingTimeline.tsx L24-32):
+      `NEW: CircleCheck`, `CONFIRMED: ClipboardCheck`,
+      `IN_PREPARATION: Flame`, `READY: PackageCheck`,
+      `OUT_FOR_DELIVERY: Truck`, `DELIVERED: Home`,
+      `CANCELED: CircleCheck` (placeholder — canceled state
+      rendered jako separate alert card w TrackingPage, nie w timeline).
+    - Świadomy mismatch vs MIGRATION_PLAN — udokumentowany w
+      `MIGRATION_ERRATA.md` jako AD-Δ7 po M-026 (cała Warstwa 3b done).

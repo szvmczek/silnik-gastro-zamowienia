@@ -42,13 +42,13 @@ export function TrackingTimeline({ timeline, currentIndex }: TrackingTimelinePro
   const progressPct = (lastDoneSegment / totalSegments) * 100;
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:p-10">
+    <section className="rounded-2xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5 lg:p-10">
       {/* Desktop — horizontal */}
       <div className="relative hidden lg:block">
         <div className="relative flex items-start justify-between">
-          <div className="absolute left-5 right-5 top-5 h-[2px] bg-slate-200" />
+          <div className="absolute left-5 right-5 top-5 h-[2px] bg-[rgb(var(--color-border-card))]" />
           <div
-            className="absolute left-5 top-5 h-[2px] bg-emerald-500 transition-all duration-slow"
+            className="absolute left-5 top-5 h-[2px] bg-[rgb(var(--status-ready))] transition-all duration-slow"
             style={{ width: `calc((100% - 40px) * ${progressPct / 100})` }}
           />
           {timeline.map((status, idx) => (
@@ -108,10 +108,10 @@ function TimelineStep({ status, idx, currentIndex, layout, total }: StepProps) {
           "relative flex items-center justify-center rounded-full transition-colors",
           layout === "horizontal" ? "h-10 w-10" : "h-[30px] w-[30px]",
           done
-            ? "bg-emerald-500 text-white"
+            ? "bg-[rgb(var(--status-ready))] text-white"
             : active
               ? "bg-primary text-white animate-dotpulse"
-              : "border-2 border-slate-200 bg-white text-slate-400"
+              : "border-2 border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-faint))]"
         )}
       >
         {done ? (
@@ -135,7 +135,7 @@ function TimelineStep({ status, idx, currentIndex, layout, total }: StepProps) {
         <div
           className={cn(
             "mt-3 text-center text-[12px] font-medium",
-            active ? "text-slate-900" : done ? "text-slate-700" : "text-slate-400"
+            active ? "text-[rgb(var(--color-text-primary))]" : done ? "text-[rgb(var(--color-text-body))]" : "text-[rgb(var(--color-text-faint))]"
           )}
         >
           {STATUS_LABELS[status]}
@@ -150,7 +150,7 @@ function TimelineStep({ status, idx, currentIndex, layout, total }: StepProps) {
         <div
           className={cn(
             "absolute left-[15px] top-[34px] bottom-[-20px] w-px",
-            done ? "bg-emerald-500" : "bg-slate-200"
+            done ? "bg-[rgb(var(--status-ready))]" : "bg-[rgb(var(--color-border-card))]"
           )}
         />
       ) : null}
@@ -159,7 +159,7 @@ function TimelineStep({ status, idx, currentIndex, layout, total }: StepProps) {
         <div
           className={cn(
             "text-[13px] font-medium",
-            active ? "text-slate-900" : done ? "text-slate-700" : "text-slate-400"
+            active ? "text-[rgb(var(--color-text-primary))]" : done ? "text-[rgb(var(--color-text-body))]" : "text-[rgb(var(--color-text-faint))]"
           )}
         >
           {STATUS_LABELS[status]}
