@@ -13,6 +13,7 @@ import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
 import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { Kicker } from "@/shared/components/typography/Kicker";
+import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
 import { KitchenOrderCard } from "./KitchenOrderCard";
 import { SectionHeader } from "../shared/SectionHeader";
@@ -101,20 +102,31 @@ export function KitchenPage() {
     !isLoading && newRows.length === 0 && inPrepRows.length === 0;
 
   const totalInFlight = newRows.length + inPrepRows.length;
+  const settings = usePublicSettings();
+  const prepMin = settings.data?.defaultPreparationMinutes ?? 18;
 
   return (
     <div className="space-y-8">
-      <header>
-        <Kicker className="block">Operacyjne · Kuchnia</Kicker>
-        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
-          Kuchnia
-          <span className="text-[rgb(var(--color-primary))]">.</span>
-        </h1>
-        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
-          {totalInFlight > 0
-            ? `W toku: ${totalInFlight} zamówień. Najstarsze na górze.`
-            : "Czekamy na nowe zamówienia. Najstarsze na górze."}
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <Kicker className="block">Operacyjne · Kuchnia</Kicker>
+          <h1 className="mt-1 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
+            Kuchnia
+            <span className="text-[rgb(var(--color-primary))]">.</span>
+          </h1>
+          <p className="mt-1 text-[13px] text-[rgb(var(--color-text-muted))]">
+            {totalInFlight > 0
+              ? `W toku: ${totalInFlight} zamówień · cel: ${prepMin} min`
+              : `Czekamy na zamówienia · cel: ${prepMin} min`}
+          </p>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[rgb(var(--color-bg-section))] px-3 py-1.5 text-[12px] font-semibold text-[rgb(var(--color-text-muted))]">
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full bg-[rgb(var(--color-text-faint))]"
+            aria-hidden
+          />
+          Polling 15s
+        </span>
       </header>
 
       {errorMessage && (

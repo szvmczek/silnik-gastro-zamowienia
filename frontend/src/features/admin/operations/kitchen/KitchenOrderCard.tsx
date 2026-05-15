@@ -28,11 +28,12 @@ interface KitchenOrderCardProps {
 interface PrimaryAction {
   label: string;
   next: OrderStatus;
-  /* Bg color CSS var for the action button. AD-023 + Warstwa 4 visual
-   * differentiation: NEW→status-new, CONFIRMED→status-confirmed,
-   * IN_PREPARATION→status-ready. Backend transitions: NEW+CONFIRMED both
-   * jump straight to IN_PREPARATION (single-tap kuchnia), IN_PREPARATION
-   * goes to READY. */
+  /* Bg color CSS var for the action button. AD-023 + Fix-up #5 F-020 visual
+   * differentiation per bundle frame-kitchen:161-188: NEW→status-new,
+   * CONFIRMED→status-confirmed, IN_PREPARATION→color-primary (red — Fix-up
+   * #5 flip from emerald, supersedes AD-Δ11 original). Backend transitions:
+   * NEW+CONFIRMED both jump straight to IN_PREPARATION (single-tap kuchnia),
+   * IN_PREPARATION goes to READY. */
   bgVar: string;
   /* Text color — light-on-dark for confirmed/prep, dark-on-light for new
    * (amber bg needs dark text per WCAG). */
@@ -61,9 +62,9 @@ function primaryAction(status: OrderStatus): PrimaryAction | null {
   }
   if (status === "IN_PREPARATION") {
     return {
-      label: "Gotowe ✓",
+      label: "✓ Gotowe",
       next: "READY",
-      bgVar: "--status-ready",
+      bgVar: "--color-primary",
       textColor: "text-white",
     };
   }
@@ -140,11 +141,11 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[20px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
+            <span className="font-mono text-[16px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
               {order.orderNumber}
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em]"
+              className="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em]"
               style={{
                 background: `rgb(var(${badge.bgVar}))`,
                 color: `rgb(var(${badge.textVar}))`,

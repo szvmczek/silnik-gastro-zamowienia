@@ -424,15 +424,19 @@ AD-023 (`docs/ARCHITECTURE.md`) collapsuje NEW + CONFIRMED do jednokliku
 - CONFIRMED → "Rozpocznij przygotowanie →" status-confirmed blue bg /
   text-white; `next = IN_PREPARATION` (gdy admin postawił CONFIRMED z
   OrderDetail back-office flow per AD-023)
-- IN_PREPARATION → "Gotowe ✓" status-ready emerald bg / text-white;
-  `next = READY`
+- IN_PREPARATION → "✓ Gotowe" **color-primary RED** bg / text-white;
+  `next = READY` (Fix-up #5 F-020 override — bundle `frame-kitchen:184`
+  używa `var(--color-primary)`, nie `var(--status-ready)`. AD-Δ11 original
+  emerald decision superseded; operator's compositional fidelity intent
+  wins. "Brand red TERAZ" semantic sygnalizuje active CTA podczas pracy
+  kuchni, status-ready emerald jest reserved dla post-completion state pill.)
 
 Backend transitions zachowane (`transitions.canTransitionTo`): NEW dopuszcza
 zarówno CONFIRMED jak i IN_PREPARATION, kuchnia używa skip. Operator widzi
 3 distinct visual states (NEW = waiting acceptance, CONFIRMED = admin-
 acknowledged, IN_PREPARATION = active cook), single-tap workflow preserved.
 
-**Wykonane:** M-029 (`f68f942`).
+**Wykonane:** M-029 (`f68f942`) original; Fix-up #5 F-020 IN_PREP color flip.
 
 ### AD-Δ12: PickupPage zachowuje cards layout (cash banner focal UX)
 

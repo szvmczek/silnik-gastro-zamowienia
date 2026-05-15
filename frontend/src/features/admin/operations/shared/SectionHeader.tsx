@@ -11,7 +11,7 @@ export function SectionHeader({ title, count, theme }: SectionHeaderProps) {
   return (
     <header
       className={cn(
-        "mb-4 flex items-center gap-3 rounded-md border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))] px-4 py-2.5"
+        "mb-4 flex items-center gap-3 rounded-md border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))] px-4 py-3.5"
       )}
     >
       <span
@@ -19,9 +19,9 @@ export function SectionHeader({ title, count, theme }: SectionHeaderProps) {
         style={{ background: `rgb(var(${theme.dotVar}))` }}
         aria-hidden
       />
-      <h2 className="text-[15px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
+      <h3 className="text-[14px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
         {title}
-      </h2>
+      </h3>
       {count !== null && (
         <span
           className={cn(
