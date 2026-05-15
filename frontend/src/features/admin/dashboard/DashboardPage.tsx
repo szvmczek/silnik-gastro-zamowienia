@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/shared/auth/useAuth";
 import {
   fetchDashboardStats,
   type AdminDashboardStatsDto,
@@ -60,7 +59,6 @@ function formatTodayLabel(): string {
 
 export function DashboardPage() {
   useOperationalSound("manager");
-  const { user } = useAuth();
 
   const query = useQuery<AdminDashboardStatsDto>({
     queryKey: ["admin", "dashboard", "stats"],
@@ -83,15 +81,15 @@ export function DashboardPage() {
   const today = formatTodayLabel();
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <header>
-        <Kicker className="block">Pulpit · {today}</Kicker>
-        <h1 className="mt-1 text-[40px] font-extrabold leading-[1.1] tracking-[-0.025em] text-[rgb(var(--color-text-primary))]">
-          Witaj, {user?.displayName ?? "Administratorze"}
+        <Kicker className="block">Dziś</Kicker>
+        <h1 className="mt-1 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
+          Pulpit
           <span className="text-[rgb(var(--color-primary))]">.</span>
         </h1>
-        <p className="mt-2 text-[14px] text-[rgb(var(--color-text-muted))]">
-          Przegląd dnia i ostatniego tygodnia. Dane odświeżają się co minutę.
+        <p className="mt-2 text-[13px] text-[rgb(var(--color-text-muted))]">
+          {today} · Dane odświeżają się co minutę.
         </p>
       </header>
 
@@ -156,19 +154,20 @@ export function DashboardPage() {
         )}
       </section>
 
-      <section>
-        <Kicker className="mb-4 block">Zamówienia dziś według godziny</Kicker>
-        {stats ? (
-          <HourlyBarChart data={stats.hourlyToday} currentHour={currentHour} />
-        ) : (
-          <ChartSkeleton />
-        )}
-      </section>
-
-      <section>
-        <Kicker className="mb-4 block">Ostatnie 7 dni</Kicker>
-        {stats ? <Last7DaysLineChart data={stats.last7Days} /> : <ChartSkeleton />}
-      </section>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <section className="lg:col-span-7">
+          <Kicker className="mb-4 block">Ostatnie 7 dni</Kicker>
+          {stats ? <Last7DaysLineChart data={stats.last7Days} /> : <ChartSkeleton />}
+        </section>
+        <section className="lg:col-span-5">
+          <Kicker className="mb-4 block">Dziś według godziny</Kicker>
+          {stats ? (
+            <HourlyBarChart data={stats.hourlyToday} currentHour={currentHour} />
+          ) : (
+            <ChartSkeleton />
+          )}
+        </section>
+      </div>
 
       <section>
         <Kicker className="mb-4 block">Top 5 produktów (30 dni)</Kicker>

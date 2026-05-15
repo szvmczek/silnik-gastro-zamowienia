@@ -1,7 +1,7 @@
 import {
+  Area,
+  AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -27,13 +27,19 @@ export function Last7DaysLineChart({ data }: Last7DaysLineChartProps) {
 
   return (
     <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
-      <div className="h-[240px] w-full">
+      <div className="h-[200px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={enriched} margin={{ top: 8, right: 8, bottom: 8, left: -12 }}>
+          <AreaChart data={enriched} margin={{ top: 8, right: 8, bottom: 8, left: -12 }}>
+            <defs>
+              <linearGradient id="fillLast7Days" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={LINE_COLOR} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={LINE_COLOR} stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <CartesianGrid stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="label"
-              tick={{ fontSize: 12, fill: AXIS_COLOR }}
+              tick={{ fontSize: 11, fill: AXIS_COLOR }}
               tickLine={false}
               axisLine={{ stroke: GRID_COLOR }}
             />
@@ -53,15 +59,15 @@ export function Last7DaysLineChart({ data }: Last7DaysLineChartProps) {
               }}
               formatter={(v) => [String(v), "Zamówień"]}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="orderCount"
               stroke={LINE_COLOR}
               strokeWidth={2}
-              dot={{ r: 3, fill: LINE_COLOR }}
-              activeDot={{ r: 5 }}
+              fill="url(#fillLast7Days)"
+              activeDot={{ r: 5, fill: LINE_COLOR }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>

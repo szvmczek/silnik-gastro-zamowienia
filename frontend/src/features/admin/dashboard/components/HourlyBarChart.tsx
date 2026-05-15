@@ -30,7 +30,7 @@ export function HourlyBarChart({ data, currentHour }: HourlyBarChartProps) {
 
   return (
     <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
-      <div className="h-[240px] w-full">
+      <div className="h-[200px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={filtered} margin={{ top: 8, right: 8, bottom: 8, left: -12 }}>
             <XAxis

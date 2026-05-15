@@ -21,14 +21,14 @@ export function TopProductsList({ items }: TopProductsListProps) {
             key={item.productName}
             className="grid grid-cols-[32px_1fr_90px] items-center gap-3 px-5 py-3 text-[14px]"
           >
-            <span className="font-mono text-[12px] text-[rgb(var(--color-text-faint))]">
+            <span className="font-mono text-[13px] text-[rgb(var(--color-text-faint))]">
               {String(idx + 1).padStart(2, "0")}
             </span>
             <span className="truncate text-[rgb(var(--color-text-primary))]">
               {item.productName}
             </span>
-            <span className="text-right font-mono font-semibold text-[rgb(var(--color-text-primary))]">
-              {item.totalSold} szt.
+            <span className="text-right font-mono text-[13px] font-semibold text-[rgb(var(--color-text-primary))]">
+              {item.totalSold}
             </span>
           </li>
         ))}
