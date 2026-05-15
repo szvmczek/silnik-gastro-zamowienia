@@ -34,6 +34,7 @@ export function LoginPage() {
   const restaurantName = settings.data?.name ?? "Pizza Demo";
   const tagline = settings.data?.tagline ?? "Smacznie i szybko";
   const city = settings.data?.city ?? null;
+  const logoUrl = settings.data?.logoUrl ?? null;
 
   const redirectTo = (location.state as LocationState | null)?.from?.pathname ?? "/admin";
 
@@ -87,9 +88,17 @@ export function LoginPage() {
         />
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-[10px] bg-[rgb(var(--color-primary))] font-serif text-[20px] font-bold text-white">
-            {initialLetter}
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={restaurantName}
+              className="h-9 w-9 rounded-lg object-cover"
+            />
+          ) : (
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-[rgb(var(--color-primary))] font-serif text-[18px] font-bold text-white">
+              {initialLetter}
+            </span>
+          )}
           <div>
             <div className="text-[15px] font-bold tracking-tight">{restaurantName}</div>
             <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgb(var(--color-text-faint))]">
@@ -104,7 +113,7 @@ export function LoginPage() {
               {city}
             </Kicker>
           )}
-          <h2 className="font-sans text-[44px] font-extrabold leading-[1.05] tracking-[-0.02em] text-[rgb(var(--color-bg-page))]">
+          <h2 className="max-w-[360px] font-sans text-[44px] font-extrabold leading-[1.05] tracking-[-0.02em] text-[rgb(var(--color-bg-page))]">
             {tagline}
             <span className="text-[rgb(var(--color-primary))]">.</span>
           </h2>
