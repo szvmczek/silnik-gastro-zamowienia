@@ -2,37 +2,49 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { ChefHat } from "lucide-react";
 import {
   fetchAdminOrders,
   updateOrderEta,
   type AdminOrderListItemDto,
   type AdminOrdersQuery,
+  type OrderStatus,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
-import { EmptyState } from "@/shared/components/ui/EmptyState";
-import { Kicker } from "@/shared/components/typography/Kicker";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
+import { useElapsedTick } from "../shared/useElapsedTick";
 import { KitchenOrderCard } from "./KitchenOrderCard";
-import { SectionHeader } from "../shared/SectionHeader";
-import { sectionTheme, type SectionKind } from "../shared/statusColors";
 
 const PAGE_SIZE = 100;
-
 const NEW_QUERY: AdminOrdersQuery = { status: "NEW", size: PAGE_SIZE };
 const CONFIRMED_QUERY: AdminOrdersQuery = { status: "CONFIRMED", size: PAGE_SIZE };
 const IN_PREP_QUERY: AdminOrdersQuery = { status: "IN_PREPARATION", size: PAGE_SIZE };
 
+interface ColumnRow {
+  order: AdminOrderListItemDto;
+  status: OrderStatus;
+}
+
+function sortAsc(rows: AdminOrderListItemDto[] | undefined): AdminOrderListItemDto[] {
+  if (!rows) return [];
+  return [...rows].sort(
+    (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
+  );
+}
+
+function queryError(err: unknown): string | null {
+  if (!err) return null;
+  return extractProblem(err)?.detail ?? "Spróbuj odświeżyć stronę.";
+}
+
 export function KitchenPage() {
   useOperationalSound("kitchen");
   const queryClient = useQueryClient();
+  const now = useElapsedTick();
+  const settings = usePublicSettings();
+  const prepMin = settings.data?.defaultPreparationMinutes ?? 18;
 
-  // SSE invalidates ["admin","orders","list"] (prefix match), refreshing
-  // these queries and the OrdersListPage table.
-  // CONFIRMED merged into "NOWE" section: orders confirmed via /admin/orders
-  // back-office flow must stay visible to the kitchen (AD-023).
   const [newQuery, confirmedQuery, inPrepQuery] = useQueries({
     queries: [
       {
@@ -58,11 +70,31 @@ export function KitchenPage() {
 
   const [etaForOrder, setEtaForOrder] = useState<AdminOrderListItemDto | null>(null);
 
-  const newRows = useMemo(
-    () => sortAsc([...(newQuery.data?.content ?? []), ...(confirmedQuery.data?.content ?? [])]),
-    [newQuery.data, confirmedQuery.data],
+  // Bundle frame-kitchen:244-247 — Nowe column carries NEW + CONFIRMED side
+  // by side, each rendered with its own status border + button. Sort ascending
+  // by placedAt so oldest sits at the top.
+  const newCol: ColumnRow[] = useMemo(() => {
+    const merged = [
+      ...sortAsc(newQuery.data?.content).map<ColumnRow>((order) => ({ order, status: "NEW" })),
+      ...sortAsc(confirmedQuery.data?.content).map<ColumnRow>((order) => ({
+        order,
+        status: "CONFIRMED",
+      })),
+    ];
+    return merged.sort(
+      (a, b) =>
+        new Date(a.order.placedAt).getTime() - new Date(b.order.placedAt).getTime(),
+    );
+  }, [newQuery.data, confirmedQuery.data]);
+
+  const prepCol: ColumnRow[] = useMemo(
+    () =>
+      sortAsc(inPrepQuery.data?.content).map((order) => ({
+        order,
+        status: "IN_PREPARATION" as const,
+      })),
+    [inPrepQuery.data],
   );
-  const inPrepRows = useMemo(() => sortAsc(inPrepQuery.data?.content), [inPrepQuery.data]);
 
   const errorMessage =
     queryError(newQuery.error) ??
@@ -98,68 +130,95 @@ export function KitchenPage() {
 
   const isLoading =
     newQuery.isPending || confirmedQuery.isPending || inPrepQuery.isPending;
-  const isEmpty =
-    !isLoading && newRows.length === 0 && inPrepRows.length === 0;
-
-  const totalInFlight = newRows.length + inPrepRows.length;
-  const settings = usePublicSettings();
-  const prepMin = settings.data?.defaultPreparationMinutes ?? 18;
+  const totalInFlight = newCol.length + prepCol.length;
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-5">
       <header className="flex items-start justify-between gap-4">
-        <div>
-          <Kicker className="block">Operacyjne · Kuchnia</Kicker>
-          <h1 className="mt-1 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-            Kuchnia
-            <span className="text-[rgb(var(--color-primary))]">.</span>
-          </h1>
-          <p className="mt-1 text-[13px] text-[rgb(var(--color-text-muted))]">
-            {totalInFlight > 0
-              ? `W toku: ${totalInFlight} zamówień · cel: ${prepMin} min`
-              : `Czekamy na zamówienia · cel: ${prepMin} min`}
-          </p>
+        <div className="min-w-0">
+          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
+            Operacyjne
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
+              Kuchnia
+            </h1>
+            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
+              W toku: {totalInFlight} zamówień · cel: {prepMin} min
+            </span>
+          </div>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[rgb(var(--color-bg-section))] px-3 py-1.5 text-[12px] font-semibold text-[rgb(var(--color-text-muted))]">
+        <div className="flex shrink-0 items-center gap-2">
           <span
-            className="inline-block h-1.5 w-1.5 rounded-full bg-[rgb(var(--color-text-faint))]"
-            aria-hidden
-          />
-          Polling 15s
-        </span>
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold"
+            style={{
+              background: "rgb(var(--color-bg-section))",
+              color: "rgb(var(--color-text-muted))",
+            }}
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: "rgb(var(--color-text-faint))" }}
+              aria-hidden
+            />
+            Polling 15s
+          </span>
+        </div>
       </header>
 
       {errorMessage && (
-        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
+        <div
+          className="rounded-md p-3 text-sm"
+          style={{
+            border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+            background: "rgb(var(--status-cancelled-tint))",
+            color: "rgb(var(--status-cancelled))",
+          }}
+        >
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
 
-      {isEmpty && !errorMessage && (
-        <EmptyState
-          icon={<ChefHat className="h-5 w-5" />}
-          title="Brak zamówień"
-          description="Czekamy na pierwsze."
-        />
-      )}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <KitchenColumn
+          title="Nowe"
+          count={newCol.length}
+          accentColor="rgb(var(--status-new))"
+          isLoading={isLoading && newCol.length === 0}
+        >
+          {newCol.map(({ order, status }) => (
+            <KitchenOrderCard
+              key={order.id}
+              order={order}
+              status={status}
+              onOpenEta={() => setEtaForOrder(order)}
+            />
+          ))}
+        </KitchenColumn>
 
-      <Section
-        title="Nowe"
-        sectionKind="kitchen-new"
-        count={newRows.length}
-        rows={newRows}
-        isLoading={isLoading}
-        onOpenEta={setEtaForOrder}
-      />
-
-      <Section
-        title="W przygotowaniu"
-        sectionKind="kitchen-prep"
-        count={inPrepRows.length}
-        rows={inPrepRows}
-        isLoading={isLoading}
-        onOpenEta={setEtaForOrder}
-      />
+        <KitchenColumn
+          title="W przygotowaniu"
+          count={prepCol.length}
+          accentColor="rgb(var(--status-prep))"
+          isLoading={isLoading && prepCol.length === 0}
+        >
+          {prepCol.map(({ order }) => {
+            const elapsed = Math.max(
+              0,
+              Math.floor((now - new Date(order.placedAt).getTime()) / 60_000),
+            );
+            return (
+              <KitchenOrderCard
+                key={order.id}
+                order={order}
+                status="IN_PREPARATION"
+                urgent={elapsed >= 7}
+                onOpenEta={() => setEtaForOrder(order)}
+              />
+            );
+          })}
+        </KitchenColumn>
+      </div>
 
       <EtaDialog
         open={etaForOrder !== null}
@@ -180,68 +239,99 @@ export function KitchenPage() {
   );
 }
 
-interface SectionProps {
+interface KitchenColumnProps {
   title: string;
-  sectionKind: SectionKind;
   count: number;
-  rows: AdminOrderListItemDto[];
+  accentColor: string;
   isLoading: boolean;
-  onOpenEta: (order: AdminOrderListItemDto) => void;
+  children: React.ReactNode;
 }
 
-function Section({
-  title,
-  sectionKind,
-  count,
-  rows,
-  isLoading,
-  onOpenEta,
-}: SectionProps) {
-  const theme = sectionTheme(sectionKind);
-  if (isLoading && rows.length === 0) {
-    return (
-      <section>
-        <SectionHeader title={title} count={null} theme={theme} />
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="h-72 animate-pulse rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))]"
-            />
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  if (rows.length === 0) return null;
-
+function KitchenColumn({ title, count, accentColor, isLoading, children }: KitchenColumnProps) {
   return (
-    <section>
-      <SectionHeader title={title} count={count} theme={theme} />
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {rows.map((row) => (
-          <KitchenOrderCard
-            key={row.id}
-            order={row}
-            onOpenEta={() => onOpenEta(row)}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        background: "rgb(var(--color-bg-section))",
+        borderRadius: 12,
+        border: "1px solid rgb(var(--color-border-card))",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          padding: "14px 16px",
+          borderBottom: "1px solid rgb(var(--color-border-card))",
+          background: "rgb(var(--color-bg-card))",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 9999,
+              background: accentColor,
+            }}
+            aria-hidden
           />
-        ))}
+          <h3
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              margin: 0,
+              color: "rgb(var(--color-text-primary))",
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {title}
+          </h3>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 12,
+              fontWeight: 600,
+              background: "rgb(var(--color-bg-section))",
+              color: "rgb(var(--color-text-body))",
+              padding: "2px 8px",
+              borderRadius: 9999,
+            }}
+          >
+            {count}
+          </span>
+        </div>
       </div>
-    </section>
+      <div style={{ flex: 1, padding: 12 }}>
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 2 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-48 animate-pulse rounded-xl"
+                style={{ background: "rgb(var(--color-bg-card))" }}
+              />
+            ))}
+          </div>
+        ) : count === 0 ? (
+          <div
+            style={{
+              padding: "32px 12px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "rgb(var(--color-text-muted))",
+            }}
+          >
+            Brak zamówień
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
   );
-}
-
-function sortAsc(
-  rows: AdminOrderListItemDto[] | undefined,
-): AdminOrderListItemDto[] {
-  if (!rows) return [];
-  return [...rows].sort(
-    (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
-  );
-}
-
-function queryError(err: unknown): string | null {
-  if (!err) return null;
-  return extractProblem(err)?.detail ?? "Spróbuj odświeżyć stronę.";
 }

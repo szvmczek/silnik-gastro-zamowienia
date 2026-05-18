@@ -1,11 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { format, formatDistanceToNow } from "date-fns";
-import { pl } from "date-fns/locale";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Clock } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import { Button } from "@/shared/components/ui/Button";
 import {
   updateOrderStatus,
   type AdminOrderDto,
@@ -16,99 +13,64 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
-import { statusTheme } from "../shared/statusColors";
-import { timerEscalation } from "../shared/timerColor";
 import { useElapsedTick } from "../shared/useElapsedTick";
 
 interface KitchenOrderCardProps {
   order: AdminOrderListItemDto;
+  status: OrderStatus;
+  urgent?: boolean;
+  highlightNote?: boolean;
   onOpenEta: () => void;
 }
 
-interface PrimaryAction {
-  label: string;
-  next: OrderStatus;
-  /* Bg color CSS var for the action button. AD-023 + Fix-up #5 F-020 visual
-   * differentiation per bundle frame-kitchen:161-188: NEW→status-new,
-   * CONFIRMED→status-confirmed, IN_PREPARATION→color-primary (red — Fix-up
-   * #5 flip from emerald, supersedes AD-Δ11 original). Backend transitions:
-   * NEW+CONFIRMED both jump straight to IN_PREPARATION (single-tap kuchnia),
-   * IN_PREPARATION goes to READY. */
-  bgVar: string;
-  /* Text color — light-on-dark for confirmed/prep, dark-on-light for new
-   * (amber bg needs dark text per WCAG). */
-  textColor: string;
+function zl(raw: string | number): string {
+  const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return String(raw);
+  return `${n.toFixed(2).replace(".", ",")} zł`;
 }
 
-function primaryAction(status: OrderStatus): PrimaryAction | null {
-  // AD-023: NEW and CONFIRMED collapse into a single "Przyjmij" / "Rozpocznij"
-  // gesture that goes straight to IN_PREPARATION. CONFIRMED only appears when
-  // an admin used the back-office /admin/orders flow.
-  if (status === "NEW") {
-    return {
-      label: "Przyjmij",
-      next: "IN_PREPARATION",
-      bgVar: "--status-new",
-      textColor: "text-[rgb(var(--color-text-primary))]",
-    };
-  }
-  if (status === "CONFIRMED") {
-    return {
-      label: "Rozpocznij przygotowanie →",
-      next: "IN_PREPARATION",
-      bgVar: "--status-confirmed",
-      textColor: "text-white",
-    };
-  }
-  if (status === "IN_PREPARATION") {
-    return {
-      label: "✓ Gotowe",
-      next: "READY",
-      bgVar: "--color-primary",
-      textColor: "text-white",
-    };
-  }
-  return null;
+function minAgo(placedIso: string, nowMs: number): string {
+  const m = Math.max(0, Math.floor((nowMs - new Date(placedIso).getTime()) / 60_000));
+  if (m === 0) return "teraz";
+  if (m === 1) return "1 min temu";
+  return `${m} min temu`;
 }
 
-interface FulfillmentBadge {
-  label: string;
-  bgVar: string;
-  textVar: string;
+function elapsedMin(placedIso: string, nowMs: number): number {
+  return Math.max(0, Math.floor((nowMs - new Date(placedIso).getTime()) / 60_000));
 }
 
-function fulfillmentBadge(t: FulfillmentType): FulfillmentBadge {
-  return t === "DELIVERY"
-    ? {
-        label: "Dostawa",
-        bgVar: "--status-out-tint",
-        textVar: "--status-out",
-      }
-    : {
-        label: "Odbiór",
-        bgVar: "--color-bg-section",
-        textVar: "--color-text-body",
-      };
-}
-
-function relativeTime(iso: string): string {
-  return formatDistanceToNow(new Date(iso), { locale: pl, addSuffix: true });
-}
-
-function formatEta(etaMinutes: number, etaSetAt: string | null): string {
-  // Graceful degradation for legacy rows from before etaSetAt was tracked.
+function formatEtaTime(etaMinutes: number, etaSetAt: string | null): string {
   if (!etaSetAt) return `${etaMinutes} min`;
   const target = new Date(new Date(etaSetAt).getTime() + etaMinutes * 60_000);
-  return format(target, "HH:mm");
+  return target.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
+const FULFILLMENT_LABEL: Record<FulfillmentType, string> = {
+  DELIVERY: "Dostawa",
+  PICKUP: "Odbiór",
+};
+
+export function KitchenOrderCard({
+  order,
+  status,
+  urgent = false,
+  highlightNote = true,
+  onOpenEta,
+}: KitchenOrderCardProps) {
   const queryClient = useQueryClient();
-  const action = primaryAction(order.status);
-  const badge = fulfillmentBadge(order.fulfillmentType);
-  const theme = statusTheme(order.status);
   const now = useElapsedTick();
-  const timer = timerEscalation(order.placedAt, now);
+  const isNew = status === "NEW";
+  const isConfirmed = status === "CONFIRMED";
+  const isPrep = status === "IN_PREPARATION";
+
+  const borderColor = isNew
+    ? "rgb(var(--status-new))"
+    : isConfirmed
+      ? "rgb(var(--status-confirmed))"
+      : isPrep
+        ? "rgb(var(--color-primary))"
+        : "rgb(var(--status-ready))";
 
   const mutation = useMutation({
     mutationFn: (next: OrderStatus) =>
@@ -119,8 +81,8 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
       toast.success(`${order.orderNumber} → ${statusLabel(data.status)}`);
     },
     onError: (err) => {
-      const status = err instanceof AxiosError ? err.response?.status : undefined;
-      if (status === 409) {
+      const httpStatus = err instanceof AxiosError ? err.response?.status : undefined;
+      if (httpStatus === 409) {
         toast.error("Ktoś inny zmienił zamówienie. Lista odświeżona.");
         queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
         return;
@@ -129,122 +91,335 @@ export function KitchenOrderCard({ order, onOpenEta }: KitchenOrderCardProps) {
     },
   });
 
+  const fulfillmentLabel = FULFILLMENT_LABEL[order.fulfillmentType];
+  const isDelivery = order.fulfillmentType === "DELIVERY";
+  const elapsedFromPlaced = elapsedMin(order.placedAt, now);
+  const timeLabel = isPrep ? `od ${elapsedFromPlaced} min` : minAgo(order.placedAt, now);
+
   return (
-    <article
-      className={cn(
-        "flex flex-col rounded-xl border border-[rgb(var(--color-border-card))] border-l-4 bg-[rgb(var(--color-bg-card))] p-5",
-        theme.accent,
-        timer.pulse &&
-          "motion-safe:animate-urgent-pulse motion-reduce:border-[rgb(var(--status-cancelled))] motion-reduce:ring-1 motion-reduce:ring-[rgb(var(--status-cancelled))]/30"
-      )}
+    <div
+      className={cn(urgent && isPrep && "motion-safe:animate-pulse-new")}
+      style={{
+        background: "rgb(var(--color-bg-card))",
+        border: "1px solid rgb(var(--color-border-card))",
+        borderRadius: 10,
+        padding: 16,
+        marginBottom: 12,
+        borderLeft: `4px solid ${borderColor}`,
+        position: "relative",
+        transition: "border-color 180ms",
+      }}
     >
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[16px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 16,
+                fontWeight: 700,
+                color: "rgb(var(--color-text-primary))",
+              }}
+            >
               {order.orderNumber}
             </span>
             <span
-              className="rounded px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em]"
               style={{
-                background: `rgb(var(${badge.bgVar}))`,
-                color: `rgb(var(${badge.textVar}))`,
+                fontSize: 11,
+                fontWeight: 600,
+                padding: "2px 6px",
+                borderRadius: 4,
+                background: isDelivery
+                  ? "rgb(var(--status-out-tint))"
+                  : "rgb(var(--color-bg-section))",
+                color: isDelivery
+                  ? "rgb(var(--status-out))"
+                  : "rgb(var(--color-text-body))",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
               }}
             >
-              {badge.label}
+              {fulfillmentLabel}
             </span>
           </div>
-          <div className={cn("mt-1 text-[12px]", timer.color)}>
-            {relativeTime(order.placedAt)}
-          </div>
-        </div>
-        <div className="text-right">
-          {order.etaMinutes !== null ? (
-            <button
-              type="button"
-              onClick={onOpenEta}
-              className="inline-flex items-baseline gap-1.5 text-[13px] font-semibold text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-              title="Zmień ETA"
-            >
-              <span className="text-[11px] font-normal uppercase tracking-[0.06em] text-[rgb(var(--color-text-muted))]">
-                ETA
-              </span>
-              <span className="font-mono">
-                {formatEta(order.etaMinutes, order.etaSetAt)}
-              </span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenEta}
-              className="inline-flex items-center gap-1 rounded-md border border-dashed border-[rgb(var(--color-primary))] px-2 py-0.5 text-[12px] font-semibold text-[rgb(var(--color-primary))] transition-colors hover:bg-[rgb(var(--color-primary-tint))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-            >
-              + Ustaw ETA
-            </button>
-          )}
-        </div>
-      </header>
-
-      <ul className="mt-4 space-y-1.5 border-t border-dashed border-[rgb(var(--color-border-subtle))] pt-3 text-[14px] text-[rgb(var(--color-text-primary))]">
-        {(order.items ?? []).map((item, idx) => (
-          <ItemLine key={idx} item={item} />
-        ))}
-      </ul>
-
-      {order.customerNotes && (
-        <div
-          className="mt-4 flex items-start gap-2.5 rounded-md border border-[rgb(var(--status-new))]/40 border-l-4 border-l-[rgb(var(--status-new))] bg-[rgb(var(--status-new-tint))] p-3 text-[13px] text-[rgb(var(--color-text-primary))]"
-        >
-          <AlertTriangle
-            className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--status-new))]"
-            aria-hidden
-          />
-          <span className="whitespace-pre-line leading-[1.4]">
-            <strong className="font-semibold">Notka:</strong> {order.customerNotes}
-          </span>
-        </div>
-      )}
-
-      {action && (
-        <div className="mt-auto pt-5">
-          <Button
-            type="button"
-            size="xl"
-            className={cn("w-full border-0", action.textColor)}
-            style={{ background: `rgb(var(${action.bgVar}))` }}
-            onClick={() => mutation.mutate(action.next)}
-            disabled={mutation.isPending}
+          <div
+            style={{
+              fontSize: 13,
+              color: "rgb(var(--color-text-body))",
+              marginTop: 2,
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
           >
-            {mutation.isPending ? "Zapisywanie…" : action.label}
-          </Button>
+            <span>{order.customerName}</span>
+            <span style={{ color: "rgb(var(--color-text-faint))" }}>·</span>
+            {order.etaMinutes !== null ? (
+              <button
+                type="button"
+                title="Edytuj ETA"
+                onClick={onOpenEta}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "rgb(var(--color-text-body))",
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <span style={{ color: "rgb(var(--color-text-muted))", fontWeight: 400 }}>ETA:</span>
+                <span style={{ fontFamily: "var(--font-mono)" }}>
+                  {formatEtaTime(order.etaMinutes, order.etaSetAt)}
+                </span>
+                <span style={{ fontSize: 11, opacity: 0.6 }}>✏️</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                title="Ustaw ETA"
+                onClick={onOpenEta}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "rgb(var(--color-primary))",
+                  background: "transparent",
+                  border: "1px dashed rgb(var(--color-primary))",
+                  borderRadius: 6,
+                  padding: "1px 8px",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <span style={{ color: "rgb(var(--color-text-muted))", fontWeight: 400 }}>ETA:</span>
+                <span>+ Ustaw</span>
+              </button>
+            )}
+          </div>
         </div>
-      )}
-    </article>
-  );
-}
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 16,
+              fontWeight: 700,
+              color: "rgb(var(--color-text-primary))",
+            }}
+          >
+            {zl(order.total)}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: urgent ? "rgb(var(--status-cancelled))" : "rgb(var(--color-text-muted))",
+              marginTop: 2,
+              fontWeight: urgent ? 700 : 400,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              justifyContent: "flex-end",
+            }}
+          >
+            <Clock size={14} strokeWidth={1.7} aria-hidden />
+            {timeLabel}
+          </div>
+        </div>
+      </div>
 
-function ItemLine({ item }: { item: OrderTrackingItemDto }) {
-  return (
-    <li className="flex items-baseline gap-2.5">
-      <span className="shrink-0 font-mono text-[14px] font-bold text-[rgb(var(--color-text-primary))]">
-        {item.quantity}×
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="font-medium leading-snug">
-          {item.productName}
-          {item.variantName && (
-            <span className="font-normal text-[rgb(var(--color-text-muted))]">
-              {" · "}
-              {item.variantName}
+      <div
+        style={{
+          marginTop: 10,
+          paddingTop: 10,
+          borderTop: "1px dashed rgb(var(--color-border-subtle))",
+        }}
+      >
+        {order.items.map((it, i) => (
+          <KitchenItemRow key={i} item={it} highlightNote={highlightNote} />
+        ))}
+        {order.customerNotes && (
+          <div
+            style={{
+              marginTop: 6,
+              padding: "8px 10px",
+              background: highlightNote ? "#FFF8E1" : "transparent",
+              border: highlightNote
+                ? "1px solid #FCD34D"
+                : "1px dashed rgb(var(--color-border-card))",
+              borderLeft: highlightNote
+                ? "3px solid rgb(var(--status-new))"
+                : "1px dashed rgb(var(--color-border-card))",
+              borderRadius: 6,
+              fontSize: 13,
+              color: highlightNote ? "#78350F" : "rgb(var(--color-text-muted))",
+              lineHeight: 1.4,
+              display: "flex",
+              gap: 8,
+              alignItems: "flex-start",
+            }}
+          >
+            {highlightNote && (
+              <span
+                style={{
+                  color: "rgb(var(--status-new))",
+                  flexShrink: 0,
+                  marginTop: 1,
+                  display: "inline-flex",
+                }}
+              >
+                <AlertTriangle size={16} strokeWidth={1.7} aria-hidden />
+              </span>
+            )}
+            <span>
+              <strong>Notka:</strong> {order.customerNotes}
             </span>
-          )}
-        </div>
-        {item.addons.length > 0 && (
-          <div className="ml-0 text-[12px] text-[rgb(var(--color-text-muted))]">
-            + {item.addons.map((a) => a.name).join(", ")}
           </div>
         )}
       </div>
-    </li>
+
+      {isNew && (
+        <button
+          type="button"
+          onClick={() => mutation.mutate("CONFIRMED")}
+          disabled={mutation.isPending}
+          style={{
+            width: "100%",
+            height: 40,
+            marginTop: 12,
+            borderRadius: 8,
+            border: "none",
+            background: "rgb(var(--status-new))",
+            color: "#1A1A1A",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: mutation.isPending ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            opacity: mutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {mutation.isPending ? "Zapisywanie…" : "Potwierdź zamówienie →"}
+        </button>
+      )}
+      {isConfirmed && (
+        <button
+          type="button"
+          onClick={() => mutation.mutate("IN_PREPARATION")}
+          disabled={mutation.isPending}
+          style={{
+            width: "100%",
+            height: 40,
+            marginTop: 12,
+            borderRadius: 8,
+            border: "none",
+            background: "rgb(var(--status-confirmed))",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: mutation.isPending ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            opacity: mutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {mutation.isPending ? "Zapisywanie…" : "Rozpocznij przygotowanie →"}
+        </button>
+      )}
+      {isPrep && (
+        <button
+          type="button"
+          onClick={() => mutation.mutate("READY")}
+          disabled={mutation.isPending}
+          style={{
+            width: "100%",
+            height: 40,
+            marginTop: 12,
+            borderRadius: 8,
+            border: "none",
+            background: "rgb(var(--color-primary))",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: mutation.isPending ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+            opacity: mutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {mutation.isPending ? "Zapisywanie…" : "✓ Gotowe"}
+        </button>
+      )}
+    </div>
   );
 }
+
+function KitchenItemRow({
+  item,
+}: {
+  item: OrderTrackingItemDto;
+  highlightNote: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        gap: 10,
+        padding: "6px 0",
+        alignItems: "baseline",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 14,
+          fontWeight: 700,
+          color: "rgb(var(--color-text-primary))",
+          minWidth: 22,
+        }}
+      >
+        {item.quantity}×
+      </span>
+      <div>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "rgb(var(--color-text-primary))",
+            lineHeight: 1.3,
+          }}
+        >
+          {item.productName}
+          {item.variantName && (
+            <span
+              style={{
+                fontWeight: 400,
+                color: "rgb(var(--color-text-muted))",
+                marginLeft: 6,
+              }}
+            >
+              · {item.variantName}
+            </span>
+          )}
+        </div>
+      </div>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 13,
+          color: "rgb(var(--color-text-muted))",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {zl(item.unitPrice)}
+      </span>
+    </div>
+  );
+}
+

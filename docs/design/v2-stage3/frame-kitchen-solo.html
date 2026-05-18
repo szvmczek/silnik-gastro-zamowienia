@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Solo · KitchenFrame</title>
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #FAFAF8; font-family: var(--font-sans); }
+  #root { width: 100vw; height: 100vh; }
+  .admin {
+    --admin-shell: #F4F2EC; --admin-shell-border: #E2DED2;
+    --admin-canvas: #FAFAF8; --admin-card: #FFFFFF;
+    --admin-card-border: #E5E1D6; --admin-card-border-hover: #D4D0C2;
+    --admin-row-hover: #F7F4ED; --admin-divider: #EDE9DF;
+    --admin-text-primary: #1A1A1A; --admin-text-body: #3F3F3A;
+    --admin-text-muted: #6B6B66; --admin-text-faint: #A8A59C;
+    --admin-nav-active-bg: #FCEEEF; --admin-nav-active-text: #C0202E;
+    --admin-nav-hover-bg: #EFEBDF;
+    --admin-radius: 8px; --admin-radius-sm: 6px; --admin-radius-card: 10px;
+    background: var(--admin-canvas);
+    color: var(--admin-text-primary);
+    font-family: var(--font-sans);
+  }
+  .admin[data-density="compact"] { --admin-card-pad: 14px; --admin-row-h: 56px; --admin-card-gap: 10px; }
+  .admin[data-density="comfortable"] { --admin-card-pad: 20px; --admin-row-h: 72px; --admin-card-gap: 16px; }
+  .scrollbox::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbox::-webkit-scrollbar-thumb { background: #D4D0C2; border-radius: 8px; }
+  .scrollbox::-webkit-scrollbar-track { background: transparent; }
+  .avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 9999px; font-weight: 700; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+    line-height: 1; letter-spacing: 0.01em; white-space: nowrap;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; }
+  @keyframes adminPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0.42); }
+    50%      { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
+  }
+  .pulse-new { animation: adminPulse 1.8s ease-out infinite; }
+  .hr-soft { height: 1px; background: var(--admin-divider); border: 0; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+  <script type="text/babel" src="admin-shared.jsx"></script>
+  <script type="text/babel" src="frame-kitchen.jsx"></script>
+  <script type="text/babel">
+    ReactDOM.createRoot(document.getElementById("root")).render(
+      React.createElement(window.KitchenFrame, {
+        tone: "warm",
+        density: "comfortable",
+        soundOn: true,
+        sseSimulate: false,
+        manualClose: false,
+        highlightNote: true,
+        newCount: 3
+      })
+    );
+  </script>
+</body>
+</html>
