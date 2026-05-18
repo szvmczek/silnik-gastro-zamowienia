@@ -1,137 +1,194 @@
-import { formatDistanceToNow } from "date-fns";
-import { pl } from "date-fns/locale";
-import { Phone } from "lucide-react";
-import { cn } from "@/shared/lib/cn";
-import { Button } from "@/shared/components/ui/Button";
+import { Link } from "react-router-dom";
 import type {
   AdminOrderListItemDto,
   OrderTrackingItemDto,
-  PaymentMethod,
 } from "@/shared/api/orderApi";
-import { statusTheme } from "../shared/statusColors";
-import { timerEscalation } from "../shared/timerColor";
 import { useElapsedTick } from "../shared/useElapsedTick";
 
-interface PickupOrderCardProps {
+interface PickupRowProps {
   order: AdminOrderListItemDto;
-  onRequestRelease: () => void;
+  slotEmphasis?: boolean;
 }
 
-function formatCurrency(raw: string): string {
-  const n = Number.parseFloat(raw);
-  if (!Number.isFinite(n)) return raw;
-  return new Intl.NumberFormat("pl-PL", {
-    style: "currency",
-    currency: "PLN",
-    minimumFractionDigits: 2,
-  }).format(n);
+function zl(raw: string | number): string {
+  const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return String(raw);
+  return `${n.toFixed(2).replace(".", ",")} zł`;
 }
 
-function paymentLabel(t: PaymentMethod): string {
-  return t === "CASH_ON_DELIVERY" ? "Gotówka przy dostawie" : "Gotówka przy odbiorze";
+function fmtItemsBrief(items: OrderTrackingItemDto[]): string {
+  if (!items.length) return "—";
+  const fmt = (it: OrderTrackingItemDto) =>
+    `${it.quantity}× ${it.productName}${it.variantName ? ` ${it.variantName}` : ""}`;
+  if (items.length <= 3) return items.map(fmt).join(", ");
+  const head = items.slice(0, 2).map(fmt).join(", ");
+  return `${head} · +${items.length - 2} więcej`;
 }
 
-function relativeTime(iso: string): string {
-  return formatDistanceToNow(new Date(iso), { locale: pl, addSuffix: true });
+function formatSlot(order: AdminOrderListItemDto): string {
+  if (order.etaMinutes !== null && order.etaSetAt) {
+    const target = new Date(new Date(order.etaSetAt).getTime() + order.etaMinutes * 60_000);
+    return target.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+  }
+  if (order.etaMinutes !== null) {
+    const target = new Date(Date.now() + order.etaMinutes * 60_000);
+    return target.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+  }
+  return "—";
 }
 
-export function PickupOrderCard({ order, onRequestRelease }: PickupOrderCardProps) {
-  const cashOnPickup = order.paymentMethod === "CASH_ON_PICKUP";
-  const theme = statusTheme(order.status);
+function elapsedMinSince(iso: string, nowMs: number): number {
+  return Math.max(0, Math.floor((nowMs - new Date(iso).getTime()) / 60_000));
+}
+
+// Bundle frame-pickup:15-95 — row in a table card. Grid 6 columns at lg+:
+// Slot (mono 24px) / Customer (22px bold) / Items brief (12px clamp-2) /
+// Phone (mono 13px) / Total (mono 15px + paid status) / Action "Szczegóły →".
+// At <lg stacks as vertical card with same data, since bundle assumes desktop.
+export function PickupRow({ order, slotEmphasis = true }: PickupRowProps) {
   const now = useElapsedTick();
-  const timer = timerEscalation(order.placedAt, now);
+  const since = elapsedMinSince(order.placedAt, now);
+  const slot = formatSlot(order);
+  const itemsBrief = fmtItemsBrief(order.items);
+  const detailHref = `/admin/orders/${order.id}`;
 
   return (
-    <article
-      className={cn(
-        "flex flex-col rounded-xl border border-[rgb(var(--color-border-card))] border-l-4 bg-[rgb(var(--color-bg-card))] p-5",
-        theme.accent,
-        timer.pulse &&
-          "motion-safe:animate-urgent-pulse motion-reduce:border-[rgb(var(--status-cancelled))] motion-reduce:ring-1 motion-reduce:ring-[rgb(var(--status-cancelled))]/30"
-      )}
+    <div
+      className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[84px_1.1fr_1.6fr_150px_110px_140px]"
+      style={{
+        padding: "16px 20px",
+        background: "rgb(var(--color-bg-card))",
+        borderBottom: "1px solid rgb(var(--color-border-subtle))",
+      }}
     >
-      <header className="flex items-baseline justify-between gap-3">
-        <div className="font-mono text-[16px] font-semibold tracking-tight text-[rgb(var(--color-text-muted))]">
-          {order.orderNumber}
-        </div>
-        <div className={cn("text-[12px]", timer.color)}>
-          {relativeTime(order.placedAt)}
-        </div>
-      </header>
-
-      <div className="mt-2 text-[28px] font-extrabold leading-[1.15] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-        {order.customerName}
-      </div>
-
-      <a
-        href={`tel:${order.customerPhone}`}
-        className="mt-2 inline-flex items-center gap-2 font-mono text-[14px] font-semibold text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-      >
-        <Phone className="h-4 w-4" aria-hidden="true" />
-        {order.customerPhone}
-      </a>
-
-      <ul className="mt-4 space-y-1.5 border-t border-dashed border-[rgb(var(--color-border-subtle))] pt-3 text-[14px] text-[rgb(var(--color-text-body))]">
-        {(order.items ?? []).map((item, idx) => (
-          <ItemLine key={idx} item={item} />
-        ))}
-      </ul>
-
-      {cashOnPickup ? (
-        <div className="mt-4 rounded-md border border-[rgb(var(--status-cancelled))]/40 bg-[rgb(var(--status-cancelled-tint))] px-3 py-2">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgb(var(--status-cancelled))]">
-            Pobierz gotówkę
-          </div>
-          <div className="font-mono text-[24px] font-bold leading-none text-[rgb(var(--status-cancelled))]">
-            {formatCurrency(order.total)}
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4 text-[13px] text-[rgb(var(--color-text-muted))]">
-          {paymentLabel(order.paymentMethod)} —{" "}
-          <span className="font-mono font-semibold text-[rgb(var(--color-text-primary))]">
-            {formatCurrency(order.total)}
-          </span>
-        </div>
-      )}
-
-      <div className="mt-auto pt-5">
-        <Button
-          type="button"
-          variant="primary"
-          size="xl"
-          className="w-full"
-          onClick={onRequestRelease}
+      <div>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: slotEmphasis ? 24 : 16,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+            lineHeight: 1,
+          }}
         >
-          Wydano
-        </Button>
-      </div>
-    </article>
-  );
-}
-
-function ItemLine({ item }: { item: OrderTrackingItemDto }) {
-  return (
-    <li className="flex items-baseline gap-2.5">
-      <span className="shrink-0 font-mono text-[14px] font-bold text-[rgb(var(--color-text-primary))]">
-        {item.quantity}×
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="font-medium text-[rgb(var(--color-text-primary))]">
-          {item.productName}
-          {item.variantName && (
-            <span className="font-normal text-[rgb(var(--color-text-muted))]">
-              {" · "}
-              {item.variantName}
-            </span>
-          )}
+          {slot}
         </div>
-        {item.addons.length > 0 && (
-          <div className="text-[12px] text-[rgb(var(--color-text-muted))]">
-            + {item.addons.map((a) => a.name).join(", ")}
-          </div>
-        )}
+        <div
+          style={{
+            fontSize: 11,
+            color: "rgb(var(--color-text-faint))",
+            marginTop: 4,
+            fontWeight: 500,
+          }}
+        >
+          slot
+        </div>
       </div>
-    </li>
+
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+            letterSpacing: "-0.01em",
+            lineHeight: 1.2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {order.customerName}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "rgb(var(--color-text-muted))",
+            marginTop: 4,
+          }}
+        >
+          {order.orderNumber} · czeka {since} min
+        </div>
+      </div>
+
+      <div style={{ minWidth: 0 }}>
+        <div
+          title={order.items
+            .map(
+              (it) =>
+                `${it.quantity}× ${it.productName}${it.variantName ? ` ${it.variantName}` : ""}`,
+            )
+            .join(", ")}
+          style={{
+            fontSize: 12,
+            color: "rgb(var(--color-text-body))",
+            lineHeight: 1.35,
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {itemsBrief}
+        </div>
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            color: "rgb(var(--color-text-body))",
+            fontWeight: 600,
+          }}
+        >
+          {order.customerPhone || "—"}
+        </div>
+      </div>
+
+      <div style={{ textAlign: "right" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 15,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+          }}
+        >
+          {zl(order.total)}
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: "rgb(var(--color-text-muted))",
+            marginTop: 2,
+            fontWeight: 600,
+          }}
+        >
+          Gotówka
+        </div>
+      </div>
+
+      <Link
+        to={detailHref}
+        style={{
+          height: 44,
+          borderRadius: 8,
+          border: "1px solid rgb(var(--color-border-card))",
+          background: "rgb(var(--color-bg-card))",
+          color: "rgb(var(--color-text-primary))",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+          textDecoration: "none",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "inherit",
+        }}
+      >
+        Szczegóły →
+      </Link>
+    </div>
   );
 }
