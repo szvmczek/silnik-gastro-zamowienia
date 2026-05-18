@@ -3,39 +3,32 @@ import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { AlertTriangle, ExternalLink } from "lucide-react";
-import { Button } from "@/shared/components/ui/Button";
-import { Skeleton } from "@/shared/components/ui/Skeleton";
-import { Kicker } from "@/shared/components/typography/Kicker";
+import { AlertTriangle, ExternalLink, Phone, Printer } from "lucide-react";
 import {
   fetchAdminOrderById,
   updateOrderEta,
   updateOrderStatus,
   type AdminOrderDto,
+  type AdminOrderStatusHistoryDto,
+  type FulfillmentType,
   type OrderStatus,
   type OrderTrackingAddressDto,
   type OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
-import { OrderStatusBadge, statusLabel } from "@/shared/components/ui/OrderStatusBadge";
-import { OrderStatusActions } from "./components/OrderStatusActions";
-import { OrderStatusHistory } from "./components/OrderStatusHistory";
+import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { EtaDialog } from "./components/EtaDialog";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
-import { computeEtaRelativeTime } from "./lib/etaRelativeTime";
+import { useElapsedTick } from "../operations/shared/useElapsedTick";
 
-function formatCurrency(raw: string): string {
-  const n = Number.parseFloat(raw);
-  if (!Number.isFinite(n)) return raw;
-  return new Intl.NumberFormat("pl-PL", {
-    style: "currency",
-    currency: "PLN",
-    minimumFractionDigits: 2,
-  }).format(n);
+function zl(raw: string | number): string {
+  const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return String(raw);
+  return `${n.toFixed(2).replace(".", ",")} zł`;
 }
 
-function fulfillmentLabel(t: AdminOrderDto["fulfillmentType"]): string {
+function fulfillmentLabel(t: FulfillmentType): string {
   return t === "DELIVERY" ? "Dostawa" : "Odbiór";
 }
 
@@ -43,23 +36,57 @@ function paymentLabel(t: AdminOrderDto["paymentMethod"]): string {
   return t === "CASH_ON_DELIVERY" ? "Gotówka przy dostawie" : "Gotówka przy odbiorze";
 }
 
-function formatPlacedRelative(iso: string, now: number = Date.now()): string {
-  const diffMin = Math.floor((now - new Date(iso).getTime()) / 60_000);
-  if (diffMin < 1) return "przed chwilą";
-  if (diffMin < 60) return `${diffMin} min temu`;
-  const hours = Math.floor(diffMin / 60);
-  if (hours < 24) return `${hours} godz. temu`;
-  return formatDateTime(iso);
+function formatHHmm(iso: string): string {
+  return new Date(iso).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+}
+
+function elapsedMin(iso: string, nowMs: number): number {
+  return Math.max(0, Math.floor((nowMs - new Date(iso).getTime()) / 60_000));
 }
 
 function buildMapsHref(address: OrderTrackingAddressDto): string {
   const parts = [
-    `${address.street} ${address.buildingNumber}`,
+    `${address.street} ${address.buildingNumber}${address.apartmentNumber ? `/${address.apartmentNumber}` : ""}`,
     `${address.postalCode} ${address.city}`,
   ];
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    parts.join(", ")
-  )}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(", "))}`;
+}
+
+const STATUS_PILL: Record<OrderStatus, { dot: string }> = {
+  NEW: { dot: "--status-new" },
+  CONFIRMED: { dot: "--status-confirmed" },
+  IN_PREPARATION: { dot: "--status-prep" },
+  READY: { dot: "--status-ready" },
+  OUT_FOR_DELIVERY: { dot: "--status-out" },
+  DELIVERED: { dot: "--status-delivered" },
+  CANCELED: { dot: "--status-cancelled" },
+};
+
+interface PrimaryAction {
+  label: string;
+  next: OrderStatus;
+  bgVar: string;
+  textColor: string;
+}
+
+function primaryAction(status: OrderStatus, fulfillment: FulfillmentType): PrimaryAction | null {
+  switch (status) {
+    case "NEW":
+      return { label: "Potwierdź →", next: "CONFIRMED", bgVar: "--status-new", textColor: "#1A1A1A" };
+    case "CONFIRMED":
+      return { label: "Rozpocznij przygotowanie →", next: "IN_PREPARATION", bgVar: "--status-confirmed", textColor: "#fff" };
+    case "IN_PREPARATION":
+      return { label: "✓ Gotowe", next: "READY", bgVar: "--status-ready", textColor: "#fff" };
+    case "READY":
+      return fulfillment === "DELIVERY"
+        ? { label: "Wyjechało →", next: "OUT_FOR_DELIVERY", bgVar: "--color-primary", textColor: "#fff" }
+        : { label: "✓ Wydane", next: "DELIVERED", bgVar: "--status-ready", textColor: "#fff" };
+    case "OUT_FOR_DELIVERY":
+      return { label: "✓ Doręczone", next: "DELIVERED", bgVar: "--status-ready", textColor: "#fff" };
+    case "DELIVERED":
+    case "CANCELED":
+      return null;
+  }
 }
 
 export function OrderDetailPage() {
@@ -68,6 +95,7 @@ export function OrderDetailPage() {
   const queryClient = useQueryClient();
   const [etaOpen, setEtaOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const now = useElapsedTick();
 
   const query = useQuery<AdminOrderDto>({
     queryKey: ["admin", "orders", "detail", id],
@@ -83,35 +111,20 @@ export function OrderDetailPage() {
 
   const order = query.data;
 
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "orders", "detail", id] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "summary"] });
-  };
-
   const handleMutationError = (err: unknown, fallback: string) => {
     const problem = extractProblem(err);
-    const status = err instanceof AxiosError ? err.response?.status : undefined;
-    if (status === 409) {
+    const httpStatus = err instanceof AxiosError ? err.response?.status : undefined;
+    if (httpStatus === 409) {
       toast.error("Ktoś inny zmienił zamówienie. Odśwież widok.");
-      queryClient.invalidateQueries({
-        queryKey: ["admin", "orders", "detail", id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "detail", id] });
       return;
     }
     toast.error(problem?.detail ?? problem?.title ?? fallback);
   };
 
   const statusMutation = useMutation({
-    mutationFn: ({
-      next,
-      version,
-      reason,
-    }: {
-      next: OrderStatus;
-      version: number;
-      reason?: string;
-    }) => updateOrderStatus(id, { status: next, version, reason }),
+    mutationFn: ({ next, version, reason }: { next: OrderStatus; version: number; reason?: string }) =>
+      updateOrderStatus(id, { status: next, version, reason }),
     onSuccess: (data) => {
       queryClient.setQueryData(["admin", "orders", "detail", id], data);
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
@@ -122,13 +135,8 @@ export function OrderDetailPage() {
   });
 
   const etaMutation = useMutation({
-    mutationFn: ({
-      minutesFromNow,
-      version,
-    }: {
-      minutesFromNow: number;
-      version: number;
-    }) => updateOrderEta(id, { minutesFromNow, version }),
+    mutationFn: ({ minutesFromNow, version }: { minutesFromNow: number; version: number }) =>
+      updateOrderEta(id, { minutesFromNow, version }),
     onSuccess: (data) => {
       queryClient.setQueryData(["admin", "orders", "detail", id], data);
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
@@ -149,7 +157,7 @@ export function OrderDetailPage() {
 
   if (!Number.isFinite(id)) {
     return (
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <BackLink />
         <p className="text-sm text-[rgb(var(--color-text-muted))]">
           Nieprawidłowy identyfikator zamówienia.
@@ -159,189 +167,373 @@ export function OrderDetailPage() {
   }
 
   if (query.isPending) {
-    return <OrderDetailSkeleton />;
+    return (
+      <div className="flex flex-col gap-5">
+        <BackLink />
+        <div
+          className="h-40 animate-pulse rounded-xl"
+          style={{ background: "rgb(var(--color-bg-section))" }}
+        />
+      </div>
+    );
   }
 
   if (errorMessage || !order) {
     return (
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         <BackLink />
-        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
+        <div
+          className="rounded-md p-3 text-sm"
+          style={{
+            border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+            background: "rgb(var(--status-cancelled-tint))",
+            color: "rgb(var(--status-cancelled))",
+          }}
+        >
           {errorMessage ?? "Nie udało się pobrać zamówienia."}
-        </div>
-        <div>
-          <Button type="button" variant="ghost" onClick={() => invalidateAll()}>
-            Odśwież
-          </Button>
         </div>
       </div>
     );
   }
 
-  const mutating = statusMutation.isPending || etaMutation.isPending;
+  const confirmedAt = order.statusHistory.find((h) => h.status === "CONFIRMED")?.changedAt;
+  const placedHHmm = formatHHmm(order.placedAt);
+  const confirmedHHmm = confirmedAt ? formatHHmm(confirmedAt) : null;
+  const sincePlaced = elapsedMin(order.placedAt, now);
+  const dotVar = STATUS_PILL[order.status].dot;
+  const action = primaryAction(order.status, order.fulfillmentType);
+  const itemsCount = order.items.length;
+  const piecesCount = order.items.reduce((acc, it) => acc + it.quantity, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-5">
       <BackLink />
 
-      <header>
-        <Kicker className="block">Archiwum › Wszystkie zamówienia</Kicker>
-        <div className="mt-2 flex flex-wrap items-baseline gap-4">
-          <h1 className="font-mono text-[56px] font-semibold leading-none tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-            {order.orderNumber}
-          </h1>
-          <OrderStatusBadge status={order.status} size="lg" />
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
+            Archiwum › Wszystkie zamówienia
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
+              Zamówienie{" "}
+              <span style={{ fontFamily: "var(--font-mono)" }}>{order.orderNumber}</span>
+            </h1>
+            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
+              Złożone {placedHHmm}
+              {confirmedHHmm && ` · potwierdzone ${confirmedHHmm}`}
+            </span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
           {order.trackingToken && (
             <Link
               to={`/track/${order.trackingToken}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold"
+              style={{
+                border: "1px solid rgb(var(--color-border-card))",
+                background: "rgb(var(--color-bg-card))",
+                color: "rgb(var(--color-primary))",
+                textDecoration: "none",
+                fontFamily: "inherit",
+              }}
             >
-              Otwórz tracker klienta
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              Tracker klienta <ExternalLink size={13} strokeWidth={1.7} aria-hidden />
             </Link>
           )}
-        </div>
-        <div className="mt-2 text-[14px] text-[rgb(var(--color-text-muted))]">
-          Złożone {formatPlacedRelative(order.placedAt)} ·{" "}
-          {fulfillmentLabel(order.fulfillmentType)} ·{" "}
-          {paymentLabel(order.paymentMethod)}
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium"
+            style={{
+              border: "1px solid rgb(var(--color-border-card))",
+              background: "rgb(var(--color-bg-card))",
+              color: "rgb(var(--color-text-body))",
+              fontFamily: "inherit",
+            }}
+          >
+            <Printer size={14} strokeWidth={1.7} aria-hidden /> Drukuj
+          </button>
         </div>
       </header>
 
-      <OrderStatusActions
-        currentStatus={order.status}
-        fulfillmentType={order.fulfillmentType}
-        onChangeStatus={(next) =>
-          statusMutation.mutate({ next, version: order.version })
-        }
-        onOpenEta={() => setEtaOpen(true)}
-        onOpenCancel={() => setCancelOpen(true)}
-        isSubmitting={mutating}
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className="inline-flex items-center"
+          style={{
+            gap: 8,
+            padding: "6px 14px",
+            borderRadius: 9999,
+            background: `rgb(var(${dotVar}) / 0.14)`,
+            color: `rgb(var(${dotVar}))`,
+            fontSize: 13,
+            fontWeight: 700,
+            lineHeight: 1,
+            letterSpacing: "0.01em",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            style={{ width: 8, height: 8, borderRadius: 9999, background: "currentColor" }}
+            aria-hidden
+          />
+          {statusLabel(order.status)}
+        </span>
+        <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
+          · od {sincePlaced} min
+        </span>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setEtaOpen(true)}
+          disabled={statusMutation.isPending || etaMutation.isPending}
+          style={{
+            height: 38,
+            padding: "0 14px",
+            borderRadius: 8,
+            border: "1px solid rgb(var(--color-border-card))",
+            background: "rgb(var(--color-bg-card))",
+            fontSize: 13,
+            color: "rgb(var(--color-text-body))",
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          Zmień ETA
+        </button>
+        {order.status !== "CANCELED" && order.status !== "DELIVERED" && (
+          <button
+            type="button"
+            onClick={() => setCancelOpen(true)}
+            disabled={statusMutation.isPending || etaMutation.isPending}
+            style={{
+              height: 38,
+              padding: "0 14px",
+              borderRadius: 8,
+              border: "1px solid #FCA5A5",
+              background: "rgb(var(--color-bg-card))",
+              fontSize: 13,
+              color: "rgb(var(--status-cancelled))",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontFamily: "inherit",
+            }}
+          >
+            Anuluj zamówienie
+          </button>
+        )}
+        {action && (
+          <button
+            type="button"
+            onClick={() => statusMutation.mutate({ next: action.next, version: order.version })}
+            disabled={statusMutation.isPending || etaMutation.isPending}
+            style={{
+              height: 38,
+              padding: "0 18px",
+              borderRadius: 8,
+              border: "none",
+              background: `rgb(var(${action.bgVar}))`,
+              color: action.textColor,
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              opacity: statusMutation.isPending ? 0.7 : 1,
+            }}
+          >
+            {statusMutation.isPending ? "Zapisywanie…" : action.label}
+          </button>
+        )}
+      </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="space-y-6">
-          <DetailCard title="Pozycje">
-            <div className="space-y-3">
-              {order.items.map((item, idx) => (
-                <OrderItemRow key={idx} item={item} />
-              ))}
-              <div className="space-y-1 border-t border-[rgb(var(--color-border-subtle))] pt-3 text-sm">
-                <div className="flex justify-between text-[rgb(var(--color-text-body))]">
-                  <span>Suma częściowa</span>
-                  <span className="font-mono tabular-nums">{formatCurrency(order.subtotal)}</span>
-                </div>
-                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName !== null && (
-                  <div className="flex justify-between text-[rgb(var(--color-text-body))]">
-                    <span>Dostawa — {order.deliveryZoneName}</span>
-                    <span className="font-mono tabular-nums">{formatCurrency(order.deliveryFee)}</span>
-                  </div>
-                )}
-                {order.fulfillmentType === "DELIVERY" && order.deliveryZoneName === null && (
-                  <div className="flex justify-between text-[rgb(var(--color-text-muted))]">
-                    <span>Dostawa</span>
-                    <span>—</span>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 text-base">
-                  <span className="font-bold text-[rgb(var(--color-text-primary))]">
-                    Razem
-                  </span>
-                  <span className="font-mono font-semibold tabular-nums text-[rgb(var(--color-text-primary))]">
-                    {formatCurrency(order.total)}
-                  </span>
-                </div>
-              </div>
+      {order.customerNotes && (
+        <div
+          style={{
+            background: "#FFF8E1",
+            border: "1px solid #FCD34D",
+            borderLeft: "4px solid rgb(var(--status-new))",
+            borderRadius: 8,
+            padding: "14px 18px",
+            display: "flex",
+            gap: 12,
+            color: "#78350F",
+          }}
+        >
+          <span
+            style={{
+              color: "rgb(var(--status-new))",
+              flexShrink: 0,
+              marginTop: 2,
+              display: "inline-flex",
+            }}
+            aria-hidden
+          >
+            <AlertTriangle size={18} strokeWidth={1.7} />
+          </span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>
+              Notka klienta do zamówienia
             </div>
-          </DetailCard>
-
-          <DetailCard title="Klient">
-            <div className="space-y-3 text-sm">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Kicker className="block">Imię i nazwisko</Kicker>
-                  <div className="mt-1 text-[rgb(var(--color-text-primary))]">
-                    {order.customerName}
-                  </div>
-                </div>
-                <div>
-                  <Kicker className="block">Telefon</Kicker>
-                  <a
-                    href={`tel:${order.customerPhone}`}
-                    className="mt-1 inline-block font-mono text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-                  >
-                    {order.customerPhone}
-                  </a>
-                </div>
-                {order.customerEmail && (
-                  <div className="sm:col-span-2">
-                    <Kicker className="block">E-mail</Kicker>
-                    <a
-                      href={`mailto:${order.customerEmail}`}
-                      className="mt-1 inline-block text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-                    >
-                      {order.customerEmail}
-                    </a>
-                  </div>
-                )}
-              </div>
-
-              {order.fulfillmentType === "DELIVERY" && order.deliveryAddress && (
-                <div className="rounded-md border border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-section))] p-3">
-                  <Kicker className="block">Adres dostawy</Kicker>
-                  <div className="mt-1 text-[rgb(var(--color-text-primary))]">
-                    <DeliveryAddressLines address={order.deliveryAddress} />
-                  </div>
-                  <a
-                    href={buildMapsHref(order.deliveryAddress)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex text-xs font-semibold text-[rgb(var(--color-primary))] hover:underline focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
-                  >
-                    Otwórz w mapie →
-                  </a>
-                </div>
-              )}
+            <div style={{ fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-line" }}>
+              {order.customerNotes}
             </div>
-          </DetailCard>
+          </div>
+        </div>
+      )}
 
-          <DetailCard title="Płatność">
-            <div className="text-sm text-[rgb(var(--color-text-body))]">
-              {paymentLabel(order.paymentMethod)}
-            </div>
-          </DetailCard>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[7fr_5fr]">
+        <div
+          style={{
+            background: "rgb(var(--color-bg-card))",
+            border: "1px solid rgb(var(--color-border-card))",
+            borderRadius: 10,
+            padding: 0,
+          }}
+        >
+          <div
+            className="flex items-baseline justify-between"
+            style={{
+              padding: "16px 20px",
+              borderBottom: "1px solid rgb(var(--color-border-subtle))",
+            }}
+          >
+            <h3 className="m-0 text-[15px] font-bold">Pozycje ({itemsCount})</h3>
+            <span className="text-[12px] text-[rgb(var(--color-text-muted))]">
+              {piecesCount} {piecesCount === 1 ? "sztuka" : "sztuk"} w sumie
+            </span>
+          </div>
+
+          {order.items.map((it, i) => (
+            <OrderItemRow
+              key={i}
+              item={it}
+              isLast={i === order.items.length - 1}
+            />
+          ))}
+
+          <div
+            style={{
+              padding: "16px 20px",
+              background: "rgb(var(--color-bg-section))",
+            }}
+          >
+            <TotalsRow label="Suma pozycji" value={zl(order.subtotal)} />
+            {order.fulfillmentType === "DELIVERY" && (
+              <TotalsRow
+                label={
+                  order.deliveryZoneName
+                    ? `Dostawa — ${order.deliveryZoneName}`
+                    : "Dostawa"
+                }
+                value={zl(order.deliveryFee)}
+              />
+            )}
+            <TotalsRow label="Razem" value={zl(order.total)} bold />
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {order.customerNotes && (
-            <div className="rounded-xl border border-[rgb(var(--status-new))]/40 border-l-4 border-l-[rgb(var(--status-new))] bg-[rgb(var(--status-new-tint))] p-4">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle
-                  className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--status-new))]"
-                  aria-hidden
-                />
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[rgb(var(--status-new))]">
-                    Uwagi klienta
-                  </div>
-                  <p className="mt-1 whitespace-pre-line text-[14px] text-[rgb(var(--color-text-primary))]">
-                    {order.customerNotes}
-                  </p>
-                </div>
-              </div>
+        <div className="flex flex-col gap-4">
+          <AsideCard title="Klient">
+            <div className="text-[17px] font-bold text-[rgb(var(--color-text-primary))]">
+              {order.customerName}
             </div>
+            <a
+              href={`tel:${order.customerPhone}`}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-[14px] font-medium"
+              style={{ color: "rgb(var(--color-primary))", textDecoration: "none" }}
+            >
+              <Phone size={14} strokeWidth={1.7} aria-hidden /> {order.customerPhone}
+            </a>
+            {order.customerEmail && (
+              <div className="mt-1">
+                <a
+                  href={`mailto:${order.customerEmail}`}
+                  className="text-[13px]"
+                  style={{ color: "rgb(var(--color-primary))" }}
+                >
+                  {order.customerEmail}
+                </a>
+              </div>
+            )}
+          </AsideCard>
+
+          {order.fulfillmentType === "DELIVERY" && order.deliveryAddress && (
+            <AsideCard title="Adres dostawy">
+              <div className="text-[15px] font-semibold leading-[1.4]">
+                {order.deliveryAddress.street} {order.deliveryAddress.buildingNumber}
+                {order.deliveryAddress.apartmentNumber && `/${order.deliveryAddress.apartmentNumber}`}
+                , {order.deliveryAddress.postalCode} {order.deliveryAddress.city}
+              </div>
+              {order.deliveryAddress.notes && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: 10,
+                    background: "rgb(var(--color-bg-section))",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    color: "rgb(var(--color-text-muted))",
+                  }}
+                >
+                  {order.deliveryAddress.notes}
+                </div>
+              )}
+              <div
+                style={{
+                  marginTop: order.deliveryAddress.notes ? 8 : 12,
+                  padding: 10,
+                  background: "rgb(var(--color-bg-section))",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  color: "rgb(var(--color-text-muted))",
+                }}
+              >
+                {order.deliveryZoneName ? `Strefa ${order.deliveryZoneName} · ` : ""}
+                {zl(order.deliveryFee)}
+                {order.etaMinutes !== null ? ` · ETA ${order.etaMinutes} min` : ""}
+              </div>
+              <a
+                href={buildMapsHref(order.deliveryAddress)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block text-[12px] font-semibold"
+                style={{ color: "rgb(var(--color-primary))" }}
+              >
+                Otwórz w mapie →
+              </a>
+            </AsideCard>
           )}
 
-          <DarkEtaCard
-            etaMinutes={order.etaMinutes}
-            etaSetAt={order.etaSetAt}
-          />
+          <AsideCard title="Płatność">
+            <div className="flex items-baseline justify-between">
+              <div className="text-[15px] font-semibold text-[rgb(var(--color-text-primary))]">
+                {paymentLabel(order.paymentMethod)}
+              </div>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "4px 8px",
+                  borderRadius: 9999,
+                  background: "#FFF8E1",
+                  color: "#78350F",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Nieopłacone
+              </span>
+            </div>
+            <div className="mt-1 text-[13px] text-[rgb(var(--color-text-muted))]">
+              {fulfillmentLabel(order.fulfillmentType)}
+            </div>
+          </AsideCard>
 
-          <DetailCard title="Historia statusów">
-            <OrderStatusHistory history={order.statusHistory} />
-          </DetailCard>
+          <AsideCard title="Historia statusu">
+            <StatusTimeline history={order.statusHistory} />
+          </AsideCard>
         </div>
       </div>
 
@@ -360,7 +552,7 @@ export function OrderDetailPage() {
         open={cancelOpen}
         onOpenChange={setCancelOpen}
         orderNumber={order.orderNumber}
-        isSubmitting={mutating}
+        isSubmitting={statusMutation.isPending}
         onConfirm={(reason) => {
           setCancelOpen(false);
           statusMutation.mutate({
@@ -374,152 +566,232 @@ export function OrderDetailPage() {
   );
 }
 
-function DetailCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
-      <Kicker className="mb-3 block">{title}</Kicker>
-      {children}
-    </section>
-  );
-}
-
-function DarkEtaCard({
-  etaMinutes,
-  etaSetAt,
-}: {
-  etaMinutes: number | null;
-  etaSetAt: string | null;
-}) {
-  return (
-    <div className="rounded-xl bg-[rgb(var(--color-bg-dark))] p-6 text-[rgb(var(--color-text-on-dark))]">
-      <Kicker className="block text-[rgb(var(--color-text-on-dark))]/60">
-        ETA
-      </Kicker>
-      {etaMinutes !== null ? (
-        <>
-          <div className="mt-2 font-mono text-[48px] font-semibold leading-none tracking-[-0.01em]">
-            {etaMinutes}
-            <span className="ml-2 text-[22px] font-normal text-[rgb(var(--color-text-on-dark))]/70">
-              min
-            </span>
-          </div>
-          {etaSetAt && (
-            <div className="mt-3 text-[13px] text-[rgb(var(--color-text-on-dark))]/60">
-              ustawione {computeEtaRelativeTime(etaSetAt)}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="mt-3 text-[14px] text-[rgb(var(--color-text-on-dark))]/60">
-          Brak ustawionego ETA — kliknij „Zmień ETA" powyżej.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DeliveryAddressLines({ address }: { address: OrderTrackingAddressDto }) {
-  return (
-    <div className="space-y-0.5 text-sm">
-      <div>
-        {address.street} {address.buildingNumber}
-        {address.apartmentNumber && `/${address.apartmentNumber}`}
-      </div>
-      <div>
-        {address.postalCode} {address.city}
-      </div>
-      {address.notes && (
-        <div className="pt-1 text-xs text-[rgb(var(--color-text-muted))]">
-          {address.notes}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function OrderDetailSkeleton() {
-  return (
-    <div className="space-y-6">
-      <BackLink />
-      <div className="space-y-2">
-        <Skeleton className="h-3 w-48 bg-[rgb(var(--color-border-card))]" />
-        <div className="flex flex-wrap items-baseline gap-4">
-          <Skeleton className="h-14 w-48 bg-[rgb(var(--color-border-card))]" />
-          <Skeleton className="h-7 w-24 rounded-full bg-[rgb(var(--color-border-card))]" />
-        </div>
-        <Skeleton className="h-4 w-72 bg-[rgb(var(--color-border-card))]" />
-      </div>
-      <Skeleton className="h-24 rounded-xl bg-[rgb(var(--color-border-card))]" />
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="space-y-6">
-          <Skeleton className="h-56 rounded-xl bg-[rgb(var(--color-border-card))]" />
-          <Skeleton className="h-48 rounded-xl bg-[rgb(var(--color-border-card))]" />
-          <Skeleton className="h-24 rounded-xl bg-[rgb(var(--color-border-card))]" />
-        </div>
-        <div className="space-y-6">
-          <Skeleton className="h-32 rounded-xl bg-[rgb(var(--color-bg-dark))]/80" />
-          <Skeleton className="h-48 rounded-xl bg-[rgb(var(--color-border-card))]" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BackLink() {
   return (
     <Link
       to="/admin/orders"
-      className="inline-flex items-center text-sm font-medium text-[rgb(var(--color-text-muted))] transition-colors hover:text-[rgb(var(--color-primary))]"
+      className="inline-flex items-center text-[13px] font-medium"
+      style={{
+        color: "rgb(var(--color-text-muted))",
+        textDecoration: "none",
+      }}
     >
       ← Wróć do listy
     </Link>
   );
 }
 
-function OrderItemRow({ item }: { item: OrderTrackingItemDto }) {
+function AsideCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 text-sm">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <span className="font-medium text-[rgb(var(--color-text-primary))]">
-            <span className="font-mono">{item.quantity}×</span> {item.productName}
-          </span>
-          {item.variantName && (
-            <span className="text-xs text-[rgb(var(--color-text-muted))]">
-              ({item.variantName})
-            </span>
+    <div
+      style={{
+        background: "rgb(var(--color-bg-card))",
+        border: "1px solid rgb(var(--color-border-card))",
+        borderRadius: 10,
+        padding: 18,
+      }}
+    >
+      <h4
+        className="m-0 mb-3 text-[12px] font-bold uppercase"
+        style={{
+          letterSpacing: "0.06em",
+          color: "rgb(var(--color-text-muted))",
+        }}
+      >
+        {title}
+      </h4>
+      {children}
+    </div>
+  );
+}
+
+function OrderItemRow({ item, isLast }: { item: OrderTrackingItemDto; isLast: boolean }) {
+  return (
+    <div
+      style={{
+        padding: "16px 20px",
+        borderBottom: isLast ? "none" : "1px solid rgb(var(--color-border-subtle))",
+      }}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12 }}>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 15,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+            minWidth: 28,
+          }}
+        >
+          {item.quantity}×
+        </span>
+        <div>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: "rgb(var(--color-text-primary))",
+            }}
+          >
+            {item.productName}
+            {item.variantName && (
+              <span
+                style={{
+                  fontWeight: 400,
+                  color: "rgb(var(--color-text-muted))",
+                  marginLeft: 6,
+                }}
+              >
+                · {item.variantName}
+              </span>
+            )}
+          </div>
+          {item.addons.length > 0 && (
+            <ul
+              style={{
+                margin: "6px 0 0",
+                padding: "0 0 0 12px",
+                fontSize: 13,
+                color: "rgb(var(--color-text-body))",
+              }}
+            >
+              {item.addons.map((a, j) => (
+                <li key={j} style={{ listStyle: "circle" }}>
+                  + {a.name}{" "}
+                  <span style={{ color: "rgb(var(--color-text-muted))" }}>
+                    ({zl(a.unitPrice)})
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-        {item.addons.length > 0 && (
-          <ul className="mt-1 space-y-0.5 text-xs text-[rgb(var(--color-text-muted))]">
-            {item.addons.map((addon, idx) => (
-              <li key={idx}>
-                + {addon.name}
-                <span className="text-[rgb(var(--color-text-faint))]">
-                  {" · "}
-                  {addon.groupName}
-                  {" · "}
-                  {formatCurrency(addon.unitPrice)}
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 14,
+            fontWeight: 600,
+            color: "rgb(var(--color-text-primary))",
+          }}
+        >
+          {zl(item.lineTotal)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TotalsRow({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: bold ? 16 : 13,
+        fontWeight: bold ? 700 : 400,
+        color: bold ? "rgb(var(--color-text-primary))" : "rgb(var(--color-text-body))",
+        padding: "4px 0",
+      }}
+    >
+      <span>{label}</span>
+      <span style={{ fontFamily: "var(--font-mono)" }}>{value}</span>
+    </div>
+  );
+}
+
+function StatusTimeline({ history }: { history: AdminOrderStatusHistoryDto[] }) {
+  if (history.length === 0) {
+    return (
+      <p className="text-[13px] text-[rgb(var(--color-text-muted))]">
+        Brak historii statusów.
+      </p>
+    );
+  }
+  const sorted = [...history].sort(
+    (a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime(),
+  );
+  const lastIdx = sorted.length - 1;
+
+  return (
+    <div>
+      {sorted.map((entry, i) => {
+        const isCurrent = i === lastIdx;
+        return (
+          <div key={i} style={{ display: "flex", gap: 12, position: "relative" }}>
+            <div
+              style={{
+                width: 16,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <span
+                className={isCurrent ? "motion-safe:animate-dotpulse" : ""}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 9999,
+                  background: isCurrent
+                    ? "rgb(var(--color-primary))"
+                    : "rgb(var(--status-ready))",
+                  marginTop: 4,
+                }}
+                aria-hidden
+              />
+              {i < lastIdx && (
+                <span
+                  style={{
+                    flex: 1,
+                    width: 2,
+                    minHeight: 22,
+                    background: "rgb(var(--status-ready))",
+                  }}
+                  aria-hidden
+                />
+              )}
+            </div>
+            <div style={{ flex: 1, paddingBottom: i < lastIdx ? 12 : 0 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: isCurrent ? 700 : 500,
+                  color: "rgb(var(--color-text-primary))",
+                }}
+              >
+                {statusLabel(entry.status)}
+              </div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "rgb(var(--color-text-muted))",
+                  display: "flex",
+                  gap: 8,
+                  marginTop: 2,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontFamily: "var(--font-mono)" }}>
+                  {formatDateTime(entry.changedAt)}
                 </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <div className="whitespace-nowrap text-right">
-        <div className="text-xs text-[rgb(var(--color-text-muted))]">
-          {formatCurrency(item.unitPrice)}
-        </div>
-        <div className="font-mono font-semibold tabular-nums text-[rgb(var(--color-text-primary))]">
-          {formatCurrency(item.lineTotal)}
-        </div>
-      </div>
+                {entry.changedBy && <span>· {entry.changedBy}</span>}
+              </div>
+              {entry.reason && (
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    fontSize: 12,
+                    fontStyle: "italic",
+                    color: "rgb(var(--color-text-body))",
+                  }}
+                >
+                  {entry.reason}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
