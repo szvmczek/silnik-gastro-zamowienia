@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { Truck } from "lucide-react";
 import {
   fetchAdminOrders,
   updateOrderStatus,
@@ -13,7 +12,6 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
-import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { Button } from "@/shared/components/ui/Button";
 import {
   Dialog,
@@ -23,10 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/Dialog";
-import { Kicker } from "@/shared/components/typography/Kicker";
-import { DeliveryOrderCard } from "./DeliveryOrderCard";
-import { SectionHeader } from "../shared/SectionHeader";
-import { sectionTheme, type SectionKind } from "../shared/statusColors";
+import { DeliveryRow } from "./DeliveryOrderCard";
 
 const PAGE_SIZE = 100;
 
@@ -39,6 +34,18 @@ const OUT_FOR_DELIVERY_QUERY: AdminOrdersQuery = {
   status: "OUT_FOR_DELIVERY",
   size: PAGE_SIZE,
 };
+
+function sortAsc(page: SpringPage<AdminOrderListItemDto> | undefined): AdminOrderListItemDto[] {
+  if (!page) return [];
+  return [...page.content].sort(
+    (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
+  );
+}
+
+function queryError(err: unknown): string | null {
+  if (!err) return null;
+  return extractProblem(err)?.detail ?? "Spróbuj odświeżyć stronę.";
+}
 
 export function DeliveryPage() {
   useOperationalSound("delivery");
@@ -67,6 +74,17 @@ export function DeliveryPage() {
 
   const errorMessage = queryError(readyQuery.error) ?? queryError(outQuery.error);
 
+  function handleMutationError(err: unknown, fallback: string) {
+    const status = err instanceof AxiosError ? err.response?.status : undefined;
+    if (status === 409) {
+      toast.error("Ktoś inny zmienił zamówienie. Lista odświeżona.");
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+      setConfirming(null);
+      return;
+    }
+    toast.error(extractProblem(err)?.detail ?? fallback);
+  }
+
   const departMutation = useMutation({
     mutationFn: ({ id, version }: { id: number; version: number }) =>
       updateOrderStatus(id, { status: "OUT_FOR_DELIVERY", version }),
@@ -90,80 +108,89 @@ export function DeliveryPage() {
     onError: (err) => handleMutationError(err, "Nie udało się potwierdzić dostawy"),
   });
 
-  function handleMutationError(err: unknown, fallback: string) {
-    const status = err instanceof AxiosError ? err.response?.status : undefined;
-    if (status === 409) {
-      toast.error("Ktoś inny zmienił zamówienie. Lista odświeżona.");
-      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
-      setConfirming(null);
-      return;
-    }
-    toast.error(extractProblem(err)?.detail ?? fallback);
-  }
-
   const isLoading = readyQuery.isPending || outQuery.isPending;
-  const isEmpty =
-    !isLoading && readyRows.length === 0 && outRows.length === 0;
+  const toCollectCount = readyRows.length;
+  const inTransitCount = outRows.length;
 
   return (
-    <div className="space-y-8">
-      <header>
-        <Kicker className="block">Operacyjne · Dostawa</Kicker>
-        <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[rgb(var(--color-text-primary))]">
-          Dostawa
-          <span className="text-[rgb(var(--color-primary))]">.</span>
-        </h1>
-        <p className="mt-1 text-[14px] text-[rgb(var(--color-text-muted))]">
-          {readyRows.length} do zabrania · {outRows.length} w drodze. Najstarsze
-          na górze.
-        </p>
+    <div className="flex flex-col gap-5">
+      <header className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
+            Operacyjne
+          </div>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
+              Dostawa
+            </h1>
+            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
+              {toCollectCount} do zabrania · {inTransitCount} w drodze
+            </span>
+          </div>
+        </div>
       </header>
 
       {errorMessage && (
-        <div className="rounded-md border border-[rgb(var(--status-cancelled))]/30 bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">
+        <div
+          className="rounded-md p-3 text-sm"
+          style={{
+            border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+            background: "rgb(var(--status-cancelled-tint))",
+            color: "rgb(var(--status-cancelled))",
+          }}
+        >
           Nie udało się pobrać zamówień: {errorMessage}
         </div>
       )}
 
-      {isEmpty && !errorMessage && (
-        <EmptyState
-          icon={<Truck className="h-5 w-5" />}
-          title="Brak zamówień do dostarczenia"
-          description="Gdy kuchnia oznaczy dostawę jako gotową, pojawi się tutaj."
-        />
-      )}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <DeliveryColumn
+          title="Do zabrania"
+          count={toCollectCount}
+          dotColor="rgb(var(--status-ready))"
+          isLoading={isLoading && readyRows.length === 0}
+          empty={readyRows.length === 0 ? "Brak zamówień gotowych do dostarczenia." : null}
+        >
+          {readyRows.map((row, idx) => (
+            <DeliveryRow
+              key={row.id}
+              order={row}
+              variant="to-collect"
+              isLast={idx === readyRows.length - 1}
+              primaryPending={departMutation.isPending}
+              onPrimary={() =>
+                departMutation.mutate({ id: row.id, version: row.version })
+              }
+            />
+          ))}
+        </DeliveryColumn>
 
-      <Section
-        title="Do zabrania"
-        sectionKind="delivery-ready"
-        count={readyRows.length}
-        rows={readyRows}
-        isLoading={isLoading}
-        primaryLabel="Wyjechało"
-        onPrimary={(order) =>
-          departMutation.mutate({ id: order.id, version: order.version })
-        }
-        primaryPending={departMutation.isPending}
-      />
-
-      <Section
-        title="W dostawie"
-        sectionKind="delivery-out"
-        count={outRows.length}
-        rows={outRows}
-        isLoading={isLoading}
-        primaryLabel="Dostarczone"
-        onPrimary={(order) => setConfirming(order)}
-        primaryPending={false}
-      />
+        <DeliveryColumn
+          title="W drodze"
+          count={inTransitCount}
+          dotColor="rgb(var(--status-out))"
+          isLoading={isLoading && outRows.length === 0}
+          empty={outRows.length === 0 ? "Żadne zamówienie nie jest aktualnie w drodze." : null}
+        >
+          {outRows.map((row, idx) => (
+            <DeliveryRow
+              key={row.id}
+              order={row}
+              variant="in-transit"
+              isLast={idx === outRows.length - 1}
+              primaryPending={false}
+              onPrimary={() => setConfirming(row)}
+            />
+          ))}
+        </DeliveryColumn>
+      </div>
 
       <Dialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Potwierdzić dostawę {confirming?.orderNumber}?</DialogTitle>
             <DialogDescription>
-              Operacja kończy lifecycle zamówienia (status DELIVERED).
-              Cofnięcie nie jest możliwe.
+              Operacja kończy lifecycle zamówienia (status DELIVERED). Cofnięcie nie jest możliwe.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -193,74 +220,76 @@ export function DeliveryPage() {
   );
 }
 
-interface SectionProps {
+interface DeliveryColumnProps {
   title: string;
-  sectionKind: SectionKind;
   count: number;
-  rows: AdminOrderListItemDto[];
+  dotColor: string;
   isLoading: boolean;
-  primaryLabel: string;
-  onPrimary: (order: AdminOrderListItemDto) => void;
-  primaryPending: boolean;
+  empty: string | null;
+  children: React.ReactNode;
 }
 
-function Section({
+function DeliveryColumn({
   title,
-  sectionKind,
   count,
-  rows,
+  dotColor,
   isLoading,
-  primaryLabel,
-  onPrimary,
-  primaryPending,
-}: SectionProps) {
-  const theme = sectionTheme(sectionKind);
-  if (isLoading && rows.length === 0) {
-    return (
-      <section>
-        <SectionHeader title={title} count={null} theme={theme} />
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+  empty,
+  children,
+}: DeliveryColumnProps) {
+  return (
+    <div
+      style={{
+        background: "rgb(var(--color-bg-card))",
+        border: "1px solid rgb(var(--color-border-card))",
+        borderRadius: 10,
+        padding: 20,
+      }}
+    >
+      <h3
+        className="m-0 flex items-center gap-2"
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: "rgb(var(--color-text-primary))",
+          marginBottom: 14,
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 9999,
+            background: dotColor,
+          }}
+          aria-hidden
+        />
+        {title} ({count})
+      </h3>
+      {isLoading ? (
+        <div className="space-y-3">
           {Array.from({ length: 2 }).map((_, idx) => (
             <div
               key={idx}
-              className="h-80 animate-pulse rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))]"
+              className="h-40 animate-pulse rounded-md"
+              style={{ background: "rgb(var(--color-bg-section))" }}
             />
           ))}
         </div>
-      </section>
-    );
-  }
-
-  if (rows.length === 0) return null;
-
-  return (
-    <section>
-      <SectionHeader title={title} count={count} theme={theme} />
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {rows.map((row) => (
-          <DeliveryOrderCard
-            key={row.id}
-            order={row}
-            primaryLabel={primaryLabel}
-            onPrimary={() => onPrimary(row)}
-            primaryPending={primaryPending}
-          />
-        ))}
-      </div>
-    </section>
+      ) : count === 0 && empty ? (
+        <div
+          style={{
+            padding: "32px 8px",
+            textAlign: "center",
+            fontSize: 13,
+            color: "rgb(var(--color-text-muted))",
+          }}
+        >
+          {empty}
+        </div>
+      ) : (
+        children
+      )}
+    </div>
   );
-}
-
-function sortAsc(
-  page: SpringPage<AdminOrderListItemDto> | undefined,
-): AdminOrderListItemDto[] {
-  if (!page) return [];
-  return [...page.content].sort(
-    (a, b) => new Date(a.placedAt).getTime() - new Date(b.placedAt).getTime(),
-  );
-}
-
-function queryError(err: unknown): string | null {
-  if (!err) return null;
-  return extractProblem(err)?.detail ?? "Spróbuj odświeżyć stronę.";
 }
