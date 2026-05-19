@@ -515,8 +515,112 @@ endpoint `/admin/orders/counts?dateFrom=X&dateTo=Y` lub embedded
 
 **Wykonane:** M-032 (`5ab7ca4`).
 
+## Architectural deltas — Warstwa 4 fix-up #5 (bundle replication + AdminTopbar compression)
+
+> 2026-05-15 → 2026-05-19 · F-018..F-025. Closure entries below capture
+> wszystkie świadome odstępstwa od bundle frames Stage 3 wprowadzone
+> w czasie fix-up #5. F-018..F-024-rev3 same w sobie były pixel-port
+> replikacją bundle frames (AD-Δ8..14 nadal obowiązują jako jedyne
+> backend gaps). AD-Δ15..18 dotyczą structural cleanup wprowadzonego
+> przez F-025 i jego follow-up.
+
+### AD-Δ15: AdminTopbar compressed single-line (drop brand info + page-body header)
+
+> 2026-05-19 · Warstwa 4 fix-up #5 · F-025 AdminTopbar compression.
+
+Bundle Stage 3 `admin-shared.jsx::Topbar` renderuje `68px` shell (compact
+56px) z opcjonalnym breadcrumb + h1 (22px / 18px compact) + subtitle inline,
+łącznie ~3-line vertical rhythm. Bundle dodatkowo wszystkie 6 operacyjnych
+frames (kitchen / pickup / delivery / dashboard / orders / order-detail)
+mają dual-layer: shell topbar + page-body header (kicker "Operacyjne" +
+h1 + metadata) duplikujący identyfikację strony którą już komunikuje
+active sidebar nav item.
+
+**Δ:** AdminTopbar zwinięty do `h-12` (48px) single-line:
+`[hamburger?] [Title bold 15px] · [metadata 12px muted, sm:inline] —
+[LiveBadge] [page actions] [SoundToggle] [Wyloguj]`. Brand block (logo +
+"Pizza Demo" + "PANEL ADMINA" kicker) przeniesiony do
+`AdminSidebar` header. Page-body header (kicker + h1 + subtitle)
+**usunięty** z każdego z 6 operacyjnych pages — content section
+zaczyna bezpośrednio od kanban / table / form.
+
+**Mechanizm:** AdminLayout montuje `<div ref={setTopbarSlot} />`
+nad `<Outlet />` i wystawia go via `useAdminOutletContext()`. Każdy
+page renderuje `<AdminTopbar ...>` który `createPortal`'uje content
+do slot div. Brak state w layout, brak re-render loopów, każdy page
+deklaruje swój topbar declaratively.
+
+Operator directive: "Drop topbar brand info — po co po stronie admina,
+redundant z sidebar brand. Drop page-body header — duplicates page
+identity that sidebar nav active item już komunikuje. Ergonomia >
+pixel-port." Świadome odstępstwo od bundle Stage 3 — bundle frames
+zostają as ground-truth dla wszystkich pozostałych elementów (cards,
+columns, status pills, totals, action buttons).
+
+**Wykonane:** F-025 (`7f23b9d`).
+
+### AD-Δ16: SoundToggle global w admin shell (scope rozszerzony vs bundle)
+
+> 2026-05-19 · Warstwa 4 fix-up #5 · F-025 shell actions.
+
+Bundle Stage 3 ma `SoundToggle` button (bell / bell-off) tylko w 3
+operacyjnych frames (kitchen / pickup / delivery — `useOperationalSound`
+hook). `frame-dashboard.jsx`, `frame-orders.jsx`, `frame-order-detail.jsx`
+nie mają sound icon w topbar.
+
+**Δ:** Po F-025 AdminLayout renderuje `<SoundToggle />` jako shell action
+**globally** dla wszystkich admin pages (kitchen, pickup, delivery,
+dashboard, orders, orderDetail, settings, menu, opening-hours,
+page-content, delivery-zones). Powód: operator może mieć otwarty Dashboard
+lub OrderDetail w momencie kiedy przychodzi nowe zamówienie — audio cue
+powinien być spójny cross-page, nie znikać po wyjściu z kanbana.
+
+Single source of audio truth: `useOperationalSound` hook + `SoundToggle`
+button osadzone w shell, nie per-page.
+
+**Wykonane:** F-025 (`7f23b9d`).
+
+### AD-Δ17: AdminSidebar footer = identity only, logout = topbar primary
+
+> 2026-05-19 · Warstwa 4 fix-up #5 · F-025 logout single-source.
+
+Bundle Stage 3 `admin-shared.jsx::Sidebar` ma footer slot z user identity
+(avatar initials + display name + email) **+ logout icon button** (L240-249
+w bundle, arrow-out icon). Topbar w bundle frames nie ma osobnego Wyloguj
+button — logout siedzi tylko w sidebar footer.
+
+**Δ:** Current sidebar footer pokazuje **tylko identity** (avatar /
+initials / displayName / role "admin"). Logout primary CTA przeniesiony
+do AdminTopbar shell actions (`<Button variant="ghost" size="sm">
+Wyloguj</Button>`) widoczny na każdej stronie. Powód: cross-page convention
+— admin jest w topbar (wszędzie widoczny, łatwy do trafienia z każdego
+ekranu) zamiast w sidebar footer (poniżej fold na shorter viewports,
+ukryty na mobile gdy sidebar w drawer-mode).
+
+**Wykonane:** F-025 (`7f23b9d`) + F-025 follow-up (`<commit-after-this>`).
+
+### AD-Δ18: OrderDetail BackLink dropped (sidebar nav covers)
+
+> 2026-05-19 · Warstwa 4 fix-up #5 · F-025 follow-up · cleanup.
+
+Bundle Stage 3 `frame-order-detail.jsx` ma breadcrumb "Archiwum › Wszystkie
+zamówienia" w topbar — sub-12px text muted nad h1. M-033 zmapował to do
+`BackLink` component (← Wróć do listy) renderowanego nad header w
+OrderDetailPage. Po F-025 (gdzie h1 + breadcrumb znikają z page body
+do compressed topbar), BackLink osierocony siedzi w pustej przestrzeni
+między topbar a status pill row.
+
+**Δ:** `BackLink` component **usunięty** z OrderDetailPage. Sidebar nav
+"Wszystkie zamówienia" item zwraca dokładnie w to samo miejsce
+(`/admin/orders`). Browser back button + sidebar nav razem covering
+back-navigation use case bez redundancji.
+
+**Wykonane:** F-025 follow-up (`<commit-after-this>`).
+
 ---
 
-**Wersja 2.5** · 2026-05-15 · Warstwa 4 (M-027..M-033) complete +
-AD-Δ8..14 entries (admin operations retrofit + AD-Δ13 backend touch
-exception). Total deltas: 14.
+**Wersja 2.6** · 2026-05-19 · Warstwa 4 fix-up #5 closure
+(F-018..F-025 + follow-up cleanup). AD-Δ15..18 dodają structural deltas
+od bundle Stage 3 (topbar compression, shell actions scope, identity
+single-source, BackLink cleanup). AD-Δ8..14 nadal obowiązują dla M-027..M-033.
+Total deltas: 18.

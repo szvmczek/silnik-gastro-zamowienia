@@ -265,3 +265,45 @@ robi osobny task który dotyka frontendu + backendu spójnie:
       rendered jako separate alert card w TrackingPage, nie w timeline).
     - Świadomy mismatch vs MIGRATION_PLAN — udokumentowany w
       `MIGRATION_ERRATA.md` jako AD-Δ7 po M-026 (cała Warstwa 3b done).
+
+20. Mobile topbar compression hidden segments <640px (Warstwa 4 fix-up #5 · F-025 + follow-up):
+    - Po F-025 AdminTopbar w 48px single-line: `[hamburger] [title] ·
+      [metadata] [LiveBadge] [page actions] [SoundToggle] [Wyloguj]`.
+      Na 375px viewport intrinsic right-side ~280px + hamburger 36px +
+      gaps 24px = >340px, zostawiałoby <40px na title → title
+      kolapsował do 0px shrinka (testowany regress, fix follow-up commit).
+    - Świadome hide poniżej `sm` (640px) — kolejność priorytetów:
+      a) `· metadata` (telemetry "W toku: 3 · cel: 18 min", "3
+         zamówienia gotowe", "Piątek · 8 maja 2026") — `hidden sm:inline`
+         w `AdminTopbar`
+      b) `LiveBadge` ("Polling 15s", "Polling 10s", "Polling 60s",
+         "Live · połączono") — `hidden sm:inline-flex`
+      c) Page actions: `OrderDetail.Drukuj`, `OrdersList.Eksport CSV`,
+         `OrderDetail.Tracker` (już `hidden md:inline-flex`) —
+         `hidden sm:inline-flex` w komponentach page
+    - Pozostają widoczne na <640px: hamburger ☰, **title bold**,
+      SoundToggle (audio cue operacyjny — krytyczny), Wyloguj.
+    - Powód: szerokość 375 nie pomieści wszystkiego bez kompromisu.
+      Alternatywy odrzucone:
+      (a) wrap-on-overflow 2-line — kolapsuje 48px compression benefit
+      (b) skrócenie metadata strings — utrata informacji
+      (c) hide SoundToggle — utrata operational audio awareness
+      (d) hide Wyloguj — primary CTA musi być reachable
+    - Operator decision 2026-05-19: hide a/b/c, keep title +
+      SoundToggle + Wyloguj. Page identity covered by:
+      - active sidebar nav item (w drawer-mode po tap hamburger)
+      - page title bold w topbar (zawsze widoczny, truncate-on-overflow)
+    - Metadata + LiveBadge = glanceable telemetry dla operator
+      workflow na 640+ (kuchnia tablet / 1280 desktop); mobile =
+      managerial check-in gdzie identity > telemetry.
+    - Title h1: `min-w-0 truncate sm:shrink-0 sm:overflow-visible
+      sm:text-clip` — na mobile ellipsis "Zamówienie 2026-…", na sm+
+      bez truncate (metadata absorbuje shrinkage).
+    - Świadome odstępstwo — udokumentowane w MIGRATION_ERRATA.md
+      jako AD-Δ15 (compressed topbar) plus tu jako mobile behavioral
+      note.
+
+---
+
+**Wersja 2.6** · 2026-05-19 · Warstwa 4 fix-up #5 closure. Dodane
+#20 mobile metadata visibility. AD-Δ15..18 w MIGRATION_ERRATA.md.

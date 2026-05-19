@@ -187,7 +187,7 @@ export function OrdersListPage() {
           <button
             type="button"
             onClick={onExportCsv}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium"
+            className="hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium sm:inline-flex"
             style={{
               border: "1px solid rgb(var(--color-border-card))",
               background: "rgb(var(--color-bg-card))",

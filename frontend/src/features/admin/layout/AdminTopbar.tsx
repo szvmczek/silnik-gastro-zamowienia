@@ -20,7 +20,7 @@ function LiveBadge({ status, label }: { status: AdminTopbarLiveStatus; label?: s
   const text = label ?? (isLive ? "Live · połączono" : "Polling 15s");
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+      className="hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex"
       style={{
         background: isLive ? "rgb(var(--status-ready-tint))" : "rgb(var(--color-bg-section))",
         color: isLive ? "#065F46" : "rgb(var(--color-text-muted))",
@@ -67,8 +67,8 @@ export function AdminTopbar({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex min-w-0 items-baseline gap-2">
-            <h1 className="shrink-0 whitespace-nowrap text-[15px] font-bold tracking-tight text-[rgb(var(--color-text-primary))]">
+          <div className="flex min-w-0 flex-1 items-baseline gap-2">
+            <h1 className="min-w-0 truncate text-[15px] font-bold tracking-tight text-[rgb(var(--color-text-primary))] sm:shrink-0 sm:overflow-visible sm:text-clip">
               {title}
             </h1>
             {metadata && (

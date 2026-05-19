@@ -159,7 +159,6 @@ export function OrderDetailPage() {
   if (!Number.isFinite(id)) {
     return (
       <div className="flex flex-col gap-3">
-        <BackLink />
         <p className="text-sm text-[rgb(var(--color-text-muted))]">
           Nieprawidłowy identyfikator zamówienia.
         </p>
@@ -170,7 +169,6 @@ export function OrderDetailPage() {
   if (query.isPending) {
     return (
       <div className="flex flex-col gap-5">
-        <BackLink />
         <div
           className="h-40 animate-pulse rounded-xl"
           style={{ background: "rgb(var(--color-bg-section))" }}
@@ -182,7 +180,6 @@ export function OrderDetailPage() {
   if (errorMessage || !order) {
     return (
       <div className="flex flex-col gap-3">
-        <BackLink />
         <div
           className="rounded-md p-3 text-sm"
           style={{
@@ -242,7 +239,7 @@ export function OrderDetailPage() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium"
+              className="hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium sm:inline-flex"
               style={{
                 border: "1px solid rgb(var(--color-border-card))",
                 background: "rgb(var(--color-bg-card))",
@@ -255,8 +252,6 @@ export function OrderDetailPage() {
           </>
         }
       />
-
-      <BackLink />
 
       <div className="flex flex-wrap items-center gap-3">
         <span
@@ -562,21 +557,6 @@ export function OrderDetailPage() {
         }}
       />
     </div>
-  );
-}
-
-function BackLink() {
-  return (
-    <Link
-      to="/admin/orders"
-      className="inline-flex items-center text-[13px] font-medium"
-      style={{
-        color: "rgb(var(--color-text-muted))",
-        textDecoration: "none",
-      }}
-    >
-      ← Wróć do listy
-    </Link>
   );
 }
 
