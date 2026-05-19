@@ -44,8 +44,16 @@ public class PageContentService {
         content.setImageUrl(update.imageUrl());
         content.setCtaLabel(key == SectionKey.HERO ? update.ctaLabel() : null);
         content.setCtaHref(key == SectionKey.HERO ? update.ctaHref() : null);
+        content.setActive(update.active());
         return content;
     }
 
-    public record PageContentUpdate(String title, String body, String imageUrl, String ctaLabel, String ctaHref) {}
+    public record PageContentUpdate(
+            String title,
+            String body,
+            String imageUrl,
+            String ctaLabel,
+            String ctaHref,
+            boolean active
+    ) {}
 }

@@ -35,7 +35,8 @@ public class AdminPageContentController {
     public PageContentDto update(@PathVariable String section, @Valid @RequestBody UpdatePageContentRequest request) {
         SectionKey key = parse(section);
         PageContentUpdate update = new PageContentUpdate(
-                request.title(), request.body(), request.imageUrl(), request.ctaLabel(), request.ctaHref());
+                request.title(), request.body(), request.imageUrl(), request.ctaLabel(),
+                request.ctaHref(), request.active());
         return PageContentDto.from(service.update(key, update));
     }
 

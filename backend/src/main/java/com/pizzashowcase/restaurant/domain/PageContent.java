@@ -39,6 +39,9 @@ public class PageContent extends AuditableEntity {
     @Column(name = "cta_href", length = 300)
     private String ctaHref;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -100,5 +103,13 @@ public class PageContent extends AuditableEntity {
 
     public void setCtaHref(String ctaHref) {
         this.ctaHref = ctaHref;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

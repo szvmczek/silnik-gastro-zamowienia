@@ -38,9 +38,13 @@ export function LandingPage() {
       </div>
 
       <main>
-        <HeroSection hero={pageContent?.HERO} settings={settings} />
+        {pageContent?.HERO?.active !== false && (
+          <HeroSection hero={pageContent?.HERO} settings={settings} />
+        )}
         <InfoBar />
-        <AboutSection about={pageContent?.ABOUT} />
+        {pageContent?.ABOUT?.active !== false && (
+          <AboutSection about={pageContent?.ABOUT} />
+        )}
         <OpeningHoursSection hours={hours} />
         <ContactSection settings={settings} />
       </main>

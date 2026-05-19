@@ -691,8 +691,54 @@ jest content, nie brand. Bundle Stage 4 wpisał Hero URL do General
 
 **Wykonane:** M-035 (`<commit>`).
 
+### AD-Δ21: PageContent active toggle per bundle Stage 4 section-content.jsx
+
+> 2026-05-19 · Warstwa 5 · M-037 Content section · Flyway V202.
+
+Bundle Stage 4 `section-content.jsx` HERO/ABOUT sekcje mają toggle
+"Aktywne · Po wyłączeniu strona pominie sekcję". `PageContent` entity
+nie miał pola active.
+
+**Δ:** Backend touch zaakceptowany per operator N19 A decision.
+Migration `V202__page_content_active.sql` dodaje `active BOOLEAN NOT NULL
+DEFAULT TRUE` do `page_content`. `PageContent` entity + `PageContentDto`
++ `UpdatePageContentRequest` (@NotNull Boolean) + `PageContentService.PageContentUpdate`
++ `AdminPageContentController.update` rozszerzone.
+
+Public consumer: `LandingPage.tsx` renderuje `<HeroSection>` /
+`<AboutSection>` tylko gdy `pageContent?.{HERO|ABOUT}?.active !== false`
+(fallback: gdy data undefined podczas ładowania → render z placeholderem,
+nie ukrywaj).
+
+**Dodatkowo:** `ctaHref` validation regex rozszerzony — `^((https?://|/|tel:|mailto:).+)?$`
+(było `^((https?://|/).+)?$`). Powód: M-037 CTA "Kierunek" radio
+generuje `tel:{phone}` href dla opcji Telefon (N20 A). `mailto:` dodany
+proaktywnie dla spójności.
+
+**Wykonane:** M-037 (`<commit>`).
+
+### AD-Δ22: HERO subtitle max 200 (nie 160) — seed data constraint
+
+> 2026-05-19 · Warstwa 5 · M-037 Content section · N18 deviation.
+
+Operator N18 decision: HERO body (UI "Subtitle") max 160 znaków. Seed
+demo content (`V100/V101`) HERO body ma **168 znaków** — hard limit 160
+blokowałby zapis istniejącej treści.
+
+**Δ:** Frontend Zod schema `heroSchema.subtitle` = `max(200)`, hint
+"1-2 wiersze, max 200 znaków", `<Textarea maxLength={200}>`. Backend
+`UpdatePageContentRequest.body` pozostaje `@Size(max=5000)` (wspólny dla
+HERO+ABOUT — backend nie rozróżnia sekcji w walidacji długości; różnica
+jest frontend-side per N18).
+
+Świadome odstępstwo od N18 (160→200) — uzasadnione seed reality.
+Operator może zrewidować w review jeśli 160 jest twardym wymogiem
+(wtedy seed HERO body wymaga skrócenia do ≤160).
+
+**Wykonane:** M-037 (`<commit>`).
+
 ---
 
-**Wersja 2.7** · 2026-05-19 · Warstwa 5 in progress. AD-Δ19..Δ20 dodane
-przy M-035 (extended Settings fields + Hero location split-source rejection).
-Total deltas: 20.
+**Wersja 2.8** · 2026-05-19 · Warstwa 5 in progress. AD-Δ19..Δ22 dodane
+przy M-035..M-037 (extended Settings fields, Hero location, PageContent
+active toggle, HERO subtitle limit). Total deltas: 22.

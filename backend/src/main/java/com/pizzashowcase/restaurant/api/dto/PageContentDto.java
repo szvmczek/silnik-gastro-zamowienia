@@ -9,7 +9,8 @@ public record PageContentDto(
         String body,
         String imageUrl,
         String ctaLabel,
-        String ctaHref
+        String ctaHref,
+        boolean active
 ) {
     public static PageContentDto from(PageContent p) {
         return new PageContentDto(
@@ -18,7 +19,8 @@ public record PageContentDto(
                 p.getBody(),
                 p.getImageUrl(),
                 p.getCtaLabel(),
-                p.getCtaHref()
+                p.getCtaHref(),
+                p.isActive()
         );
     }
 }

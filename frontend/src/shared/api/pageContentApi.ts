@@ -9,6 +9,7 @@ export interface PageContentDto {
   imageUrl: string | null;
   ctaLabel: string | null;
   ctaHref: string | null;
+  active: boolean;
   updatedAt: string;
 }
 
@@ -18,6 +19,7 @@ export interface UpdatePageContentPayload {
   imageUrl?: string | null;
   ctaLabel?: string | null;
   ctaHref?: string | null;
+  active: boolean;
 }
 
 export type PageContentMap = Record<SectionKey, PageContentDto>;
