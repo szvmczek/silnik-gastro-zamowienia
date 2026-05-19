@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import {
   fetchAdminSettings,
+  settingsToPayload,
   updateAdminSettings,
   type SettingsDto,
   type UpdateSettingsPayload,
@@ -108,6 +109,10 @@ export function GeneralSection() {
       googleMapsUrl: null,
       socialFacebook: null,
       socialInstagram: null,
+      defaultPreparationMinutes: 30,
+      minOrderAmount: 0,
+      manualClosedReason: null,
+      manualClosedUntil: null,
       updatedAt: "",
     }),
   });
@@ -147,7 +152,12 @@ export function GeneralSection() {
   });
 
   const onSubmit = handleSubmit((values: FormOutput) => {
+    if (!query.data) return;
+    // Spread loaded settings as base — preserves Operations fields
+    // (defaultPreparationMinutes / minOrderAmount / manualClosed*) that
+    // this section does not edit. Override only General fields.
     mutation.mutate({
+      ...settingsToPayload(query.data),
       name: values.name,
       tagline: values.tagline,
       primaryColor: values.primaryColor,

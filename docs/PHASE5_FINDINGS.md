@@ -305,10 +305,37 @@ robi osobny task który dotyka frontendu + backendu spójnie:
 
 ---
 
-**Wersja 2.7** · 2026-05-20 · Warstwa 5 in progress (M-034..M-038).
+25. CheckoutService auto-ETA z defaultPreparationMinutes — deferred (Warstwa 5 · M-039 N30):
+    - CLAUDE.md: "defaultPreparationMinutes używany do auto-ETA przy
+      nowych zamówieniach". `CheckoutService` aktualnie NIE ustawia
+      `order.etaMinutes` — nowe zamówienia powstają bez ETA, admin
+      ustawia ręcznie (EtaDialog w KitchenPage / OrderDetailPage).
+    - M-039 dodał backend field `defaultPreparationMinutes` (V204) +
+      Operations section UI + ETA live preview. Pole jest użyteczne
+      od razu (InfoBar "czas dostawy", KitchenPage `cel: N min`,
+      preview w sekcji) — ale automatyczne zastosowanie przy
+      order-create to osobna logika order-domain.
+    - Operator N30 B decision 2026-05-20: M-039 = Operations **settings
+      section** scope; auto-ETA-on-create = order-domain task, deferred
+      do Warstwy 6 lub backend M2 batch.
+    - Post-MVP scope:
+      A) `CheckoutService.checkout()` czyta
+         `RestaurantSettingsService.getSettings().getDefaultPreparationMinutes()`.
+      B) Ustawia `order.updateEta(minutes)` (atomic etaMinutes+etaSetAt
+         per Order domain invariant) przy tworzeniu zamówienia.
+      C) Decyzja: czy auto-ETA tylko dla `NEW` (klient-flow) — admin
+         back-office flow może chcieć innego baseline. Prawdopodobnie
+         apply zawsze, admin nadpisuje per zamówienie (to "punkt
+         startowy" per copy w Operations section).
+      D) Tracking page + KitchenCard "od N min" już renderują etaMinutes
+         gdy obecne — zero zmian downstream, tylko CheckoutService.
+
+---
+
+**Wersja 2.8** · 2026-05-20 · Warstwa 5 in progress (M-034..M-039).
 Dodane #20 mobile metadata, #21 image upload deferred, #22 mobile
-settings deferred, #23 (no gap), #24 window.confirm→Dialog deferred.
-AD-Δ15..24 w MIGRATION_ERRATA.md.
+settings deferred, #23 (no gap), #24 window.confirm→Dialog deferred,
+#25 auto-ETA-on-create deferred. AD-Δ15..25 w MIGRATION_ERRATA.md.
 
 21. Image upload backend (storage decision) — post-MVP (Warstwa 5 · M-042 N2):
     - CLAUDE.md ground rule: "Admin: CRUD menu (z URL dla zdjęć, nie

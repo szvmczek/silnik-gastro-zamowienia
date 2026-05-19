@@ -6,6 +6,9 @@ import com.pizzashowcase.shared.error.ApiException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 @Service
 public class RestaurantSettingsService {
 
@@ -38,6 +41,14 @@ public class RestaurantSettingsService {
         settings.setGoogleMapsUrl(update.googleMapsUrl());
         settings.setSocialFacebook(update.socialFacebook());
         settings.setSocialInstagram(update.socialInstagram());
+        settings.setDefaultPreparationMinutes(update.defaultPreparationMinutes());
+        settings.setMinOrderAmount(update.minOrderAmount());
+        // Manual close — N32: reason null clears the close; until only kept
+        // when a reason is present.
+        String reason = update.manualClosedReason();
+        boolean hasReason = reason != null && !reason.isBlank();
+        settings.setManualClosedReason(hasReason ? reason.trim() : null);
+        settings.setManualClosedUntil(hasReason ? update.manualClosedUntil() : null);
         return settings;
     }
 
@@ -55,6 +66,10 @@ public class RestaurantSettingsService {
             String seoDescription,
             String googleMapsUrl,
             String socialFacebook,
-            String socialInstagram
+            String socialInstagram,
+            int defaultPreparationMinutes,
+            BigDecimal minOrderAmount,
+            String manualClosedReason,
+            Instant manualClosedUntil
     ) {}
 }

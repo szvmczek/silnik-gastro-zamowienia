@@ -2,6 +2,9 @@ package com.pizzashowcase.restaurant.api.dto;
 
 import com.pizzashowcase.restaurant.domain.RestaurantSettings;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 public record SettingsDto(
         Long id,
         String name,
@@ -17,7 +20,11 @@ public record SettingsDto(
         String seoDescription,
         String googleMapsUrl,
         String socialFacebook,
-        String socialInstagram
+        String socialInstagram,
+        int defaultPreparationMinutes,
+        BigDecimal minOrderAmount,
+        String manualClosedReason,
+        Instant manualClosedUntil
 ) {
     public static SettingsDto from(RestaurantSettings s) {
         return new SettingsDto(
@@ -35,7 +42,11 @@ public record SettingsDto(
                 s.getSeoDescription(),
                 s.getGoogleMapsUrl(),
                 s.getSocialFacebook(),
-                s.getSocialInstagram()
+                s.getSocialInstagram(),
+                s.getDefaultPreparationMinutes(),
+                s.getMinOrderAmount(),
+                s.getManualClosedReason(),
+                s.getManualClosedUntil()
         );
     }
 }

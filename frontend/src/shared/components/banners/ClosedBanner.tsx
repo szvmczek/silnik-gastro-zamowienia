@@ -4,6 +4,7 @@ import {
   type DayOfWeek,
   type OpeningHoursDto,
 } from "@/shared/api/openingHoursApi";
+import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { Icon } from "@/shared/components/ui/Icon";
 
 /* ClosedBanner — sticky banner top-of-page widoczny gdy restauracja jest
@@ -109,14 +110,32 @@ interface BannerState {
   message: string;
 }
 
+// Manual close (M-039 / AD-Δ25) — aktywny gdy reason ustawiony ORAZ
+// (until null = bezterminowo / until w przyszłości). until w przeszłości →
+// manual close wygasł, fallthrough do logiki godzin.
+function resolveManualState(
+  reason: string | null | undefined,
+  until: string | null | undefined
+): BannerState | null {
+  if (!reason || reason.trim().length === 0) return null;
+  if (until) {
+    const untilMs = new Date(until).getTime();
+    if (Number.isFinite(untilMs) && untilMs <= Date.now()) return null;
+    const label = new Intl.DateTimeFormat("pl-PL", {
+      timeZone: TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(until));
+    return { variant: "manual", message: `${reason.trim()} · do ${label}` };
+  }
+  return { variant: "manual", message: reason.trim() };
+}
+
 function resolveBannerState(
   hours: OpeningHoursDto[] | undefined,
   now: NowInWarsaw | null
 ): BannerState | null {
-  // TODO(Faza 5 M1): branch 'manual' wymaga RestaurantSettings.manualClosedReason
-  //                  + manualClosedUntil w backendzie. Patrz docs/PHASES.md gap M1.
-  // Wariant typeunion zachowany; logika zostanie podpieta gdy API doda pole.
-
   if (!hours || !now) return null;
 
   const today = hours.find((h) => h.dayOfWeek === now.day);
@@ -173,9 +192,15 @@ export function ClosedBanner() {
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+  const settings = usePublicSettings();
 
+  // Manual close ma priorytet nad planned / outsideHours.
+  const manual = resolveManualState(
+    settings.data?.manualClosedReason,
+    settings.data?.manualClosedUntil
+  );
   const now = resolveNowInWarsaw();
-  const state = resolveBannerState(data, now);
+  const state = manual ?? resolveBannerState(data, now);
   if (!state) return null;
 
   return (

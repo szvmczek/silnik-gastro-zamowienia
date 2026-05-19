@@ -7,6 +7,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 @Entity
 @Table(name = "restaurant_settings")
 public class RestaurantSettings extends AuditableEntity {
@@ -57,6 +60,18 @@ public class RestaurantSettings extends AuditableEntity {
 
     @Column(name = "social_instagram", length = 500)
     private String socialInstagram;
+
+    @Column(name = "default_preparation_minutes", nullable = false)
+    private int defaultPreparationMinutes = 30;
+
+    @Column(name = "min_order_amount", nullable = false, precision = 10, scale = 2)
+    private BigDecimal minOrderAmount = BigDecimal.ZERO;
+
+    @Column(name = "manual_closed_reason", length = 200)
+    private String manualClosedReason;
+
+    @Column(name = "manual_closed_until")
+    private Instant manualClosedUntil;
 
     @Version
     @Column(nullable = false)
@@ -187,5 +202,37 @@ public class RestaurantSettings extends AuditableEntity {
 
     public void setSocialInstagram(String socialInstagram) {
         this.socialInstagram = socialInstagram;
+    }
+
+    public int getDefaultPreparationMinutes() {
+        return defaultPreparationMinutes;
+    }
+
+    public void setDefaultPreparationMinutes(int defaultPreparationMinutes) {
+        this.defaultPreparationMinutes = defaultPreparationMinutes;
+    }
+
+    public BigDecimal getMinOrderAmount() {
+        return minOrderAmount;
+    }
+
+    public void setMinOrderAmount(BigDecimal minOrderAmount) {
+        this.minOrderAmount = minOrderAmount;
+    }
+
+    public String getManualClosedReason() {
+        return manualClosedReason;
+    }
+
+    public void setManualClosedReason(String manualClosedReason) {
+        this.manualClosedReason = manualClosedReason;
+    }
+
+    public Instant getManualClosedUntil() {
+        return manualClosedUntil;
+    }
+
+    public void setManualClosedUntil(Instant manualClosedUntil) {
+        this.manualClosedUntil = manualClosedUntil;
     }
 }

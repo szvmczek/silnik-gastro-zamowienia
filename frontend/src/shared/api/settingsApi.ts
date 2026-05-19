@@ -18,14 +18,16 @@ export interface SettingsDto {
   socialFacebook: string | null;
   socialInstagram: string | null;
   updatedAt: string;
-  // Faza 5 M1 backend delta — pola opcjonalne, dopiero pojawią się gdy backend
-  // zostanie zmigrowany (RestaurantSettings + DTO + endpoint). Konsumenci
-  // (InfoBar M-014, FreeDeliveryProgress M-015, CartSidebar M-021,
-  // CartBottomSheet M-022) robią graceful fallback: gdy pole == null/undefined
-  // → moduł / sekcja się nie renderuje. Patrz docs/PHASES.md §Faza 5 → M1.
-  minOrderAmount?: number | null;
+  // Warstwa 5 M-039 — AD-Δ25 operations fields. Backend NOT NULL (V204
+  // defaults 30 / 0). Aktywuje InfoBar / Cart / KitchenPage / OperationsSection.
+  defaultPreparationMinutes: number;
+  minOrderAmount: number;
+  // Manual close — null gdy restauracja nie jest ręcznie zamknięta.
+  manualClosedReason: string | null;
+  manualClosedUntil: string | null;
+  // Faza 5 M1 — pola wciąż nie w backendzie (nie w bundle Operations).
+  // Konsumenci robią graceful fallback. Patrz PHASE5_FINDINGS.
   freeDeliveryFrom?: number | null;
-  defaultPreparationMinutes?: number | null;
   deliveryFee?: number | null;
 }
 
@@ -44,6 +46,36 @@ export interface UpdateSettingsPayload {
   googleMapsUrl?: string | null;
   socialFacebook?: string | null;
   socialInstagram?: string | null;
+  defaultPreparationMinutes: number;
+  minOrderAmount: number;
+  manualClosedReason?: string | null;
+  manualClosedUntil?: string | null;
+}
+
+// Settings PUT is a full-object replace consumed by multiple section forms
+// (General M-035 / Operations M-039). Each form spreads this base over the
+// loaded DTO, then overrides only its own fields — preserving the rest.
+export function settingsToPayload(s: SettingsDto): UpdateSettingsPayload {
+  return {
+    name: s.name,
+    tagline: s.tagline,
+    primaryColor: s.primaryColor,
+    phone: s.phone,
+    email: s.email,
+    addressLine: s.addressLine,
+    city: s.city,
+    postalCode: s.postalCode,
+    logoUrl: s.logoUrl,
+    currency: s.currency,
+    seoDescription: s.seoDescription,
+    googleMapsUrl: s.googleMapsUrl,
+    socialFacebook: s.socialFacebook,
+    socialInstagram: s.socialInstagram,
+    defaultPreparationMinutes: s.defaultPreparationMinutes,
+    minOrderAmount: s.minOrderAmount,
+    manualClosedReason: s.manualClosedReason,
+    manualClosedUntil: s.manualClosedUntil,
+  };
 }
 
 export async function fetchPublicSettings(): Promise<SettingsDto> {

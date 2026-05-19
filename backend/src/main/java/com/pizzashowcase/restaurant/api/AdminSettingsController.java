@@ -44,7 +44,11 @@ public class AdminSettingsController {
                 request.seoDescription(),
                 request.googleMapsUrl(),
                 request.socialFacebook(),
-                request.socialInstagram()
+                request.socialInstagram(),
+                request.defaultPreparationMinutes(),
+                request.minOrderAmount(),
+                request.manualClosedReason(),
+                request.manualClosedUntil()
         );
         return SettingsDto.from(service.update(update));
     }

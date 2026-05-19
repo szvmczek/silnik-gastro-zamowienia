@@ -812,7 +812,57 @@ Bundle match: ~85% — table shell 1:1, expand internals świadomy mismatch.
 
 **Wykonane:** M-038 (`<commit>`).
 
+### AD-Δ25: RestaurantSettings operations fields — Faza 5 M1 backend activation
+
+> 2026-05-20 · Warstwa 5 · M-039 OperationsSection · Flyway V204.
+
+Bundle Stage 4 `section-operations.jsx` wymaga 4 pól operacyjnych
+nieistniejących w backendzie. Frontend był od dawna **pre-wired** z
+graceful fallback (PHASE5_FINDINGS #1-3 "Faza 5 M1" świadomie odłożone) —
+M-039 to punkt aktywacji.
+
+**Δ:** Backend touch per operator N27. Migration
+`V204__restaurant_settings_operations.sql` dodaje:
+- `default_preparation_minutes INT NOT NULL DEFAULT 30`
+- `min_order_amount NUMERIC(10,2) NOT NULL DEFAULT 0`
+- `manual_closed_reason VARCHAR(200) NULL`
+- `manual_closed_until TIMESTAMPTZ NULL`
+
+`RestaurantSettings` entity + `SettingsDto` + `UpdateSettingsRequest`
+(@Min/@Max/@DecimalMin/@DecimalMax) + `RestaurantSettingsService.SettingsUpdate`
++ `AdminSettingsController` rozszerzone. Public `/api/public/settings`
+flow-through.
+
+**Manual close semantics (N32):** `manualClosedReason` set → restauracja
+zamknięta; `manualClosedUntil` przyszłość → do tego czasu, null →
+bezterminowo. Service `update()` enforce: brak/pusty reason → czyści
+reason + until (toggle OFF). Frontend OperationsSection: toggle ON →
+reason wymagany (Zod superRefine).
+
+**5 frontend konsumentów aktywuje się:**
+1. `InfoBar` — sekcje "czas dostawy" + "min. zamówienia" renderują się
+   (były skryte gdy null).
+2. `CartSidebar` / `CartBottomSheet` — min-order gating aktywny gdy
+   `minOrderAmount > 0`.
+3. `KitchenPage` — `cel: N min` czyta realny `defaultPreparationMinutes`
+   (był `?? 18` fallback).
+4. `ClosedBanner` — wariant `manual` podpięty (N29 A): priorytet nad
+   `planned`/`outsideHours`, message `{reason}` + ` · do HH:MM` (Warsaw
+   TZ) gdy `until` w przyszłości; `until` w przeszłości → manual wygasł,
+   fallthrough do logiki godzin.
+5. `OperationsSection` — sama sekcja (4 SectionCard + live previews).
+
+**Settings PUT = full-object replace:** `settingsToPayload(dto)` helper
+w `settingsApi.ts` — GeneralSection (M-035) + OperationsSection (M-039)
+spreadują pełny DTO i nadpisują tylko swoje pola. Zapobiega temu by
+zapis jednej sekcji wyzerował pola drugiej.
+
+**Order-creation auto-ETA NIE wired** (N30 B) — `CheckoutService` nadal
+nie ustawia `etaMinutes` przy create. Patrz PHASE5_FINDINGS #25.
+
+**Wykonane:** M-039 (`<commit>`).
+
 ---
 
-**Wersja 2.10** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ24 dodane
-przy M-035..M-038 + mini-fix V203. Total deltas: 24.
+**Wersja 2.11** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ25 dodane
+przy M-035..M-039 + mini-fix V203. Total deltas: 25.
