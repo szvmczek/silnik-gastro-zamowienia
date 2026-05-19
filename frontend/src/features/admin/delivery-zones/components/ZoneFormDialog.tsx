@@ -81,13 +81,13 @@ export function ZoneFormDialog({ open, onOpenChange, initial, onSubmit }: Props)
               onValueChange={(v) => setType(v as DeliveryZoneType)}
               className="mt-2 grid grid-cols-1 gap-2"
             >
-              <label className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5 text-sm">
+              <label className="flex items-center gap-2 rounded-md border border-[rgb(var(--color-border-card))] p-2.5 text-sm">
                 <RadioGroupItem value="FREE" /> Darmowa dostawa
               </label>
-              <label className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5 text-sm">
+              <label className="flex items-center gap-2 rounded-md border border-[rgb(var(--color-border-card))] p-2.5 text-sm">
                 <RadioGroupItem value="PAID" /> Płatna dostawa
               </label>
-              <label className="flex items-center gap-2 rounded-md border border-slate-200 p-2.5 text-sm">
+              <label className="flex items-center gap-2 rounded-md border border-[rgb(var(--color-border-card))] p-2.5 text-sm">
                 <RadioGroupItem value="UNAVAILABLE" /> Niedostępne
               </label>
             </RadioGroup>
@@ -113,7 +113,14 @@ export function ZoneFormDialog({ open, onOpenChange, initial, onSubmit }: Props)
           </div>
 
           {error && (
-            <div className="rounded-md border border-rose-200 bg-rose-50 p-2 text-sm text-rose-700">
+            <div
+              className="rounded-md p-2 text-sm"
+              style={{
+                border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+                background: "rgb(var(--status-cancelled-tint))",
+                color: "rgb(var(--status-cancelled))",
+              }}
+            >
               {error}
             </div>
           )}

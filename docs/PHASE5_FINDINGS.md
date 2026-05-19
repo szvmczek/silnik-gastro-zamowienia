@@ -305,8 +305,10 @@ robi osobny task który dotyka frontendu + backendu spójnie:
 
 ---
 
-**Wersja 2.6** · 2026-05-19 · Warstwa 4 fix-up #5 closure. Dodane
-#20 mobile metadata visibility. AD-Δ15..18 w MIGRATION_ERRATA.md.
+**Wersja 2.7** · 2026-05-20 · Warstwa 5 in progress (M-034..M-038).
+Dodane #20 mobile metadata, #21 image upload deferred, #22 mobile
+settings deferred, #23 (no gap), #24 window.confirm→Dialog deferred.
+AD-Δ15..24 w MIGRATION_ERRATA.md.
 
 21. Image upload backend (storage decision) — post-MVP (Warstwa 5 · M-042 N2):
     - CLAUDE.md ground rule: "Admin: CRUD menu (z URL dla zdjęć, nie
@@ -352,3 +354,29 @@ robi osobny task który dotyka frontendu + backendu spójnie:
          WCAG audit overlap).
     - 768px+ tablet behavior obecnie: side-by-side rail + content
       (240+ content). Acceptable; tightens at 768 but działa.
+
+23. ContentSection backend gap — żaden (info entry, M-037):
+    - M-037 Content section nie wprowadził nowych backend gaps. CTA
+      "Kierunek" radio (menu/phone/url) to czysto frontend abstraction
+      nad `PageContent.ctaHref` — żadne nowe pole. Backend touch
+      (V202 active) udokumentowany jako AD-Δ21, nie jako gap.
+    - Placeholder numer zachowany dla spójności sekwencji (#21 image
+      upload, #22 mobile settings, #23 — brak gap).
+
+24. window.confirm → Radix Dialog upgrade — deferred Warstwa 6 (M-038 N24):
+    - M-038 ZonesSection reused existing delete-confirm pattern:
+      `window.confirm()` dla delete zone / delete area + override
+      warning (legalny cross-zone override `(city,code)` nad `(city,NULL)`).
+    - Reszta Warstwy 4/5 używa Radix `Dialog` dla confirmations
+      (F-022 DeliveryPage "Potwierdzić dostawę?", M-034 LegalSection
+      modal). `window.confirm` to natywny browser dialog — wizualnie
+      niespójny (brak token stylingu, brak focus trap kontroli).
+    - Operator N24 decision 2026-05-20: keep `window.confirm` w M-038
+      (scope tight, reuse working pattern), upgrade do `Dialog`
+      deferred do Warstwy 6 polish (M-047 mobile audit / dedicated
+      consistency pass).
+    - Scope upgrade: 3 confirm call-sites w ZonesSection (delete zone,
+      delete area, override warning) → reusable `ConfirmDialog`
+      component (title + body + destructive variant + cancel/confirm).
+      Potencjalnie wspólny z innymi `window.confirm` w aplikacji
+      (audit grep przy M-047).

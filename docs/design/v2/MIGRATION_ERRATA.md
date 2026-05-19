@@ -761,9 +761,58 @@ UPDATE pomija. Wzorzec spójny z V200 conditional rebrand.
 
 **Wykonane:** Fix-up #5 completion (`<commit>`).
 
+### AD-Δ24: Zones section — świadome bundle-deviations (Phase 7 model priority)
+
+> 2026-05-20 · Warstwa 5 · M-038 ZonesSection · merge DeliveryZonesPage.
+
+Bundle Stage 4 `section-zones.jsx` to mockup z konceptualnym expand
+editorem. Realna funkcjonalność (Phase 7 / AD-019 delivery zones) ma
+inny model danych — merge wymaga 3 świadomych odstępstw (operator N23-N26).
+
+**Δ1 — Expand editor = realny areas-list (N23 A):** bundle expand
+pokazuje 2 cards "Tryb 1 — cała miejscowość" / "Tryb 2 — konkretne kody"
+jako *wybór trybu per strefa*. Realny backend: `zone.areas[]`, każdy
+`area = (city, postalCode|null)`; strefa może mieć **mix** (kilka kodów +
+cała-miejscowość naraz). ZonesSection expand renderuje funkcjonalny
+areas-list manager (lista areas z delete + add-area form z checkbox
+"cała miejscowość" lub kody textarea). Bundle Tryb1/Tryb2 = mockup, NIE
+ground truth — Phase 7 model wygrywa.
+
+**Δ2 — SaveBar dropped (N25 A):** bundle `section-zones.jsx` L250 ma
+`<S.SaveBar>`. Zones CRUD = immediate-save mutations (każdy create /
+update / delete / addArea / deleteArea = osobny request). Brak batch
+dirty state — SaveBar nie pasuje do modelu interakcji. Dropped.
+
+**Δ3 — Static edge-case demo cards dropped (N26 A):** bundle L213-247
+"Komunikaty edge-case" = 2 statyczne cards (strefa z zamówieniami / kod
+zajęty). To showcase demo. Realny feedback = dynamiczne toasty na
+odpowiedź backendu (409 conflict → `toast.error(detail)`; soft-delete →
+`toast.success("Strefa dezaktywowana…")`). Statyczne cards dropped.
+
+**Phase 7 invariants — strict respect (6 punktów):** ZonesSection nie
+łamie żadnego invariantu `DeliveryZoneAdminService`:
+1. Soft/hard delete fallback — re-fetch po DELETE, toast rozróżnia
+   ("dezaktywowana" gdy strefa wciąż w liście / "usunięta" gdy zniknęła).
+2. Area uniqueness (global) — backend 409 → toast.error z detail.
+3. Type/fee constraint — delegowane do `ZoneFormDialog` (PAID wymaga
+   fee>0).
+4. City/postal normalization — `postalCode.ts` auto-format + backend 422.
+5. Override warning — `window.confirm` przed legalnym cross-zone override
+   `(city, code)` nad `(city, NULL)`.
+6. displayOrder — untouched (brak reorder endpoint, poza scope M-038).
+
+**Cleanup:** `DeliveryZonesPage.tsx` + `AddAreaForm.tsx` deleted.
+`AddAreaForm` UI przepisany inline w ZonesSection z tokenami v2 (logika
+`parsePostalCodes` reused via import). `ZoneFormDialog.tsx` kept (modal,
+shared-primitive based) + tokeny zmigrowane slate/rose → `--color-*` /
+`--status-*`. `api.ts` / `types.ts` / `lib/postalCode.ts` retained
+(reused; `postalCode.ts` też przez CheckoutPage).
+
+Bundle match: ~85% — table shell 1:1, expand internals świadomy mismatch.
+
+**Wykonane:** M-038 (`<commit>`).
+
 ---
 
-**Wersja 2.9** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ23 dodane
-przy M-035..M-037 + mini-fix V203 (extended Settings fields, Hero
-location, PageContent active toggle, HERO subtitle limit, page_content
-seed rebrand). Total deltas: 23.
+**Wersja 2.10** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ24 dodane
+przy M-035..M-038 + mini-fix V203. Total deltas: 24.
