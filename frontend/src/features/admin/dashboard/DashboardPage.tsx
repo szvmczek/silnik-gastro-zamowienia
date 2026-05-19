@@ -5,6 +5,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
+import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { Kicker } from "@/shared/components/typography/Kicker";
 import { StatTile } from "./components/StatTile";
 import { HourlyBarChart } from "./components/HourlyBarChart";
@@ -82,16 +83,12 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <Kicker className="block">Dziś</Kicker>
-        <h1 className="mt-1 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-          Pulpit
-          <span className="text-[rgb(var(--color-primary))]">.</span>
-        </h1>
-        <p className="mt-2 text-[13px] text-[rgb(var(--color-text-muted))]">
-          {today} · Dane odświeżają się co minutę.
-        </p>
-      </header>
+      <AdminTopbar
+        title="Pulpit"
+        metadata={today}
+        liveStatus="polling"
+        liveLabel="Polling 60s"
+      />
 
       {errorMessage && (
         <div className="rounded-md border border-[rgb(var(--status-cancelled))/0.3] bg-[rgb(var(--status-cancelled-tint))] p-3 text-sm text-[rgb(var(--status-cancelled))]">

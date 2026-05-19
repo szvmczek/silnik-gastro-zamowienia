@@ -3,6 +3,10 @@ import { cn } from "@/shared/lib/cn";
 import { Icon, type IconName } from "@/shared/components/ui/Icon";
 import { Kicker } from "@/shared/components/typography/Kicker";
 
+function brandInitial(name: string): string {
+  return name.trim().charAt(0).toUpperCase() || "P";
+}
+
 export interface AdminNavLink {
   kind: "link";
   to: string;
@@ -28,6 +32,7 @@ interface AdminSidebarProps {
   onNavClick?: () => void;
   displayName?: string | null;
   userInitials?: string;
+  brandName?: string;
   className?: string;
 }
 
@@ -36,8 +41,10 @@ export function AdminSidebar({
   onNavClick,
   displayName,
   userInitials,
+  brandName,
   className,
 }: AdminSidebarProps) {
+  const resolvedBrand = brandName?.trim() || "Restauracja";
   return (
     <aside
       className={cn(
@@ -45,10 +52,22 @@ export function AdminSidebar({
         className
       )}
     >
-      <div className="border-b border-[rgb(var(--color-border-subtle))] px-5 py-5">
-        <Kicker className="block">Panel</Kicker>
-        <div className="mt-1 truncate text-[15px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))]">
-          {displayName ?? "Administrator"}
+      <div className="flex items-center gap-2.5 border-b border-[rgb(var(--color-border-subtle))] px-4 py-4">
+        <div
+          aria-hidden
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[18px] font-bold text-white"
+          style={{
+            background: "rgb(var(--color-primary))",
+            fontFamily: "ui-serif, Georgia, serif",
+          }}
+        >
+          {brandInitial(resolvedBrand)}
+        </div>
+        <div className="min-w-0">
+          <div className="truncate text-[14px] font-bold leading-tight tracking-tight text-[rgb(var(--color-text-primary))]">
+            {resolvedBrand}
+          </div>
+          <Kicker className="mt-0.5 block">Panel admina</Kicker>
         </div>
       </div>
 

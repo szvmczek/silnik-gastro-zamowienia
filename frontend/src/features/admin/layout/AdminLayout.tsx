@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useOutletContext } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/shared/auth/useAuth";
 import { Button } from "@/shared/components/ui/Button";
@@ -7,12 +7,7 @@ import { useAdminOrderFeed } from "@/features/admin/realtime/useAdminOrderFeed";
 import { SoundToggle } from "@/features/admin/realtime/SoundToggle";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { AdminSidebar, type AdminNavEntry } from "./AdminSidebar";
-import { AdminTopbar } from "./AdminTopbar";
 
-// Sekcje wg D-005 + bundle Stage 3 A.Sidebar: Operacyjne / Archiwum
-// / Konfiguracja. Pulpit jako pierwszy item Operacyjne.
-// Ikony z M-006 Icon set, badge?: number prop ready (wartosci podpieta
-// dataflow w Warstwie 4 — patrz M-028 Dashboard summary consumer).
 const navItems: AdminNavEntry[] = [
   { kind: "section", title: "Operacyjne" },
   { kind: "link", to: "/admin", label: "Pulpit", end: true, icon: "dashboard" },
@@ -31,18 +26,6 @@ const navItems: AdminNavEntry[] = [
   { kind: "link", to: "/admin/delivery-zones", label: "Strefy dostawy", icon: "zones" },
 ];
 
-const dateFormatter = new Intl.DateTimeFormat("pl-PL", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-
-function formatTodayPl(): string {
-  const raw = dateFormatter.format(new Date());
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
-}
-
 function computeInitials(name: string | null | undefined): string {
   if (!name) return "";
   return name
@@ -53,16 +36,26 @@ function computeInitials(name: string | null | undefined): string {
     .join("");
 }
 
+export interface AdminOutletContextValue {
+  topbarSlot: HTMLElement | null;
+  shellActions: React.ReactNode;
+  openMobileMenu: () => void;
+}
+
+export function useAdminOutletContext(): AdminOutletContextValue {
+  return useOutletContext<AdminOutletContextValue>();
+}
+
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null);
 
   useAdminOrderFeed();
 
   const settings = usePublicSettings();
   const restaurantName = settings.data?.name ?? "Panel";
-  const today = useMemo(formatTodayPl, []);
   const initials = computeInitials(user?.displayName);
 
   const handleLogout = () => {
@@ -71,6 +64,27 @@ export function AdminLayout() {
   };
 
   const closeMobile = () => setMobileOpen(false);
+  const openMobileMenu = () => setMobileOpen(true);
+
+  const shellActions = useMemo(
+    () => (
+      <>
+        <SoundToggle />
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
+          Wyloguj
+        </Button>
+      </>
+    ),
+    // handleLogout is stable enough; if logout changes, shellActions can be stale —
+    // acceptable for this layout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const outletValue = useMemo<AdminOutletContextValue>(
+    () => ({ topbarSlot, shellActions, openMobileMenu }),
+    [topbarSlot, shellActions],
+  );
 
   return (
     <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
@@ -79,6 +93,7 @@ export function AdminLayout() {
           items={navItems}
           displayName={user?.displayName ?? null}
           userInitials={initials}
+          brandName={restaurantName}
           className="w-full"
         />
       </aside>
@@ -93,28 +108,16 @@ export function AdminLayout() {
             items={navItems}
             displayName={user?.displayName ?? null}
             userInitials={initials}
+            brandName={restaurantName}
             onNavClick={closeMobile}
           />
         </SheetContent>
       </Sheet>
 
       <div className="flex min-h-screen flex-col md:pl-60">
-        <AdminTopbar
-          title={restaurantName}
-          subtitle={today}
-          location={settings.data?.city ?? undefined}
-          onMobileMenuToggle={() => setMobileOpen(true)}
-          rightSlot={
-            <>
-              <SoundToggle />
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                Wyloguj
-              </Button>
-            </>
-          }
-        />
+        <div ref={setTopbarSlot} />
         <main className="flex-1 p-4 md:p-8">
-          <Outlet />
+          <Outlet context={outletValue} />
         </main>
       </div>
     </div>

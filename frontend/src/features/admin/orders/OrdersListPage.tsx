@@ -12,6 +12,7 @@ import {
   type SpringPage,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
+import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 
 const PAGE_SIZE = 20;
 
@@ -177,34 +178,28 @@ export function OrdersListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
-            Archiwum
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-              Wszystkie zamówienia
-            </h1>
-            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
-              {totalAll !== null ? `${totalAll} łącznie` : ""}
-            </span>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onExportCsv}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium"
-          style={{
-            border: "1px solid rgb(var(--color-border-card))",
-            background: "rgb(var(--color-bg-card))",
-            color: "rgb(var(--color-text-body))",
-            fontFamily: "inherit",
-          }}
-        >
-          <Printer size={14} strokeWidth={1.7} aria-hidden /> Eksport CSV
-        </button>
-      </header>
+      <AdminTopbar
+        title="Zamówienia"
+        metadata={totalAll !== null ? `${totalAll} łącznie` : undefined}
+        liveStatus="polling"
+        liveLabel="Polling 10s"
+        actions={
+          <button
+            type="button"
+            onClick={onExportCsv}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium"
+            style={{
+              border: "1px solid rgb(var(--color-border-card))",
+              background: "rgb(var(--color-bg-card))",
+              color: "rgb(var(--color-text-body))",
+              fontFamily: "inherit",
+            }}
+          >
+            <Printer size={13} strokeWidth={1.7} aria-hidden /> Eksport CSV
+          </button>
+        }
+      />
+
 
       {errorMessage && (
         <div

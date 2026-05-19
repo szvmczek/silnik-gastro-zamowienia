@@ -13,6 +13,7 @@ import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
+import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { useElapsedTick } from "../shared/useElapsedTick";
 import { KitchenOrderCard } from "./KitchenOrderCard";
 
@@ -134,37 +135,11 @@ export function KitchenPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
-            Operacyjne
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-              Kuchnia
-            </h1>
-            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
-              W toku: {totalInFlight} zamówień · cel: {prepMin} min
-            </span>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold"
-            style={{
-              background: "rgb(var(--color-bg-section))",
-              color: "rgb(var(--color-text-muted))",
-            }}
-          >
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full"
-              style={{ background: "rgb(var(--color-text-faint))" }}
-              aria-hidden
-            />
-            Polling 15s
-          </span>
-        </div>
-      </header>
+      <AdminTopbar
+        title="Kuchnia"
+        metadata={`W toku: ${totalInFlight} zamówień · cel: ${prepMin} min`}
+        liveStatus="polling"
+      />
 
       {errorMessage && (
         <div

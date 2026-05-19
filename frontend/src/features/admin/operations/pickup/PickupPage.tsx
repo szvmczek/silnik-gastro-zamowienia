@@ -9,6 +9,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
+import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { PickupRow } from "./PickupOrderCard";
 
 const PAGE_SIZE = 100;
@@ -68,22 +69,13 @@ export function PickupPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
-            Operacyjne
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-              Wydanie
-            </h1>
-            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
-              {allRows.length}{" "}
-              {allRows.length === 1 ? "zamówienie gotowe" : "zamówień gotowych"} do odbioru
-            </span>
-          </div>
-        </div>
-      </header>
+      <AdminTopbar
+        title="Wydanie"
+        metadata={`${allRows.length} ${
+          allRows.length === 1 ? "zamówienie gotowe" : "zamówień gotowych"
+        } do odbioru`}
+        liveStatus="polling"
+      />
 
       {errorMessage && (
         <div

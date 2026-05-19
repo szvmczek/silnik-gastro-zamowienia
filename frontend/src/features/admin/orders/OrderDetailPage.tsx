@@ -18,6 +18,7 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
+import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { EtaDialog } from "./components/EtaDialog";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { useElapsedTick } from "../operations/shared/useElapsedTick";
@@ -207,57 +208,55 @@ export function OrderDetailPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      <BackLink />
-
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="mb-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
-            Archiwum › Wszystkie zamówienia
-          </div>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h1 className="m-0 text-[22px] font-bold leading-[1.2] tracking-[-0.01em] text-[rgb(var(--color-text-primary))]">
-              Zamówienie{" "}
-              <span style={{ fontFamily: "var(--font-mono)" }}>{order.orderNumber}</span>
-            </h1>
-            <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
-              Złożone {placedHHmm}
-              {confirmedHHmm && ` · potwierdzone ${confirmedHHmm}`}
-            </span>
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {order.trackingToken && (
-            <Link
-              to={`/track/${order.trackingToken}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold"
+      <AdminTopbar
+        title={
+          <>
+            Zamówienie{" "}
+            <span style={{ fontFamily: "var(--font-mono)" }}>{order.orderNumber}</span>
+          </>
+        }
+        metadata={`${statusLabel(order.status)} · złożone ${placedHHmm}${
+          confirmedHHmm ? ` · potwierdzone ${confirmedHHmm}` : ""
+        }`}
+        liveStatus="polling"
+        liveLabel="Polling 10s"
+        actions={
+          <>
+            {order.trackingToken && (
+              <Link
+                to={`/track/${order.trackingToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold md:inline-flex"
+                style={{
+                  border: "1px solid rgb(var(--color-border-card))",
+                  background: "rgb(var(--color-bg-card))",
+                  color: "rgb(var(--color-primary))",
+                  textDecoration: "none",
+                  fontFamily: "inherit",
+                }}
+              >
+                Tracker klienta <ExternalLink size={12} strokeWidth={1.7} aria-hidden />
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium"
               style={{
                 border: "1px solid rgb(var(--color-border-card))",
                 background: "rgb(var(--color-bg-card))",
-                color: "rgb(var(--color-primary))",
-                textDecoration: "none",
+                color: "rgb(var(--color-text-body))",
                 fontFamily: "inherit",
               }}
             >
-              Tracker klienta <ExternalLink size={13} strokeWidth={1.7} aria-hidden />
-            </Link>
-          )}
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium"
-            style={{
-              border: "1px solid rgb(var(--color-border-card))",
-              background: "rgb(var(--color-bg-card))",
-              color: "rgb(var(--color-text-body))",
-              fontFamily: "inherit",
-            }}
-          >
-            <Printer size={14} strokeWidth={1.7} aria-hidden /> Drukuj
-          </button>
-        </div>
-      </header>
+              <Printer size={13} strokeWidth={1.7} aria-hidden /> Drukuj
+            </button>
+          </>
+        }
+      />
+
+      <BackLink />
 
       <div className="flex flex-wrap items-center gap-3">
         <span
