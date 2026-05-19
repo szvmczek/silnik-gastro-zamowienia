@@ -737,8 +737,33 @@ Operator może zrewidować w review jeśli 160 jest twardym wymogiem
 
 **Wykonane:** M-037 (`<commit>`).
 
+### AD-Δ23: Seed page_content rebrand na polski (V200 partial completion)
+
+> 2026-05-20 · Warstwa 5 · mini-fix przed M-038 · Flyway V203.
+
+Fix-up #5 `V200__rebrand_default_tagline.sql` zrebrandowało tylko
+`restaurant_settings.tagline` (włoski fine-dining demo copy → Confident
+Local voice). `page_content` (HERO + ABOUT) pozostało z włoskim V100 seed
+("Smak Włoch w Twoim domu", "Robimy pizzę tak, jak kochają ją Włosi…").
+
+**Δ:** `V203__rebrand_page_content_seed.sql` dokańcza rebrand —
+2 UPDATE (HERO + ABOUT) na polskie copy:
+- HERO title: "Świeże pizze z dostawą do domu"
+- HERO body: "Krótki czas oczekiwania, lokalne składniki. Zamów online lub
+  odbierz osobiście — bez kompromisów."
+- ABOUT title: "Lokalna pizzeria z pasją"
+- ABOUT body: "Codziennie wypiekamy pizze ze świeżych składników od
+  lokalnych dostawców…"
+
+Idempotent / safe: WHERE matchuje pełny V100 seed (section_key + title +
+body). Jeśli admin edytował sekcję przez panel — wiersz nie matchuje,
+UPDATE pomija. Wzorzec spójny z V200 conditional rebrand.
+
+**Wykonane:** Fix-up #5 completion (`<commit>`).
+
 ---
 
-**Wersja 2.8** · 2026-05-19 · Warstwa 5 in progress. AD-Δ19..Δ22 dodane
-przy M-035..M-037 (extended Settings fields, Hero location, PageContent
-active toggle, HERO subtitle limit). Total deltas: 22.
+**Wersja 2.9** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ23 dodane
+przy M-035..M-037 + mini-fix V203 (extended Settings fields, Hero
+location, PageContent active toggle, HERO subtitle limit, page_content
+seed rebrand). Total deltas: 23.
