@@ -40,7 +40,11 @@ public class AdminSettingsController {
                 request.city(),
                 request.postalCode(),
                 request.logoUrl(),
-                request.currency()
+                request.currency(),
+                request.seoDescription(),
+                request.googleMapsUrl(),
+                request.socialFacebook(),
+                request.socialInstagram()
         );
         return SettingsDto.from(service.update(update));
     }

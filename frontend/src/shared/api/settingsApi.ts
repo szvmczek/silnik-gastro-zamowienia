@@ -12,6 +12,11 @@ export interface SettingsDto {
   postalCode: string | null;
   logoUrl: string | null;
   currency: string;
+  // Warstwa 5 M-035 — AD-Δ19 extended fields per bundle Stage 4 section-general.jsx.
+  seoDescription: string | null;
+  googleMapsUrl: string | null;
+  socialFacebook: string | null;
+  socialInstagram: string | null;
   updatedAt: string;
   // Faza 5 M1 backend delta — pola opcjonalne, dopiero pojawią się gdy backend
   // zostanie zmigrowany (RestaurantSettings + DTO + endpoint). Konsumenci
@@ -35,6 +40,10 @@ export interface UpdateSettingsPayload {
   postalCode?: string | null;
   logoUrl?: string | null;
   currency: string;
+  seoDescription?: string | null;
+  googleMapsUrl?: string | null;
+  socialFacebook?: string | null;
+  socialInstagram?: string | null;
 }
 
 export async function fetchPublicSettings(): Promise<SettingsDto> {

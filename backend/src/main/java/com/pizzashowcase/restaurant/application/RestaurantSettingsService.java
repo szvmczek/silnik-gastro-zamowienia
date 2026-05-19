@@ -34,6 +34,10 @@ public class RestaurantSettingsService {
         settings.setPostalCode(update.postalCode());
         settings.setLogoUrl(update.logoUrl());
         settings.setCurrency(update.currency());
+        settings.setSeoDescription(update.seoDescription());
+        settings.setGoogleMapsUrl(update.googleMapsUrl());
+        settings.setSocialFacebook(update.socialFacebook());
+        settings.setSocialInstagram(update.socialInstagram());
         return settings;
     }
 
@@ -47,6 +51,10 @@ public class RestaurantSettingsService {
             String city,
             String postalCode,
             String logoUrl,
-            String currency
+            String currency,
+            String seoDescription,
+            String googleMapsUrl,
+            String socialFacebook,
+            String socialInstagram
     ) {}
 }

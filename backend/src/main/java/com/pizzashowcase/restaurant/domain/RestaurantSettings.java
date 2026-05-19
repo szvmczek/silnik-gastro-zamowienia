@@ -46,6 +46,18 @@ public class RestaurantSettings extends AuditableEntity {
     @Column(nullable = false, length = 3)
     private String currency = "PLN";
 
+    @Column(name = "seo_description", length = 200)
+    private String seoDescription;
+
+    @Column(name = "google_maps_url", length = 500)
+    private String googleMapsUrl;
+
+    @Column(name = "social_facebook", length = 500)
+    private String socialFacebook;
+
+    @Column(name = "social_instagram", length = 500)
+    private String socialInstagram;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -143,5 +155,37 @@ public class RestaurantSettings extends AuditableEntity {
 
     public void setCurrency(String currency) {
         this.currency = currency;
+    }
+
+    public String getSeoDescription() {
+        return seoDescription;
+    }
+
+    public void setSeoDescription(String seoDescription) {
+        this.seoDescription = seoDescription;
+    }
+
+    public String getGoogleMapsUrl() {
+        return googleMapsUrl;
+    }
+
+    public void setGoogleMapsUrl(String googleMapsUrl) {
+        this.googleMapsUrl = googleMapsUrl;
+    }
+
+    public String getSocialFacebook() {
+        return socialFacebook;
+    }
+
+    public void setSocialFacebook(String socialFacebook) {
+        this.socialFacebook = socialFacebook;
+    }
+
+    public String getSocialInstagram() {
+        return socialInstagram;
+    }
+
+    public void setSocialInstagram(String socialInstagram) {
+        this.socialInstagram = socialInstagram;
     }
 }

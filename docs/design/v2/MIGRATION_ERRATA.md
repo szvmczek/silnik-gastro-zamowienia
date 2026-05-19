@@ -624,3 +624,75 @@ back-navigation use case bez redundancji.
 od bundle Stage 3 (topbar compression, shell actions scope, identity
 single-source, BackLink cleanup). AD-Δ8..14 nadal obowiązują dla M-027..M-033.
 Total deltas: 18.
+
+## Architectural deltas — Warstwa 5 (Settings master-detail + Menu CRUD)
+
+> 2026-05-19 → ongoing · M-034..M-042. Master-detail refactor Settings
+> (D-005) + Menu CRUD bundle replication. AD-Δ19..ΔN dokumentują świadome
+> deviations od bundle Stage 3/4 + backend touches.
+
+### AD-Δ19: Settings extended fields per bundle Stage 4 section-general.jsx
+
+> 2026-05-19 · Warstwa 5 · M-035 General section · Flyway V201.
+
+Bundle Stage 4 `section-general.jsx` wymaga 4 pól które nie istniały
+w `RestaurantSettings` entity / `SettingsDto`:
+- **seoDescription** (max 200 znaków, w bundle "Krótki opis · Pokazany
+  w meta description, do SEO")
+- **googleMapsUrl** (max 500, "Link Google Maps · Wklej link Google Maps
+  lub współrzędne")
+- **socialFacebook** + **socialInstagram** (max 500 each, "Media
+  społecznościowe · Linki pojawiają się w stopce strony")
+
+**Δ:** Backend touch zaakceptowany per operator N10 decision (Settings
+save jest w spec scope). Migration `V201__restaurant_settings_extended.sql`
+dodaje 4 nullable VARCHAR kolumny. `RestaurantSettings` entity +
+`SettingsDto` + `UpdateSettingsRequest` + `RestaurantSettingsService.SettingsUpdate`
++ `AdminSettingsController.update` rozszerzone. Public `/api/public/settings`
+DTO też zwraca nowe pola (automatic flow through SettingsDto.from).
+
+Frontend `SettingsDto` + `UpdateSettingsPayload` w `settingsApi.ts`
+extended. `GeneralSection` RHF schema validuje 4 pola jako optional URL
+(socialFacebook/socialInstagram/googleMapsUrl) lub optional string
+(seoDescription).
+
+Public landing consumer'y (Footer social links, meta description w
+`<head>`, Contact Maps link) **NIE są aktywowane w M-035** — pola
+zapisują się, frontend public reads ich post-MVP per Warstwa 6 polish.
+PHASE5_FINDINGS pre-existing #21 (image upload) nie zmienia się przez to.
+
+**Wykonane:** M-035 (`<commit>`).
+
+### AD-Δ20: Hero image URL location = PageContent.hero, NOT RestaurantSettings
+
+> 2026-05-19 · Warstwa 5 · M-035 General section · N11 decision.
+
+Bundle Stage 4 `section-general.jsx` Grafiki card pokazuje **Logo URL +
+Hero image URL** side-by-side jako pola RestaurantSettings. Current
+backend ma `hero.bgImageUrl` w `PageContent` entity (key=HERO), edytowane
+przez `AdminPageContentController`. Dwa źródła prawdy = ryzyko desync.
+
+**Decision:** Hero image **pozostaje w PageContent.hero.bgImageUrl** jako
+source of truth (M-037 ContentSection edytuje). M-035 General → Grafiki
+card pokazuje **tylko Logo URL** + helper text linkujący do
+`/admin/settings/content` dla hero edit.
+
+**Alternatywy odrzucone:**
+- Duplikat widget (read-only hero z linkiem) — UX confusion ("dlaczego nie mogę
+  tu zmienić?"), partial overlap.
+- Migrate hero do RestaurantSettings — duża zmiana, rozbija dotychczasowy
+  page-content model (sekcje pozwalają na wielokrotny content per typ).
+- Frontend reads from both DTOs — komplikuje SettingsDto bez korzyści.
+
+**Uzasadnienie:** PageContent jest content store (Hero, About sekcje
+landing page), RestaurantSettings to brand/identity store. Hero image
+jest content, nie brand. Bundle Stage 4 wpisał Hero URL do General
+**błędnie** — operator N11 decision świadomy mismatch.
+
+**Wykonane:** M-035 (`<commit>`).
+
+---
+
+**Wersja 2.7** · 2026-05-19 · Warstwa 5 in progress. AD-Δ19..Δ20 dodane
+przy M-035 (extended Settings fields + Hero location split-source rejection).
+Total deltas: 20.

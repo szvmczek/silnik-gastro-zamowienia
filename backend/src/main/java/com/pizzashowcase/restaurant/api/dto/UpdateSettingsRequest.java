@@ -15,6 +15,10 @@ public record UpdateSettingsRequest(
         @Size(max = 100) String city,
         @Size(max = 20) String postalCode,
         @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "logoUrl must start with http:// or https://") String logoUrl,
-        @NotBlank @Size(min = 3, max = 3) String currency
+        @NotBlank @Size(min = 3, max = 3) String currency,
+        @Size(max = 200) String seoDescription,
+        @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "googleMapsUrl must start with http:// or https://") String googleMapsUrl,
+        @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "socialFacebook must start with http:// or https://") String socialFacebook,
+        @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "socialInstagram must start with http:// or https://") String socialInstagram
 ) {
 }

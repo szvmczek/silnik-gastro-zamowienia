@@ -13,7 +13,11 @@ public record SettingsDto(
         String city,
         String postalCode,
         String logoUrl,
-        String currency
+        String currency,
+        String seoDescription,
+        String googleMapsUrl,
+        String socialFacebook,
+        String socialInstagram
 ) {
     public static SettingsDto from(RestaurantSettings s) {
         return new SettingsDto(
@@ -27,7 +31,11 @@ public record SettingsDto(
                 s.getCity(),
                 s.getPostalCode(),
                 s.getLogoUrl(),
-                s.getCurrency()
+                s.getCurrency(),
+                s.getSeoDescription(),
+                s.getGoogleMapsUrl(),
+                s.getSocialFacebook(),
+                s.getSocialInstagram()
         );
     }
 }

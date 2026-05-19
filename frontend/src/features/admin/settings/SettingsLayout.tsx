@@ -15,9 +15,9 @@ import { SettingsNav } from "./components/SettingsNav";
 export function SettingsLayout() {
   const adminCtx = useAdminOutletContext();
   return (
-    <div className="-m-4 flex min-h-[calc(100vh-48px)] flex-col md:-m-8 md:flex-row">
-      <SettingsNav />
-      <section className="flex min-w-0 flex-1 flex-col">
+    <div className="-m-4 flex flex-col md:-m-8 md:h-[calc(100vh-48px)] md:flex-row md:overflow-hidden">
+      <SettingsNav className="md:overflow-y-auto" />
+      <section className="flex min-w-0 flex-1 flex-col md:overflow-hidden">
         <Outlet context={adminCtx} />
       </section>
     </div>
