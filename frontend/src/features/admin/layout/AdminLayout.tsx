@@ -21,9 +21,6 @@ const navItems: AdminNavEntry[] = [
   { kind: "section", title: "Konfiguracja" },
   { kind: "link", to: "/admin/menu", label: "Menu", icon: "menu" },
   { kind: "link", to: "/admin/settings", label: "Ustawienia", icon: "cog" },
-  { kind: "link", to: "/admin/opening-hours", label: "Godziny otwarcia", icon: "clock" },
-  { kind: "link", to: "/admin/page-content", label: "Treści stron", icon: "note" },
-  { kind: "link", to: "/admin/delivery-zones", label: "Strefy dostawy", icon: "zones" },
 ];
 
 function computeInitials(name: string | null | undefined): string {

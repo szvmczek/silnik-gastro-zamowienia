@@ -30,16 +30,50 @@ const AdminLayout = lazy(() =>
 const DashboardPage = lazy(() =>
   import("@/features/admin/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })),
 );
-const SettingsPage = lazy(() =>
-  import("@/features/admin/settings/SettingsPage").then((m) => ({ default: m.SettingsPage })),
-);
-const OpeningHoursPage = lazy(() =>
-  import("@/features/admin/settings/OpeningHoursPage").then((m) => ({
-    default: m.OpeningHoursPage,
+const SettingsLayout = lazy(() =>
+  import("@/features/admin/settings/SettingsLayout").then((m) => ({
+    default: m.SettingsLayout,
   })),
 );
-const PageContentPage = lazy(() =>
-  import("@/features/admin/settings/PageContentPage").then((m) => ({ default: m.PageContentPage })),
+const GeneralSection = lazy(() =>
+  import("@/features/admin/settings/sections/GeneralSection").then((m) => ({
+    default: m.GeneralSection,
+  })),
+);
+const HoursSection = lazy(() =>
+  import("@/features/admin/settings/sections/HoursSection").then((m) => ({
+    default: m.HoursSection,
+  })),
+);
+const ContentSection = lazy(() =>
+  import("@/features/admin/settings/sections/ContentSection").then((m) => ({
+    default: m.ContentSection,
+  })),
+);
+const ZonesSection = lazy(() =>
+  import("@/features/admin/settings/sections/ZonesSection").then((m) => ({
+    default: m.ZonesSection,
+  })),
+);
+const OperationsSection = lazy(() =>
+  import("@/features/admin/settings/sections/OperationsSection").then((m) => ({
+    default: m.OperationsSection,
+  })),
+);
+const NotificationsSection = lazy(() =>
+  import("@/features/admin/settings/sections/NotificationsSection").then((m) => ({
+    default: m.NotificationsSection,
+  })),
+);
+const CapacitySection = lazy(() =>
+  import("@/features/admin/settings/sections/CapacitySection").then((m) => ({
+    default: m.CapacitySection,
+  })),
+);
+const LegalSection = lazy(() =>
+  import("@/features/admin/settings/sections/LegalSection").then((m) => ({
+    default: m.LegalSection,
+  })),
 );
 const MenuOverviewPage = lazy(() =>
   import("@/features/admin/menu/MenuOverviewPage").then((m) => ({ default: m.MenuOverviewPage })),
@@ -67,11 +101,6 @@ const ProductEditPage = lazy(() =>
 const AddonGroupEditPage = lazy(() =>
   import("@/features/admin/menu/addon-groups/AddonGroupEditPage").then((m) => ({
     default: m.AddonGroupEditPage,
-  })),
-);
-const DeliveryZonesPage = lazy(() =>
-  import("@/features/admin/delivery-zones/DeliveryZonesPage").then((m) => ({
-    default: m.DeliveryZonesPage,
   })),
 );
 
@@ -103,10 +132,29 @@ export function AppRouter() {
           <Route path="menu/products/new" element={<ProductEditPage />} />
           <Route path="menu/products/:id" element={<ProductEditPage />} />
           <Route path="menu/addon-groups/:id" element={<AddonGroupEditPage />} />
-          <Route path="delivery-zones" element={<DeliveryZonesPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="opening-hours" element={<OpeningHoursPage />} />
-          <Route path="page-content" element={<PageContentPage />} />
+          <Route path="settings" element={<SettingsLayout />}>
+            <Route index element={<Navigate to="general" replace />} />
+            <Route path="general" element={<GeneralSection />} />
+            <Route path="hours" element={<HoursSection />} />
+            <Route path="content" element={<ContentSection />} />
+            <Route path="zones" element={<ZonesSection />} />
+            <Route path="operations" element={<OperationsSection />} />
+            <Route path="notifications" element={<NotificationsSection />} />
+            <Route path="capacity" element={<CapacitySection />} />
+            <Route path="legal" element={<LegalSection />} />
+          </Route>
+          <Route
+            path="opening-hours"
+            element={<Navigate to="/admin/settings/hours" replace />}
+          />
+          <Route
+            path="page-content"
+            element={<Navigate to="/admin/settings/content" replace />}
+          />
+          <Route
+            path="delivery-zones"
+            element={<Navigate to="/admin/settings/zones" replace />}
+          />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

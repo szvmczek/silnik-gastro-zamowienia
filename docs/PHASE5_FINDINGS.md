@@ -307,3 +307,48 @@ robi osobny task który dotyka frontendu + backendu spójnie:
 
 **Wersja 2.6** · 2026-05-19 · Warstwa 4 fix-up #5 closure. Dodane
 #20 mobile metadata visibility. AD-Δ15..18 w MIGRATION_ERRATA.md.
+
+21. Image upload backend (storage decision) — post-MVP (Warstwa 5 · M-042 N2):
+    - CLAUDE.md ground rule: "Admin: CRUD menu (z URL dla zdjęć, nie
+      upload)". File upload in "Dodatki (mogą wylecieć pod presją
+      czasu)" section.
+    - Operator N2 decision 2026-05-19: M-042 = **reorder only**, image
+      upload **deferred** post-MVP. Image URL field na ProductEditPage
+      pozostaje text input (existing pattern); admin wkleja URL z
+      Unsplash / własny CDN / S3 ad-hoc.
+    - Post-MVP scope (Warstwa 6 polish lub backend M2 batch):
+      A) Storage decision required: lokalny filesystem (FS mount na
+         Railway) / S3 / Cloudinary / ImageKit. Tradeoff cost vs
+         multi-tenant readiness.
+      B) Backend: nowy endpoint `POST /api/admin/uploads/image`
+         (multipart/form-data, max 5 MB, JPEG/PNG/WebP allowlist,
+         resize do max 1600px wide, EXIF strip). Response:
+         `{ url: string, sizeBytes: number, contentType: string }`.
+      C) Frontend: replace text input z file picker + drag-drop +
+         preview + crop (1:1 product / 16:9 hero). Fallback URL input
+         pozostaje jako secondary tab.
+      D) Cleanup job: orphan images (not referenced by product) auto-
+         delete after 7 dni — DB FK / scheduled task.
+    - Multi-tenant readiness: per-tenant prefix w storage key
+      (`tenants/{tenantId}/products/{productId}/{hash}.jpg`); single-
+      tenant Warstwa 5 może użyć flat `products/...` i upgradować
+      przy Phase Multi-tenant.
+
+22. Settings master-detail mobile responsive (accordion + dropdown) — deferred (Warstwa 5 · M-034 N7):
+    - D-005 + D-014 wymaga mobile pattern: dropdown selector u góry +
+      accordion sekcji (jedna otwarta naraz). Wzorzec: iOS Settings.
+    - M-034 ship: vertical stack — SettingsNav na górze (full-width,
+      label + Wkrótce badges), section content poniżej. Acceptable
+      fallback dla MVP, deep-link działa.
+    - Operator N7 decision 2026-05-19: keep stack, defer pełny
+      accordion + dropdown UI do Warstwa 6 (mobile audit M-047) lub
+      dedicated polish task.
+    - Post-MVP scope:
+      A) `<details>` accordion per sekcja with native semantics — keep
+         sub-route URL (deep link nadal działa).
+      B) Top dropdown selector for quick section switch (alternative
+         do scroll through accordion list).
+      C) Tap-target sizing — min 44×44px per A11y guidelines (M-046
+         WCAG audit overlap).
+    - 768px+ tablet behavior obecnie: side-by-side rail + content
+      (240+ content). Acceptable; tightens at 768 but działa.
