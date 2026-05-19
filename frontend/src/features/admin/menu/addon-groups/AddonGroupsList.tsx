@@ -1,37 +1,38 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Layers3, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   deleteAdminAddonGroup,
   fetchAdminAddonGroups,
   type AdminAddonGroupDto,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
-import { Button } from "@/shared/components/ui/Button";
-import { Badge } from "@/shared/components/ui/Badge";
-import { EmptyState } from "@/shared/components/ui/EmptyState";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/shared/components/ui/Table";
-import { AddonGroupFormDialog } from "./AddonGroupFormDialog";
+  MenuIconButton,
+  MenuTableCard,
+  MenuTableEmpty,
+  MenuTableError,
+  MenuTableLoading,
+} from "../components/MenuTableParts";
 
-export function AddonGroupsList() {
+// Bundle ref: frame-menu.jsx L210-215 (Grupy tab — bundle to placeholder
+// count; realny table reuses Phase 2 addon-group CRUD). Pure list — dialog
+// owned przez MenuOverviewPage (N36).
+
+const GRID = "1fr 96px 84px 104px 88px 84px";
+
+interface AddonGroupsListProps {
+  onEdit: (group: AdminAddonGroupDto) => void;
+}
+
+export function AddonGroupsList({ onEdit }: AddonGroupsListProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin", "menu", "addon-groups"],
     queryFn: fetchAdminAddonGroups,
   });
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<AdminAddonGroupDto | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteAdminAddonGroup(id),
@@ -40,150 +41,129 @@ export function AddonGroupsList() {
       queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
       toast.success("Grupa usunięta");
     },
-    onError: (err) => {
-      const problem = extractProblem(err);
-      toast.error(problem?.detail ?? problem?.title ?? "Nie udało się usunąć grupy");
-    },
+    onError: (err) =>
+      toast.error(extractProblem(err)?.detail ?? "Nie udało się usunąć grupy"),
   });
-
-  const openAdd = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
-
-  const openEdit = (group: AdminAddonGroupDto) => {
-    setEditing(group);
-    setDialogOpen(true);
-  };
 
   const onDelete = (group: AdminAddonGroupDto) => {
     if (group.usedByProducts > 0) {
       toast.error(
-        `Grupa jest przypięta do ${group.usedByProducts} produkt(ów). Odepnij ją najpierw.`
+        `Grupa jest przypięta do ${group.usedByProducts} produkt(ów). Odepnij ją najpierw.`,
       );
       return;
     }
-    if (!window.confirm(`Usunąć grupę "${group.name}"? Zostaną też usunięte jej dodatki.`)) return;
+    if (!window.confirm(`Usunąć grupę „${group.name}”? Zostaną też usunięte jej dodatki.`))
+      return;
     deleteMutation.mutate(group.id);
   };
 
+  if (isLoading) return <MenuTableLoading />;
+  if (isError) return <MenuTableError what="grup dodatków" />;
   const groups = data ?? [];
+  if (groups.length === 0) {
+    return (
+      <MenuTableEmpty
+        title="Brak grup dodatków"
+        description="Dodaj pierwszą grupę — przyciskiem „Nowa grupa” u góry. Grupy podpinasz do produktów."
+      />
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[17px] font-semibold text-slate-900">Grupy dodatków</h2>
-          <p className="mt-0.5 text-[13px] text-slate-500">
-            Zestawy dodatków podpinane do produktów (np. „Sos", „Dodatki pizzy").
-          </p>
+    <MenuTableCard
+      gridCols={GRID}
+      minWidth={760}
+      headers={["Nazwa", "Zakres", "Dodatki", "Wymagana", "Produkty", ""]}
+    >
+      {groups.map((group, idx) => (
+        <div
+          key={group.id}
+          className="grid items-center gap-3 px-4 py-3"
+          style={{
+            gridTemplateColumns: GRID,
+            borderBottom:
+              idx < groups.length - 1
+                ? "1px solid rgb(var(--color-border-subtle))"
+                : "none",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => navigate(`/admin/menu/addon-groups/${group.id}`)}
+            className="min-w-0 truncate text-left text-[14px] font-semibold"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "rgb(var(--color-text-primary))",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {group.name}
+          </button>
+          <span
+            className="text-[13px]"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "rgb(var(--color-text-muted))",
+            }}
+          >
+            {group.minSelect}–{group.maxSelect}
+          </span>
+          <span
+            className="text-[13px]"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "rgb(var(--color-text-muted))",
+            }}
+          >
+            {group.addons.length}
+          </span>
+          <span>
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              style={
+                group.required
+                  ? {
+                      background: "rgb(var(--status-new-tint))",
+                      color: "#92400E",
+                    }
+                  : {
+                      background: "rgb(var(--color-bg-section))",
+                      color: "rgb(var(--color-text-muted))",
+                    }
+              }
+            >
+              {group.required ? "Tak" : "Nie"}
+            </span>
+          </span>
+          <span
+            className="text-[13px]"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "rgb(var(--color-text-muted))",
+            }}
+          >
+            {group.usedByProducts}
+          </span>
+          <span className="flex justify-end gap-1">
+            <MenuIconButton
+              label={`Edytuj grupę ${group.name}`}
+              onClick={() => onEdit(group)}
+            >
+              <Pencil size={14} strokeWidth={1.8} />
+            </MenuIconButton>
+            <MenuIconButton
+              label={`Usuń grupę ${group.name}`}
+              onClick={() => onDelete(group)}
+              disabled={deleteMutation.isPending}
+              danger
+            >
+              <Trash2 size={14} strokeWidth={1.8} />
+            </MenuIconButton>
+          </span>
         </div>
-        <Button onClick={openAdd}>
-          <Plus className="h-4 w-4" /> Nowa grupa
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="rounded-lg border border-slate-200 bg-white py-10 text-center text-sm text-slate-500">
-          Ładowanie…
-        </div>
-      ) : null}
-
-      {isError ? (
-        <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-          Nie udało się pobrać grup dodatków.
-        </div>
-      ) : null}
-
-      {!isLoading && !isError && groups.length === 0 ? (
-        <EmptyState
-          icon={<Layers3 className="h-5 w-5" />}
-          title="Brak grup"
-          description="Dodaj pierwszą grupę, żeby móc podpinać ją do produktów."
-          action={
-            <Button size="sm" onClick={openAdd}>
-              <Plus className="h-4 w-4" /> Dodaj pierwszą grupę
-            </Button>
-          }
-        />
-      ) : null}
-
-      {groups.length > 0 ? (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <Table>
-            <colgroup>
-              <col />
-              <col className="w-[100px]" />
-              <col className="w-[100px]" />
-              <col className="w-[120px]" />
-              <col className="w-[100px]" />
-              <col className="w-[100px]" />
-            </colgroup>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[11px]">Nazwa</TableHead>
-                <TableHead className="hidden text-[11px] md:table-cell">Zakres</TableHead>
-                <TableHead className="hidden text-[11px] sm:table-cell">Dodatki</TableHead>
-                <TableHead className="hidden text-[11px] md:table-cell">Wymagana</TableHead>
-                <TableHead className="hidden text-[11px] md:table-cell">Produkty</TableHead>
-                <TableHead className="text-right text-[11px]">Akcje</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {groups.map((group) => (
-                <TableRow key={group.id}>
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/admin/menu/addon-groups/${group.id}`)}
-                      className="font-medium text-slate-900 hover:text-primary"
-                    >
-                      {group.name}
-                    </button>
-                  </TableCell>
-                  <TableCell className="hidden font-mono text-[13px] text-slate-600 md:table-cell">
-                    {group.minSelect}–{group.maxSelect}
-                  </TableCell>
-                  <TableCell className="hidden font-mono text-[13px] text-slate-600 sm:table-cell">
-                    {group.addons.length}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <Badge variant={group.required ? "warning" : "muted"}>
-                      {group.required ? "Tak" : "Nie"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden font-mono text-[13px] text-slate-600 md:table-cell">
-                    {group.usedByProducts}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(group)}
-                        aria-label={`Edytuj grupę ${group.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete(group)}
-                        disabled={deleteMutation.isPending}
-                        aria-label={`Usuń grupę ${group.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : null}
-
-      <AddonGroupFormDialog open={dialogOpen} onOpenChange={setDialogOpen} group={editing} />
-    </div>
+      ))}
+    </MenuTableCard>
   );
 }

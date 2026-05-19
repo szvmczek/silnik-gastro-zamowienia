@@ -138,11 +138,11 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="g-name">
-              Nazwa <span className="text-rose-600">*</span>
+              Nazwa <span className="text-[rgb(var(--status-cancelled))]">*</span>
             </Label>
             <Input id="g-name" error={!!errors.name} {...register("name")} autoFocus />
             {errors.name ? (
-              <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
+              <p className="mt-1 text-[12px] text-[rgb(var(--status-cancelled))]">{errors.name.message}</p>
             ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -156,7 +156,7 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
                 {...register("minSelect", { valueAsNumber: true })}
               />
               {errors.minSelect ? (
-                <p className="mt-1 text-[12px] text-rose-600">
+                <p className="mt-1 text-[12px] text-[rgb(var(--status-cancelled))]">
                   {errors.minSelect.message as string}
                 </p>
               ) : null}
@@ -171,18 +171,18 @@ export function AddonGroupFormDialog({ open, onOpenChange, group }: Props) {
                 {...register("maxSelect", { valueAsNumber: true })}
               />
               {errors.maxSelect ? (
-                <p className="mt-1 text-[12px] text-rose-600">
+                <p className="mt-1 text-[12px] text-[rgb(var(--status-cancelled))]">
                   {errors.maxSelect.message as string}
                 </p>
               ) : null}
             </div>
           </div>
-          <label className="flex items-center justify-between gap-4 rounded-md border border-slate-200 p-3">
+          <label className="flex items-center justify-between gap-4 rounded-md border border-[rgb(var(--color-border-card))] p-3">
             <div>
-              <div className="text-[14px] font-medium text-slate-900">
+              <div className="text-[14px] font-medium text-[rgb(var(--color-text-primary))]">
                 Grupa wymagana
               </div>
-              <div className="mt-0.5 text-[12px] text-slate-500">
+              <div className="mt-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
                 {required
                   ? "Klient musi wybrać co najmniej jeden dodatek z tej grupy."
                   : "Wybór opcjonalny — klient może pominąć grupę."}

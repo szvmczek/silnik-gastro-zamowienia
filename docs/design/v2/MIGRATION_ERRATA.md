@@ -862,7 +862,63 @@ nie ustawia `etaMinutes` przy create. Patrz PHASE5_FINDINGS #25.
 
 **Wykonane:** M-039 (`<commit>`).
 
+### AD-Δ26: Menu list — bundle "Dodatki" tab dropped (4 taby → 3)
+
+> 2026-05-20 · Warstwa 5 · M-040 MenuListPage · operator N5 decision.
+
+**Numbering note:** operator N5 (podjęta podczas M-038 pre-announce)
+referowała "AD-Δ19 entry" dla drop'u tab Dodatki — ale AD-Δ19 był już
+zajęty przez M-035 (Settings extended fields). Entry dostaje **AD-Δ26**
+(następny wolny numer). N5 reference do "AD-Δ19" = numbering correction.
+
+Bundle Stage 3 `frame-menu.jsx` ma 4 taby: Kategorie / Produkty / Grupy
+dodatków / **Dodatki**. Tab "Dodatki" (L216-221) pokazuje płaską listę
+wszystkich pojedynczych addon items ("Mozzarella di bufala · Pieczarki ·
+Salami · …") across all groups.
+
+**Δ:** MenuOverviewPage ma **3 taby** (Kategorie / Produkty / Grupy
+dodatków). Tab "Dodatki" dropped.
+
+**Uzasadnienie (operator N5 B):** addon items są edytowalne w kontekście
+swojej grupy przez `AddonGroupEditPage` (klik wiersza grupy → detail z
+listą + CRUD addonów). Osobny płaski tab "Dodatki" agregujący wszystkie
+addony cross-group to YAGNI dla single-tenant MVP — addon nie ma sensu
+poza swoją grupą (grupa definiuje min/max select, required). Bundle
+4-ty tab = mockup completeness, nie realny workflow.
+
+**Wykonane:** M-040 (`<commit>`).
+
+### AD-Δ27: Menu list — row actions Pencil+Trash zamiast bundle "···" overflow
+
+> 2026-05-20 · Warstwa 5 · M-040 MenuListPage · operator N34 decision.
+
+Bundle `frame-menu.jsx` wiersz produktu (L172-176) kończy się pojedynczym
+`···` overflow buttonem.
+
+**Δ:** Wiersze produktów / kategorii / grup kończą się **dwoma inline
+icon buttonami** — Pencil (edytuj) + Trash (usuń) — `MenuIconButton`
+primitive.
+
+**Uzasadnienie (operator N34 A):** spójność z M-038 ZonesSection (ten
+sam `IconButton` Pencil+Trash pattern) i resztą Warstwy 5. Bundle `···`
+wymagałby Radix DropdownMenu komponentu — dodatkowa złożoność bez zysku
+przy 2 akcjach. Świadomy mismatch vs bundle.
+
+**Dodatkowo (M-040 minor deltas, bez osobnego AD-Δ):**
+- **Brak badge column** — bundle product row pokazuje badge "Hit"/"Nowość"
+  (`frame-menu.jsx` L146-153). `AdminProductDto` nie ma pola `badge` —
+  kolumna pominięta. M-041 ProductEditPage może wprowadzić badge field
+  jeśli operator zdecyduje (PHASES.md M-035 wspomina HIT/NOWOŚĆ/none).
+- **Drag handle static** — `⋮⋮` (`GripVertical`) renderowany `cursor:grab`
+  no-op; funkcjonalny dnd reorder = M-042 (N33 A — grid layout ustalony
+  raz w M-040).
+- Search + category filter + availability filter + paginacja zachowane
+  z poprzedniej implementacji (bundle pokazuje tylko search + category
+  select — current richer, funkcjonalne, nie regresujemy).
+
+**Wykonane:** M-040 (`<commit>`).
+
 ---
 
-**Wersja 2.11** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ25 dodane
-przy M-035..M-039 + mini-fix V203. Total deltas: 25.
+**Wersja 2.12** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ27 dodane
+przy M-035..M-040 + mini-fix V203. Total deltas: 27.

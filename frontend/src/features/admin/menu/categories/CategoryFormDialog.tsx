@@ -137,11 +137,11 @@ export function CategoryFormDialog({ open, onOpenChange, category }: Props) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div>
             <Label htmlFor="cat-name">
-              Nazwa <span className="text-rose-600">*</span>
+              Nazwa <span className="text-[rgb(var(--status-cancelled))]">*</span>
             </Label>
             <Input id="cat-name" error={!!errors.name} {...register("name")} autoFocus />
             {errors.name ? (
-              <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
+              <p className="mt-1 text-[12px] text-[rgb(var(--status-cancelled))]">{errors.name.message}</p>
             ) : null}
           </div>
           <div>
@@ -158,17 +158,17 @@ export function CategoryFormDialog({ open, onOpenChange, category }: Props) {
               {...register("displayOrder", { valueAsNumber: true })}
             />
             {errors.displayOrder ? (
-              <p className="mt-1 text-[12px] text-rose-600">
+              <p className="mt-1 text-[12px] text-[rgb(var(--status-cancelled))]">
                 {errors.displayOrder.message as string}
               </p>
             ) : null}
           </div>
-          <label className="flex items-center justify-between gap-4 rounded-md border border-slate-200 p-3">
+          <label className="flex items-center justify-between gap-4 rounded-md border border-[rgb(var(--color-border-card))] p-3">
             <div>
-              <div className="text-[14px] font-medium text-slate-900">
+              <div className="text-[14px] font-medium text-[rgb(var(--color-text-primary))]">
                 Widoczna publicznie
               </div>
-              <div className="mt-0.5 text-[12px] text-slate-500">
+              <div className="mt-0.5 text-[12px] text-[rgb(var(--color-text-muted))]">
                 {active
                   ? "Kategoria pokazuje się klientom w menu."
                   : "Ukryta — kategoria nie pojawi się w publicznym menu."}
