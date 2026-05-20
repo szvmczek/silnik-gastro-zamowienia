@@ -9,17 +9,18 @@ export interface SettingsSection {
   stub: boolean;
 }
 
-// Bundle settings-shared.jsx L11-20 — single source of truth.
-// Separator inserted between 5th (operations) and 6th (notifications).
+// Bundle settings-shared.jsx L11-20. Separator dynamically inserted before
+// the first stub section. M-046 promoted `legal` from stub → real and moved
+// it above the separator (real sections | stubs).
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: "general", path: "general", label: "Ogólne", stub: false },
   { id: "hours", path: "hours", label: "Godziny otwarcia", stub: false },
   { id: "content", path: "content", label: "Treści strony", stub: false },
   { id: "zones", path: "zones", label: "Strefy dostawy", stub: false },
   { id: "operations", path: "operations", label: "Operacje", stub: false },
+  { id: "legal", path: "legal", label: "RODO i regulaminy", stub: false },
   { id: "notifications", path: "notifications", label: "Powiadomienia", stub: true },
   { id: "capacity", path: "capacity", label: "Limity zamówień", stub: true },
-  { id: "legal", path: "legal", label: "RODO i regulaminy", stub: true },
 ];
 
 interface SettingsNavProps {

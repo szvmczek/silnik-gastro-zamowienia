@@ -52,6 +52,23 @@ public class RestaurantSettingsService {
         return settings;
     }
 
+    // M-046 — RODO documents edited via the dedicated /api/admin/legal endpoint
+    // (kept off the shared SettingsDto so the 60s public /settings poll stays
+    // lean). Blank text clears the document.
+    @Transactional
+    public RestaurantSettings updateLegal(String privacyPolicy, String termsOfService) {
+        RestaurantSettings settings = getSettings();
+        settings.setPrivacyPolicy(trimToNull(privacyPolicy));
+        settings.setTermsOfService(trimToNull(termsOfService));
+        return settings;
+    }
+
+    private static String trimToNull(String s) {
+        if (s == null) return null;
+        String trimmed = s.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
     public record SettingsUpdate(
             String name,
             String tagline,

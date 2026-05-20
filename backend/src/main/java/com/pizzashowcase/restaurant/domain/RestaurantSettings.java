@@ -73,6 +73,12 @@ public class RestaurantSettings extends AuditableEntity {
     @Column(name = "manual_closed_until")
     private Instant manualClosedUntil;
 
+    @Column(name = "privacy_policy", columnDefinition = "TEXT")
+    private String privacyPolicy;
+
+    @Column(name = "terms_of_service", columnDefinition = "TEXT")
+    private String termsOfService;
+
     @Version
     @Column(nullable = false)
     private Long version;
@@ -234,5 +240,21 @@ public class RestaurantSettings extends AuditableEntity {
 
     public void setManualClosedUntil(Instant manualClosedUntil) {
         this.manualClosedUntil = manualClosedUntil;
+    }
+
+    public String getPrivacyPolicy() {
+        return privacyPolicy;
+    }
+
+    public void setPrivacyPolicy(String privacyPolicy) {
+        this.privacyPolicy = privacyPolicy;
+    }
+
+    public String getTermsOfService() {
+        return termsOfService;
+    }
+
+    public void setTermsOfService(String termsOfService) {
+        this.termsOfService = termsOfService;
     }
 }

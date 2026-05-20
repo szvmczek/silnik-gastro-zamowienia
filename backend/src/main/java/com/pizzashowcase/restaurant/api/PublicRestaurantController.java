@@ -1,5 +1,6 @@
 package com.pizzashowcase.restaurant.api;
 
+import com.pizzashowcase.restaurant.api.dto.LegalContentDto;
 import com.pizzashowcase.restaurant.api.dto.OpeningHoursDto;
 import com.pizzashowcase.restaurant.api.dto.PageContentDto;
 import com.pizzashowcase.restaurant.api.dto.SettingsDto;
@@ -34,6 +35,11 @@ public class PublicRestaurantController {
     @GetMapping("/settings")
     public SettingsDto settings() {
         return SettingsDto.from(settingsService.getSettings());
+    }
+
+    @GetMapping("/legal")
+    public LegalContentDto legal() {
+        return LegalContentDto.from(settingsService.getSettings());
     }
 
     @GetMapping("/opening-hours")

@@ -1,84 +1,233 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
+import { extractProblem } from "@/shared/api/client";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/Dialog";
-import { Button } from "@/shared/components/ui/Button";
-import { SettingsStub } from "../components/SettingsStub";
+  fetchAdminLegal,
+  updateAdminLegal,
+  type LegalContent,
+} from "@/shared/api/legalApi";
+import { SaveBar } from "../components/SaveBar";
 
-function ScaleIcon() {
+// Edytor dokumentów RODO (M-046). Polityka prywatności + regulamin jako plain
+// text (Q3 — bez markdown); renderowane whitespace-pre-line na publicznych
+// /privacy i /terms (M-047). Wzorzec sekcji: OperationsSection.
+
+const MAX = 20000;
+
+const schema = z.object({
+  privacyPolicy: z.string().max(MAX, `Maksimum ${MAX} znaków`),
+  termsOfService: z.string().max(MAX, `Maksimum ${MAX} znaków`),
+});
+
+type FormValues = z.infer<typeof schema>;
+
+function toForm(d: LegalContent): FormValues {
+  return {
+    privacyPolicy: d.privacyPolicy ?? "",
+    termsOfService: d.termsOfService ?? "",
+  };
+}
+
+export function LegalSection() {
+  const queryClient = useQueryClient();
+  const query = useQuery<LegalContent>({
+    queryKey: ["admin", "legal"],
+    queryFn: fetchAdminLegal,
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { privacyPolicy: "", termsOfService: "" },
+  });
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors, isDirty },
+  } = form;
+
+  useEffect(() => {
+    if (query.data) reset(toForm(query.data));
+  }, [query.data, reset]);
+
+  const mutation = useMutation({
+    mutationFn: (values: FormValues) => updateAdminLegal(values),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["admin", "legal"], updated);
+      queryClient.invalidateQueries({ queryKey: ["public", "legal"] });
+      reset(toForm(updated));
+      toast.success("Dokumenty prawne zapisane");
+    },
+    onError: (err) => {
+      toast.error(extractProblem(err)?.detail ?? "Nie udało się zapisać dokumentów");
+    },
+  });
+
+  const onSubmit = handleSubmit((values) => mutation.mutate(values));
+  const handleCancel = () => {
+    if (query.data) reset(toForm(query.data));
+  };
+
+  if (query.isPending) {
+    return (
+      <>
+        <AdminTopbar title="RODO i regulaminy" />
+        <div className="p-8 text-[14px]" style={{ color: "rgb(var(--color-text-muted))" }}>
+          Ładowanie dokumentów…
+        </div>
+      </>
+    );
+  }
+  if (query.isError) {
+    return (
+      <>
+        <AdminTopbar title="RODO i regulaminy" />
+        <div
+          className="m-8 rounded-md p-3 text-sm"
+          style={{
+            border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+            background: "rgb(var(--status-cancelled-tint))",
+            color: "rgb(var(--status-cancelled))",
+          }}
+        >
+          Nie udało się pobrać dokumentów. Odśwież stronę.
+        </div>
+      </>
+    );
+  }
+
+  const privacyLen = watch("privacyPolicy").length;
+  const termsLen = watch("termsOfService").length;
+
   return (
-    <svg
-      width={64}
-      height={64}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.3}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 3v18" />
-      <path d="M5 21h14" />
-      <path d="M16 3l-4 6" />
-      <path d="M8 3l4 6" />
-      <path d="M3 12l4-7 4 7a4 4 0 0 1-8 0z" />
-      <path d="M13 12l4-7 4 7a4 4 0 0 1-8 0z" />
-    </svg>
+    <>
+      <AdminTopbar title="RODO i regulaminy" metadata="Polityka prywatności i regulamin" />
+      <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col" noValidate>
+        <div className="min-h-0 flex-1 overflow-auto">
+          <div className="mx-auto max-w-[880px] p-8">
+            <p
+              className="m-0 mb-6 max-w-[640px] text-[14px]"
+              style={{ color: "rgb(var(--color-text-muted))", lineHeight: 1.55 }}
+            >
+              Treść wyświetlana na publicznych stronach „Polityka prywatności"
+              i „Regulamin" oraz linkowana w stopce. Zwykły tekst — akapity
+              i puste linie zostają zachowane.
+            </p>
+
+            <Card
+              title="Polityka prywatności"
+              sub="Informacja o przetwarzaniu danych osobowych klientów (RODO)."
+            >
+              <textarea
+                {...register("privacyPolicy")}
+                rows={15}
+                maxLength={MAX}
+                placeholder="Wklej treść polityki prywatności…"
+                style={TEXTAREA_STYLE}
+              />
+              <CounterRow len={privacyLen} error={errors.privacyPolicy?.message} />
+            </Card>
+
+            <div className="h-4" />
+
+            <Card title="Regulamin" sub="Zasady składania i realizacji zamówień.">
+              <textarea
+                {...register("termsOfService")}
+                rows={15}
+                maxLength={MAX}
+                placeholder="Wklej treść regulaminu…"
+                style={TEXTAREA_STYLE}
+              />
+              <CounterRow len={termsLen} error={errors.termsOfService?.message} />
+            </Card>
+          </div>
+        </div>
+        <SaveBar
+          isDirty={isDirty}
+          pending={mutation.isPending}
+          onCancel={handleCancel}
+          onSave={onSubmit}
+        />
+      </form>
+    </>
   );
 }
 
-const DEFAULT_CONSENT_COPY = `Składając zamówienie potwierdzam, że zapoznałem(am) się z Regulaminem oraz Polityką prywatności. Wyrażam zgodę na przetwarzanie moich danych osobowych (imię, telefon, adres) przez restaurację w celu realizacji zamówienia, na podstawie art. 6 ust. 1 lit. b RODO. Dane są przechowywane przez okres niezbędny do realizacji zamówienia i ewentualnej obsługi reklamacji.
+/* ───────── primitives ───────── */
 
-Administrator danych: [nazwa restauracji ustawiana w Ogólne].
+const TEXTAREA_STYLE: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 8,
+  border: "1px solid rgb(var(--color-border-card))",
+  background: "rgb(var(--color-bg-card))",
+  fontSize: 13,
+  fontFamily: "inherit",
+  color: "rgb(var(--color-text-primary))",
+  lineHeight: 1.6,
+  resize: "vertical",
+  minHeight: 240,
+  outline: "none",
+  boxSizing: "border-box",
+};
 
-Mam prawo do dostępu, sprostowania, usunięcia, ograniczenia przetwarzania, sprzeciwu oraz przenoszenia danych. Skargę mogę złożyć do Prezesa UODO.`;
-
-export function LegalSection() {
-  const [open, setOpen] = useState(false);
+function Card({
+  title,
+  sub,
+  children,
+}: {
+  title: string;
+  sub: string;
+  children: React.ReactNode;
+}) {
   return (
-    <>
-      <AdminTopbar title="RODO i regulaminy" />
-      <SettingsStub
-        icon={<ScaleIcon />}
-        leadText="Dokumenty prawne wyświetlane w stopce i przy checkout."
-        bodyText="Linki do regulaminu, polityki prywatności, custom tekst zgody RODO przy zamówieniu. Dostępne w przyszłej aktualizacji. W MVP klient akceptuje regulamin przy checkout — domyślny tekst zgody jest hardcoded i zgodny z polskim prawem."
-        ctaLabel="Zobacz domyślny tekst zgody"
-        onCtaClick={() => setOpen(true)}
-      />
+    <section
+      className="rounded-xl"
+      style={{
+        background: "rgb(var(--color-bg-card))",
+        border: "1px solid rgb(var(--color-border-card))",
+        padding: 22,
+      }}
+    >
+      <h3
+        className="m-0 text-[15px] font-bold"
+        style={{ color: "rgb(var(--color-text-primary))" }}
+      >
+        {title}
+      </h3>
+      <p
+        className="m-0 mb-4 mt-1 text-[13px]"
+        style={{ color: "rgb(var(--color-text-muted))", lineHeight: 1.5 }}
+      >
+        {sub}
+      </p>
+      {children}
+    </section>
+  );
+}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[640px]">
-          <DialogHeader>
-            <DialogTitle>Domyślny tekst zgody RODO</DialogTitle>
-            <DialogDescription>
-              Tekst pokazywany klientowi przy składaniu zamówienia w MVP.
-            </DialogDescription>
-          </DialogHeader>
-          <div
-            className="whitespace-pre-line rounded-md p-4 text-[13px] leading-relaxed"
-            style={{
-              background: "rgb(var(--color-bg-section))",
-              color: "rgb(var(--color-text-body))",
-              maxHeight: 360,
-              overflowY: "auto",
-            }}
-          >
-            {DEFAULT_CONSENT_COPY}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="primary" onClick={() => setOpen(false)}>
-              Zamknij
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+function CounterRow({ len, error }: { len: number; error?: string }) {
+  return (
+    <div className="mt-1.5 flex items-start justify-between gap-3 text-[12px]">
+      <span style={{ color: "rgb(var(--status-cancelled))" }}>{error ?? ""}</span>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          color:
+            len > MAX
+              ? "rgb(var(--status-cancelled))"
+              : "rgb(var(--color-text-faint))",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {len} / {MAX}
+      </span>
+    </div>
   );
 }
