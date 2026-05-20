@@ -131,8 +131,22 @@ export function PublicFooter() {
           <div>
             <span className="t-kicker mb-3.5 block text-white/50">Informacje</span>
             <ul className="space-y-2 text-[14px] leading-[1.4] text-white/70">
-              <li>Regulamin</li>
-              <li>Polityka prywatności</li>
+              <li>
+                <Link
+                  to="/terms"
+                  className="transition-colors hover:text-white"
+                >
+                  Regulamin
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/privacy"
+                  className="transition-colors hover:text-white"
+                >
+                  Polityka prywatności
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

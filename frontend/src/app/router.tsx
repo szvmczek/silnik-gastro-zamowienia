@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
+import { CookieConsentBanner } from "@/shared/components/CookieConsentBanner";
 import { RouteFallback } from "@/shared/components/RouteFallback";
 
 const LandingPage = lazy(() =>
@@ -19,6 +20,12 @@ const OrderConfirmationPage = lazy(() =>
 );
 const TrackingPage = lazy(() =>
   import("@/features/public/order/TrackingPage").then((m) => ({ default: m.TrackingPage })),
+);
+const PrivacyPage = lazy(() =>
+  import("@/features/public/PrivacyPage").then((m) => ({ default: m.PrivacyPage })),
+);
+const TermsPage = lazy(() =>
+  import("@/features/public/TermsPage").then((m) => ({ default: m.TermsPage })),
 );
 
 const LoginPage = lazy(() =>
@@ -106,58 +113,63 @@ const AddonGroupEditPage = lazy(() =>
 
 export function AppRouter() {
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/menu" element={<MenuPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
-        <Route path="/track/:token" element={<TrackingPage />} />
-        <Route path="/admin/login" element={<LoginPage />} />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DashboardPage />} />
-          <Route path="kitchen" element={<KitchenPage />} />
-          <Route path="pickup" element={<PickupPage />} />
-          <Route path="delivery" element={<DeliveryPage />} />
-          <Route path="orders" element={<OrdersListPage />} />
-          <Route path="orders/:id" element={<OrderDetailPage />} />
-          <Route path="menu" element={<MenuOverviewPage />} />
-          <Route path="menu/products/new" element={<ProductEditPage />} />
-          <Route path="menu/products/:id" element={<ProductEditPage />} />
-          <Route path="menu/addon-groups/:id" element={<AddonGroupEditPage />} />
-          <Route path="settings" element={<SettingsLayout />}>
-            <Route index element={<Navigate to="general" replace />} />
-            <Route path="general" element={<GeneralSection />} />
-            <Route path="hours" element={<HoursSection />} />
-            <Route path="content" element={<ContentSection />} />
-            <Route path="zones" element={<ZonesSection />} />
-            <Route path="operations" element={<OperationsSection />} />
-            <Route path="notifications" element={<NotificationsSection />} />
-            <Route path="capacity" element={<CapacitySection />} />
-            <Route path="legal" element={<LegalSection />} />
+    <>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
+          <Route path="/track/:token" element={<TrackingPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/admin/login" element={<LoginPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DashboardPage />} />
+            <Route path="kitchen" element={<KitchenPage />} />
+            <Route path="pickup" element={<PickupPage />} />
+            <Route path="delivery" element={<DeliveryPage />} />
+            <Route path="orders" element={<OrdersListPage />} />
+            <Route path="orders/:id" element={<OrderDetailPage />} />
+            <Route path="menu" element={<MenuOverviewPage />} />
+            <Route path="menu/products/new" element={<ProductEditPage />} />
+            <Route path="menu/products/:id" element={<ProductEditPage />} />
+            <Route path="menu/addon-groups/:id" element={<AddonGroupEditPage />} />
+            <Route path="settings" element={<SettingsLayout />}>
+              <Route index element={<Navigate to="general" replace />} />
+              <Route path="general" element={<GeneralSection />} />
+              <Route path="hours" element={<HoursSection />} />
+              <Route path="content" element={<ContentSection />} />
+              <Route path="zones" element={<ZonesSection />} />
+              <Route path="operations" element={<OperationsSection />} />
+              <Route path="notifications" element={<NotificationsSection />} />
+              <Route path="capacity" element={<CapacitySection />} />
+              <Route path="legal" element={<LegalSection />} />
+            </Route>
+            <Route
+              path="opening-hours"
+              element={<Navigate to="/admin/settings/hours" replace />}
+            />
+            <Route
+              path="page-content"
+              element={<Navigate to="/admin/settings/content" replace />}
+            />
+            <Route
+              path="delivery-zones"
+              element={<Navigate to="/admin/settings/zones" replace />}
+            />
           </Route>
-          <Route
-            path="opening-hours"
-            element={<Navigate to="/admin/settings/hours" replace />}
-          />
-          <Route
-            path="page-content"
-            element={<Navigate to="/admin/settings/content" replace />}
-          />
-          <Route
-            path="delivery-zones"
-            element={<Navigate to="/admin/settings/zones" replace />}
-          />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+      <CookieConsentBanner />
+    </>
   );
 }
