@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import type { PropsWithChildren } from "react";
 import { ThemeBootstrap } from "@/app/ThemeBootstrap";
 import { SeoHead } from "@/app/SeoHead";
+import { ConfirmProvider } from "@/shared/components/ui/ConfirmDialog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +21,7 @@ export function AppProviders({ children }: PropsWithChildren) {
       <BrowserRouter>
         <ThemeBootstrap />
         <SeoHead />
-        {children}
+        <ConfirmProvider>{children}</ConfirmProvider>
         <Toaster position="bottom-right" />
       </BrowserRouter>
     </QueryClientProvider>

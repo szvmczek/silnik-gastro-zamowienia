@@ -18,6 +18,7 @@ import type {
 import { ZoneFormDialog } from "@/features/admin/delivery-zones/components/ZoneFormDialog";
 import { parsePostalCodes } from "@/features/admin/delivery-zones/lib/postalCode";
 import { Switch } from "@/shared/components/ui/Switch";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 
 // Bundle ref: docs/design/v2-stage4/section-zones.jsx.
 // N23 A — table shell z bundle, expand editor = realny areas-list manager
@@ -63,6 +64,7 @@ function problemDetail(err: unknown, fallback: string): string {
 
 export function ZonesSection() {
   const qc = useQueryClient();
+  const confirm = useConfirm();
   const query = useQuery<DeliveryZoneDto[]>({
     queryKey: ["admin", "delivery-zones"],
     queryFn: fetchZones,
@@ -121,7 +123,13 @@ export function ZonesSection() {
   // is referenced by orders; hard-deletes only otherwise. Controller returns
   // 204 either way — we re-fetch and check presence to pick the right toast.
   const handleDeleteZone = async (z: DeliveryZoneDto) => {
-    if (!window.confirm(`Usunąć strefę „${z.name}"?`)) return;
+    const ok = await confirm({
+      title: "Usunąć strefę?",
+      description: `Strefa „${z.name}” zostanie usunięta. Jeśli ma obszary lub zamówienia — zostanie dezaktywowana.`,
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await deleteZone(z.id);
       const fresh = await fetchZones();
@@ -140,7 +148,13 @@ export function ZonesSection() {
   };
 
   const handleDeleteArea = async (zoneId: number, areaId: number) => {
-    if (!window.confirm("Usunąć ten obszar?")) return;
+    const ok = await confirm({
+      title: "Usunąć obszar?",
+      description: "Ten obszar dostawy zostanie usunięty ze strefy.",
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     try {
       await deleteArea(zoneId, areaId);
       toast.success("Obszar usunięty");
@@ -161,9 +175,12 @@ export function ZonesSection() {
         fallbackCities.has(a.city.trim().toLowerCase()),
     );
     if (overrides.length > 0) {
-      const ok = window.confirm(
-        "Niektóre wpisy nadpiszą regułę „cała miejscowość” z innej strefy. Kontynuować?",
-      );
+      const ok = await confirm({
+        title: "Nadpisać regułę ogólną?",
+        description:
+          "Niektóre wpisy nadpiszą regułę „cała miejscowość” z innej strefy.",
+        confirmLabel: "Kontynuuj",
+      });
       if (!ok) return false;
     }
     try {

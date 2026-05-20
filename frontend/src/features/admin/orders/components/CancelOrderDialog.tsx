@@ -3,7 +3,9 @@ import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
+  DialogTitle,
 } from "@/shared/components/ui/Dialog";
 import { Button } from "@/shared/components/ui/Button";
 import { Checkbox } from "@/shared/components/ui/Checkbox";
@@ -59,14 +61,14 @@ export function CancelOrderDialog({
             <AlertTriangle className="h-5 w-5" aria-hidden="true" />
           </span>
           <div>
-            <h2 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">
+            <DialogTitle className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">
               Anulować zamówienie{" "}
               <span className="font-mono">{orderNumber}</span>?
-            </h2>
-            <p className="mt-1 text-sm text-[rgb(var(--color-text-body))]">
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-[rgb(var(--color-text-body))]">
               Klient zobaczy zmianę statusu na stronie śledzenia. Tej akcji
               nie można cofnąć.
-            </p>
+            </DialogDescription>
           </div>
         </div>
 

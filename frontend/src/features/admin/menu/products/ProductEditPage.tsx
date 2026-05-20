@@ -18,6 +18,7 @@ import {
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Switch } from "@/shared/components/ui/Switch";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { VariantsSection } from "./VariantsSection";
 import { AddonGroupsAttachSection } from "./AddonGroupsAttachSection";
@@ -93,6 +94,7 @@ export function ProductEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const creating = !id || id === "new";
   const productId = creating ? null : Number(id);
 
@@ -193,14 +195,15 @@ export function ProductEditPage() {
     }
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     if (creating || !productQuery.data) return;
-    if (
-      !window.confirm(
-        `Usunąć produkt „${productQuery.data.name}”? Operacja jest nieodwracalna.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: "Usunąć produkt?",
+      description: `Produkt „${productQuery.data.name}” zostanie trwale usunięty. Operacja jest nieodwracalna.`,
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     deleteMutation.mutate();
   };
 

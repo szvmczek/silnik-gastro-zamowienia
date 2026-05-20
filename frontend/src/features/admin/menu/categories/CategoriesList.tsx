@@ -9,6 +9,7 @@ import {
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Switch } from "@/shared/components/ui/Switch";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import {
   MenuIconButton,
   MenuTableCard,
@@ -31,6 +32,7 @@ interface CategoriesListProps {
 
 export function CategoriesList({ onEdit }: CategoriesListProps) {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin", "menu", "categories"],
     queryFn: fetchAdminCategories,
@@ -65,15 +67,20 @@ export function CategoriesList({ onEdit }: CategoriesListProps) {
       toast.error(extractProblem(err)?.detail ?? "Nie udało się zmienić widoczności"),
   });
 
-  const onDelete = (cat: AdminCategoryDto) => {
+  const onDelete = async (cat: AdminCategoryDto) => {
     if (cat.productsCount > 0) {
       toast.error(
         `Kategoria ma ${cat.productsCount} produktów. Przenieś lub usuń produkty.`,
       );
       return;
     }
-    if (!window.confirm(`Usunąć kategorię „${cat.name}”? Tej operacji nie cofniesz.`))
-      return;
+    const ok = await confirm({
+      title: "Usunąć kategorię?",
+      description: `Kategoria „${cat.name}” zostanie trwale usunięta. Tej operacji nie cofniesz.`,
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     deleteMutation.mutate(cat.id);
   };
 

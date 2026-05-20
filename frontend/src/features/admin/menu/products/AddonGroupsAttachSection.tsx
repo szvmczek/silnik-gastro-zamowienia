@@ -10,6 +10,7 @@ import {
   fetchProductAddonGroupLinks,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 
 // Bundle ref: frame-product-edit.jsx L172-209 (Grupy dodatków).
 // Meta line ("N dodatków · wymagane/opcjonalne · wielokrotny/jeden wybór")
@@ -22,6 +23,7 @@ interface Props {
 export function AddonGroupsAttachSection({ productId }: Props) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   const linksQuery = useQuery({
     queryKey: ["admin", "menu", "product-addon-groups", productId],
@@ -249,8 +251,14 @@ export function AddonGroupsAttachSection({ productId }: Props) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (!window.confirm(`Odpiąć grupę „${link.addonGroupName}”?`)) return;
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: "Odpiąć grupę dodatków?",
+                    description: `Grupa „${link.addonGroupName}” zostanie odpięta od tego produktu. Sama grupa nie zostanie usunięta.`,
+                    confirmLabel: "Odepnij",
+                    variant: "destructive",
+                  });
+                  if (!ok) return;
                   detachMutation.mutate(link.addonGroupId);
                 }}
                 disabled={detachMutation.isPending}

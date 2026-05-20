@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
@@ -12,15 +12,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
-import { Button } from "@/shared/components/ui/Button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/components/ui/Dialog";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { DeliveryRow } from "./DeliveryOrderCard";
 
@@ -51,7 +43,7 @@ function queryError(err: unknown): string | null {
 export function DeliveryPage() {
   useOperationalSound("delivery");
   const queryClient = useQueryClient();
-  const [confirming, setConfirming] = useState<AdminOrderListItemDto | null>(null);
+  const confirm = useConfirm();
 
   const [readyQuery, outQuery] = useQueries({
     queries: [
@@ -80,7 +72,6 @@ export function DeliveryPage() {
     if (status === 409) {
       toast.error("Ktoś inny zmienił zamówienie. Lista odświeżona.");
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
-      setConfirming(null);
       return;
     }
     toast.error(extractProblem(err)?.detail ?? fallback);
@@ -104,10 +95,20 @@ export function DeliveryPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
       queryClient.setQueryData(["admin", "orders", "detail", data.id], data);
       toast.success(`${data.orderNumber} — dostarczone`);
-      setConfirming(null);
     },
     onError: (err) => handleMutationError(err, "Nie udało się potwierdzić dostawy"),
   });
+
+  const handleDeliverConfirm = async (row: AdminOrderListItemDto) => {
+    const ok = await confirm({
+      title: `Potwierdzić dostawę ${row.orderNumber}?`,
+      description:
+        "Operacja kończy lifecycle zamówienia (status DELIVERED). Cofnięcie nie jest możliwe.",
+      confirmLabel: "Tak, dostarczone",
+    });
+    if (!ok) return;
+    deliverMutation.mutate({ id: row.id, version: row.version });
+  };
 
   const isLoading = readyQuery.isPending || outQuery.isPending;
   const toCollectCount = readyRows.length;
@@ -170,43 +171,11 @@ export function DeliveryPage() {
               variant="in-transit"
               isLast={idx === outRows.length - 1}
               primaryPending={false}
-              onPrimary={() => setConfirming(row)}
+              onPrimary={() => handleDeliverConfirm(row)}
             />
           ))}
         </DeliveryColumn>
       </div>
-
-      <Dialog open={confirming !== null} onOpenChange={(open) => !open && setConfirming(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Potwierdzić dostawę {confirming?.orderNumber}?</DialogTitle>
-            <DialogDescription>
-              Operacja kończy lifecycle zamówienia (status DELIVERED). Cofnięcie nie jest możliwe.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setConfirming(null)}
-              disabled={deliverMutation.isPending}
-            >
-              Anuluj
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() =>
-                confirming &&
-                deliverMutation.mutate({ id: confirming.id, version: confirming.version })
-              }
-              disabled={deliverMutation.isPending}
-            >
-              {deliverMutation.isPending ? "Zapisywanie…" : "Tak, dostarczone"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

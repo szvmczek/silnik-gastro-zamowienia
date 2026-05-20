@@ -15,6 +15,7 @@ import { extractProblem } from "@/shared/api/client";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { Switch } from "@/shared/components/ui/Switch";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import {
   MenuIconButton,
   MenuTableCard,
@@ -37,6 +38,7 @@ type AvailabilityFilter = "all" | "available" | "unavailable";
 export function ProductsList() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
 
@@ -84,9 +86,14 @@ export function ProductsList() {
       toast.error(extractProblem(err)?.detail ?? "Nie udało się usunąć produktu"),
   });
 
-  const onDelete = (product: AdminProductDto) => {
-    if (!window.confirm(`Usunąć produkt „${product.name}”? Operacja jest nieodwracalna.`))
-      return;
+  const onDelete = async (product: AdminProductDto) => {
+    const ok = await confirm({
+      title: "Usunąć produkt?",
+      description: `Produkt „${product.name}” zostanie trwale usunięty. Operacja jest nieodwracalna.`,
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     deleteMutation.mutate(product.id);
   };
 

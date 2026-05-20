@@ -17,6 +17,7 @@ import {
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { Button } from "@/shared/components/ui/Button";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { Input } from "@/shared/components/ui/Input";
 import { Label } from "@/shared/components/ui/Label";
 import {
@@ -56,6 +57,7 @@ export function AddonGroupEditPage() {
   const groupId = Number(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
 
@@ -208,8 +210,14 @@ export function AddonGroupEditPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!window.confirm(`Usunąć dodatek "${addon.name}"?`)) return;
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Usunąć dodatek?",
+                        description: `Dodatek „${addon.name}” zostanie trwale usunięty.`,
+                        confirmLabel: "Usuń",
+                        variant: "destructive",
+                      });
+                      if (!ok) return;
                       deleteMutation.mutate(addon.id);
                     }}
                     disabled={deleteMutation.isPending}

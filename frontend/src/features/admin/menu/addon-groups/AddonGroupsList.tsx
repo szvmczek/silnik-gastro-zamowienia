@@ -8,6 +8,7 @@ import {
   type AdminAddonGroupDto,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import {
   MenuIconButton,
   MenuTableCard,
@@ -29,6 +30,7 @@ interface AddonGroupsListProps {
 export function AddonGroupsList({ onEdit }: AddonGroupsListProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["admin", "menu", "addon-groups"],
     queryFn: fetchAdminAddonGroups,
@@ -45,15 +47,20 @@ export function AddonGroupsList({ onEdit }: AddonGroupsListProps) {
       toast.error(extractProblem(err)?.detail ?? "Nie udało się usunąć grupy"),
   });
 
-  const onDelete = (group: AdminAddonGroupDto) => {
+  const onDelete = async (group: AdminAddonGroupDto) => {
     if (group.usedByProducts > 0) {
       toast.error(
         `Grupa jest przypięta do ${group.usedByProducts} produkt(ów). Odepnij ją najpierw.`,
       );
       return;
     }
-    if (!window.confirm(`Usunąć grupę „${group.name}”? Zostaną też usunięte jej dodatki.`))
-      return;
+    const ok = await confirm({
+      title: "Usunąć grupę dodatków?",
+      description: `Grupa „${group.name}” zostanie usunięta razem ze wszystkimi jej dodatkami.`,
+      confirmLabel: "Usuń",
+      variant: "destructive",
+    });
+    if (!ok) return;
     deleteMutation.mutate(group.id);
   };
 

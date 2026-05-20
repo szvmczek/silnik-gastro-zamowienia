@@ -17,6 +17,7 @@ import {
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
+import { useConfirm } from "@/shared/components/ui/ConfirmDialog";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { MenuIconButton } from "../components/MenuTableParts";
 import { useDragReorder } from "../lib/dragReorder";
@@ -53,6 +54,7 @@ interface Props {
 
 export function VariantsSection({ productId }: Props) {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
 
@@ -302,8 +304,14 @@ export function VariantsSection({ productId }: Props) {
                   </MenuIconButton>
                   <MenuIconButton
                     label={`Usuń wariant ${variant.name}`}
-                    onClick={() => {
-                      if (!window.confirm(`Usunąć wariant „${variant.name}”?`)) return;
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Usunąć wariant?",
+                        description: `Wariant „${variant.name}” zostanie trwale usunięty.`,
+                        confirmLabel: "Usuń",
+                        variant: "destructive",
+                      });
+                      if (!ok) return;
                       deleteMutation.mutate(variant.id);
                     }}
                     disabled={deleteMutation.isPending}
