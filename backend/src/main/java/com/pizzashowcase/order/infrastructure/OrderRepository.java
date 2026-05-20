@@ -60,6 +60,18 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByStatusAndFulfillmentType(OrderStatus status, FulfillmentType fulfillmentType);
 
+    // Per-status order counts for the admin orders-list filter chips (M-043,
+    // resolves PHASE5_FINDINGS #17 / AD-Δ14). One GROUP BY replaces the eight
+    // client-side count round-trips OrdersListPage fired on every 10s poll.
+    // Date range always bound (service fills sentinels) — see findAllFiltered.
+    @Query("SELECT o.status, COUNT(o) FROM Order o WHERE " +
+           "(:fulfillmentType IS NULL OR o.fulfillmentType = :fulfillmentType) AND " +
+           "o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive " +
+           "GROUP BY o.status")
+    List<Object[]> countGroupedByStatus(@Param("fulfillmentType") FulfillmentType fulfillmentType,
+                                        @Param("fromInclusive") Instant fromInclusive,
+                                        @Param("toExclusive") Instant toExclusive);
+
     @Query("SELECT o FROM Order o WHERE o.createdAt >= :fromInclusive AND o.createdAt < :toExclusive")
     List<Order> findInCreatedAtRange(@Param("fromInclusive") Instant fromInclusive,
                                      @Param("toExclusive") Instant toExclusive);

@@ -24,6 +24,7 @@ import com.pizzashowcase.order.domain.OrderStatus;
 import com.pizzashowcase.order.domain.OrderStatusHistory;
 import com.pizzashowcase.order.domain.PaymentMethod;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
+import com.pizzashowcase.restaurant.application.RestaurantSettingsService;
 import com.pizzashowcase.shared.error.ApiException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -51,19 +52,22 @@ public class CheckoutService {
     private final OrderNumberGenerator orderNumberGenerator;
     private final ApplicationEventPublisher eventPublisher;
     private final DeliveryZoneLookupService deliveryZoneLookupService;
+    private final RestaurantSettingsService restaurantSettingsService;
 
     public CheckoutService(ProductRepository productRepository,
                            ProductAddonGroupRepository productAddonGroupRepository,
                            OrderRepository orderRepository,
                            OrderNumberGenerator orderNumberGenerator,
                            ApplicationEventPublisher eventPublisher,
-                           DeliveryZoneLookupService deliveryZoneLookupService) {
+                           DeliveryZoneLookupService deliveryZoneLookupService,
+                           RestaurantSettingsService restaurantSettingsService) {
         this.productRepository = productRepository;
         this.productAddonGroupRepository = productAddonGroupRepository;
         this.orderRepository = orderRepository;
         this.orderNumberGenerator = orderNumberGenerator;
         this.eventPublisher = eventPublisher;
         this.deliveryZoneLookupService = deliveryZoneLookupService;
+        this.restaurantSettingsService = restaurantSettingsService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -124,6 +128,12 @@ public class CheckoutService {
         for (OrderItem item : items) {
             order.addItem(item);
         }
+        // Auto-ETA on create (M-043, PHASES.md M2 / resolves PHASE5_FINDINGS #25):
+        // a new order gets a baseline ETA from RestaurantSettings
+        // .defaultPreparationMinutes. Admin overrides per order via
+        // PATCH /admin/orders/{id}/eta. defaultPreparationMinutes is a non-null
+        // primitive int (DB default 30, admin-validated 5–120) — no null guard.
+        order.setEta(restaurantSettingsService.getSettings().getDefaultPreparationMinutes());
         order.addStatusHistory(new OrderStatusHistory(OrderStatus.NEW, Instant.now(), null));
 
         Order persisted = orderRepository.save(order);

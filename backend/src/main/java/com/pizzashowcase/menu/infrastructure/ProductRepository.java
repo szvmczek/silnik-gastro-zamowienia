@@ -24,9 +24,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p ORDER BY p.category.displayOrder ASC, p.displayOrder ASC, p.id ASC")
     List<Product> findAllOrdered();
 
+    // ORDER BY category.displayOrder → product.displayOrder → id so the admin
+    // product list and its pagination respect the configured menu order
+    // (M-043, resolves PHASE5_FINDINGS #27). category.displayOrder first keeps
+    // a category's products grouped together in the unfiltered "all" view.
     @Query(value = "SELECT p FROM Product p WHERE " +
                    "(:categoryId IS NULL OR p.category.id = :categoryId) AND " +
-                   "(:available IS NULL OR p.available = :available)",
+                   "(:available IS NULL OR p.available = :available) " +
+                   "ORDER BY p.category.displayOrder ASC, p.displayOrder ASC, p.id ASC",
            countQuery = "SELECT COUNT(p) FROM Product p WHERE " +
                         "(:categoryId IS NULL OR p.category.id = :categoryId) AND " +
                         "(:available IS NULL OR p.available = :available)")

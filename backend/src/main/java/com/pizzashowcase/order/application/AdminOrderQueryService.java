@@ -12,6 +12,7 @@ import com.pizzashowcase.order.api.dto.admin.AdminDashboardStatsDto.TopProductSt
 import com.pizzashowcase.order.api.dto.admin.AdminDashboardSummaryDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
+import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusHistoryDto;
 import com.pizzashowcase.order.domain.Address;
 import com.pizzashowcase.order.domain.FulfillmentType;
@@ -32,6 +33,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +67,26 @@ public class AdminOrderQueryService {
         Instant toExclusive = toInstantEndExclusive(dateTo);
         return orderRepository.findAllFiltered(status, fulfillmentType, fromInclusive, toExclusive, pageable)
                 .map(this::toListItem);
+    }
+
+    public AdminOrderStatusCountsDto statusCounts(FulfillmentType fulfillmentType,
+                                                  LocalDate dateFrom,
+                                                  LocalDate dateTo) {
+        Instant fromInclusive = toInstantStart(dateFrom);
+        Instant toExclusive = toInstantEndExclusive(dateTo);
+        Map<OrderStatus, Long> byStatus = new EnumMap<>(OrderStatus.class);
+        for (OrderStatus status : OrderStatus.values()) {
+            byStatus.put(status, 0L);
+        }
+        long total = 0L;
+        for (Object[] row : orderRepository.countGroupedByStatus(
+                fulfillmentType, fromInclusive, toExclusive)) {
+            OrderStatus status = (OrderStatus) row[0];
+            long count = (Long) row[1];
+            byStatus.put(status, count);
+            total += count;
+        }
+        return new AdminOrderStatusCountsDto(byStatus, total);
     }
 
     public AdminOrderDto getById(Long id) {

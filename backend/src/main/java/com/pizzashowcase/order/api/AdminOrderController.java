@@ -2,6 +2,7 @@ package com.pizzashowcase.order.api;
 
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
+import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderEtaRequest;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderStatusRequest;
 import com.pizzashowcase.order.application.AdminOrderQueryService;
@@ -47,6 +48,14 @@ public class AdminOrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return queryService.list(status, fulfillmentType, dateFrom, dateTo, pageable);
+    }
+
+    @GetMapping("/counts")
+    public AdminOrderStatusCountsDto counts(
+            @RequestParam(required = false) FulfillmentType fulfillmentType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo) {
+        return queryService.statusCounts(fulfillmentType, dateFrom, dateTo);
     }
 
     @GetMapping("/{id}")

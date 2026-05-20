@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Printer, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
+  fetchAdminOrderCounts,
   fetchAdminOrders,
   type AdminOrderListItemDto,
   type AdminOrdersQuery,
+  type AdminOrderStatusCounts,
   type FulfillmentType,
   type OrderStatus,
   type SpringPage,
@@ -95,33 +97,24 @@ export function OrdersListPage() {
     placeholderData: (prev) => prev,
   });
 
-  const allCountQuery = useQuery<SpringPage<AdminOrderListItemDto>>({
-    queryKey: ["admin", "orders", "list", { ...query, status: null, page: 0, size: 1 }],
-    queryFn: () =>
-      fetchAdminOrders({ fulfillmentType, page: 0, size: 1 }),
+  // One GROUP BY endpoint (M-043) replaces the eight client-side count
+  // queries (per-status + total) this page fired on every 10s poll cycle.
+  const countsQuery = useQuery<AdminOrderStatusCounts>({
+    queryKey: ["admin", "orders", "counts", { fulfillmentType }],
+    queryFn: () => fetchAdminOrderCounts({ fulfillmentType }),
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
     placeholderData: (prev) => prev,
   });
 
-  const perStatusCountQueries = useQueries({
-    queries: STATUS_VALUES.map((s) => ({
-      queryKey: ["admin", "orders", "list", { status: s, fulfillmentType, page: 0, size: 1 }],
-      queryFn: () =>
-        fetchAdminOrders({ status: s, fulfillmentType, page: 0, size: 1 }),
-      refetchInterval: 10_000,
-      refetchIntervalInBackground: false,
-      placeholderData: (prev: SpringPage<AdminOrderListItemDto> | undefined) => prev,
-    })),
-  });
-
   const statusCounts: Record<OrderStatus, number | null> = useMemo(() => {
     const counts = {} as Record<OrderStatus, number | null>;
-    STATUS_VALUES.forEach((s, i) => {
-      counts[s] = perStatusCountQueries[i]?.data?.totalElements ?? null;
+    const byStatus = countsQuery.data?.byStatus;
+    STATUS_VALUES.forEach((s) => {
+      counts[s] = byStatus ? byStatus[s] ?? 0 : null;
     });
     return counts;
-  }, [perStatusCountQueries]);
+  }, [countsQuery.data]);
 
   const updateFilter = (patch: { status?: OrderStatus | null; fulfillmentType?: FulfillmentType | null; q?: string }) => {
     setSearchParams((prev) => {
@@ -164,7 +157,7 @@ export function OrdersListPage() {
   const totalPages = data?.totalPages ?? 0;
   const currentPage = data?.number ?? 0;
   const totalElements = data?.totalElements ?? 0;
-  const totalAll = allCountQuery.data?.totalElements ?? null;
+  const totalAll = countsQuery.data?.total ?? null;
 
   const errorMessage = listQuery.isError
     ? extractProblem(listQuery.error)?.detail ?? "Spróbuj odświeżyć stronę."

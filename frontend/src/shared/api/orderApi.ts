@@ -230,6 +230,13 @@ export interface AdminOrdersQuery {
   size?: number;
 }
 
+export interface AdminOrderStatusCounts {
+  // byStatus carries an entry for every OrderStatus (0 when none) — the
+  // backend pads the GROUP BY result server-side.
+  byStatus: Record<OrderStatus, number>;
+  total: number;
+}
+
 export interface UpdateOrderStatusPayload {
   version: number;
   status: OrderStatus;
@@ -254,6 +261,19 @@ export async function fetchAdminOrders(
   if (query.page !== undefined) params.page = query.page;
   if (query.size !== undefined) params.size = query.size;
   const { data } = await apiClient.get<SpringPage<AdminOrderListItemDto>>("/admin/orders", {
+    params,
+  });
+  return data;
+}
+
+export async function fetchAdminOrderCounts(
+  query: Pick<AdminOrdersQuery, "fulfillmentType" | "dateFrom" | "dateTo"> = {}
+): Promise<AdminOrderStatusCounts> {
+  const params: Record<string, string> = {};
+  if (query.fulfillmentType) params.fulfillmentType = query.fulfillmentType;
+  if (query.dateFrom) params.dateFrom = query.dateFrom;
+  if (query.dateTo) params.dateTo = query.dateTo;
+  const { data } = await apiClient.get<AdminOrderStatusCounts>("/admin/orders/counts", {
     params,
   });
   return data;

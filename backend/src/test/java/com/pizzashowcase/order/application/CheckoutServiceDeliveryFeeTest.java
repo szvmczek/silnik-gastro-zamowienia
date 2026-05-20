@@ -15,9 +15,12 @@ import com.pizzashowcase.order.domain.FulfillmentType;
 import com.pizzashowcase.order.domain.Order;
 import com.pizzashowcase.order.domain.PaymentMethod;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
+import com.pizzashowcase.restaurant.application.RestaurantSettingsService;
+import com.pizzashowcase.restaurant.domain.RestaurantSettings;
 import com.pizzashowcase.shared.error.ApiException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
@@ -40,6 +43,7 @@ class CheckoutServiceDeliveryFeeTest {
     private OrderNumberGenerator orderNumberGenerator;
     private ApplicationEventPublisher eventPublisher;
     private DeliveryZoneLookupService deliveryLookup;
+    private RestaurantSettingsService restaurantSettingsService;
     private CheckoutService service;
 
     @BeforeEach
@@ -50,8 +54,13 @@ class CheckoutServiceDeliveryFeeTest {
         orderNumberGenerator = mock(OrderNumberGenerator.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
         deliveryLookup = mock(DeliveryZoneLookupService.class);
+        restaurantSettingsService = mock(RestaurantSettingsService.class);
+        RestaurantSettings settings = mock(RestaurantSettings.class);
+        when(settings.getDefaultPreparationMinutes()).thenReturn(30);
+        when(restaurantSettingsService.getSettings()).thenReturn(settings);
         service = new CheckoutService(productRepository, productAddonGroupRepository,
-                orderRepository, orderNumberGenerator, eventPublisher, deliveryLookup);
+                orderRepository, orderNumberGenerator, eventPublisher, deliveryLookup,
+                restaurantSettingsService);
 
         Category cat = mock(Category.class);
         when(cat.isActive()).thenReturn(true);
@@ -123,5 +132,17 @@ class CheckoutServiceDeliveryFeeTest {
 
         assertThat(conf.total()).isEqualByComparingTo("30.00");
         verify(deliveryLookup, never()).lookup(any(), any());
+    }
+
+    @Test
+    void newOrderGetsAutoEtaFromDefaultPreparationMinutes() {
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+
+        service.placeOrder(baseRequest(FulfillmentType.PICKUP, PaymentMethod.CASH_ON_PICKUP, null));
+
+        verify(orderRepository).save(captor.capture());
+        Order saved = captor.getValue();
+        assertThat(saved.getEtaMinutes()).isEqualTo(30);
+        assertThat(saved.getEtaSetAt()).isNotNull();
     }
 }

@@ -100,25 +100,23 @@ export function ProductsList() {
   const isFirst = productsQuery.data?.first ?? true;
   const isLast = productsQuery.data?.last ?? true;
 
-  // Backend /admin/products (findAllFiltered) has no ORDER BY — sorts by
-  // insertion. Sort client-side by displayOrder so the list reflects
-  // reorder (M-042). Patrz PHASE5_FINDINGS #27 — proper fix = backend
-  // ORDER BY (1 linia), zero-touch path frontend-sortuje page 0.
+  // Backend /admin/products now sorts by category.displayOrder → displayOrder
+  // → id (M-043, PHASE5_FINDINGS #27 resolved). Order comes from the server;
+  // the reorder optimistic update rewrites `content` in the new order. This
+  // memo only filters.
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    return allProducts
-      .filter((p) => {
-        if (availabilityFilter === "available" && !p.available) return false;
-        if (availabilityFilter === "unavailable" && p.available) return false;
-        if (
-          q &&
-          !p.name.toLowerCase().includes(q) &&
-          !p.slug.toLowerCase().includes(q)
-        )
-          return false;
-        return true;
-      })
-      .sort((a, b) => a.displayOrder - b.displayOrder || a.id - b.id);
+    return allProducts.filter((p) => {
+      if (availabilityFilter === "available" && !p.available) return false;
+      if (availabilityFilter === "unavailable" && p.available) return false;
+      if (
+        q &&
+        !p.name.toLowerCase().includes(q) &&
+        !p.slug.toLowerCase().includes(q)
+      )
+        return false;
+      return true;
+    });
   }, [allProducts, searchTerm, availabilityFilter]);
 
   const hasCategories = (categories ?? []).length > 0;

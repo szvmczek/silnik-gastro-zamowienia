@@ -8,7 +8,6 @@ import com.pizzashowcase.menu.application.AdminProductService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,7 +39,7 @@ public class AdminProductController {
     @GetMapping
     public Page<AdminProductDto> list(@RequestParam(required = false) Long categoryId,
                                       @RequestParam(required = false) Boolean available,
-                                      @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.ASC) Pageable pageable) {
+                                      @PageableDefault(size = 20) Pageable pageable) {
         return service.list(categoryId, available, pageable);
     }
 
