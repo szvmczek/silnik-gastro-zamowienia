@@ -33,6 +33,7 @@ interface AdminSidebarProps {
   displayName?: string | null;
   userInitials?: string;
   brandName?: string;
+  logoUrl?: string | null;
   className?: string;
 }
 
@@ -42,6 +43,7 @@ export function AdminSidebar({
   displayName,
   userInitials,
   brandName,
+  logoUrl,
   className,
 }: AdminSidebarProps) {
   const resolvedBrand = brandName?.trim() || "Restauracja";
@@ -53,16 +55,24 @@ export function AdminSidebar({
       )}
     >
       <div className="flex items-center gap-2.5 border-b border-[rgb(var(--color-border-subtle))] px-4 py-4">
-        <div
-          aria-hidden
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[18px] font-bold text-white"
-          style={{
-            background: "rgb(var(--color-primary))",
-            fontFamily: "ui-serif, Georgia, serif",
-          }}
-        >
-          {brandInitial(resolvedBrand)}
-        </div>
+        {logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={resolvedBrand}
+            className="h-9 w-9 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[18px] font-bold text-white"
+            style={{
+              background: "rgb(var(--color-primary))",
+              fontFamily: "ui-serif, Georgia, serif",
+            }}
+          >
+            {brandInitial(resolvedBrand)}
+          </div>
+        )}
         <div className="min-w-0">
           <div className="truncate text-[14px] font-bold leading-tight tracking-tight text-[rgb(var(--color-text-primary))]">
             {resolvedBrand}

@@ -134,8 +134,10 @@ export function GeneralSection() {
   const liveName = watch("name") || "Pizza Demo";
   const liveTagline = watch("tagline") || "Smacznie i szybko. Dostawa do 35 minut.";
   const liveCity = watch("city") || "Łomianki";
+  const liveLogoUrl = watch("logoUrl") ?? "";
   const previewBrandInitial = (liveName.trim().charAt(0) || "P").toUpperCase();
   const previewBgValid = HEX_RE.test(liveColor);
+  const previewLogoValid = URL_RE.test(liveLogoUrl);
 
   const mutation = useMutation({
     mutationFn: (payload: UpdateSettingsPayload) => updateAdminSettings(payload),
@@ -465,17 +467,27 @@ export function GeneralSection() {
                       <div className="min-w-0 flex-1">
                         <Input mono {...register("logoUrl")} placeholder="https://…" />
                       </div>
-                      <div
-                        className="grid h-24 w-24 shrink-0 place-items-center rounded-xl text-[44px] font-bold text-white"
-                        style={{
-                          background: previewBg,
-                          fontFamily: "ui-serif, Georgia, serif",
-                          border: "1px solid rgba(0,0,0,0.08)",
-                        }}
-                        aria-hidden
-                      >
-                        {previewBrandInitial}
-                      </div>
+                      {previewLogoValid ? (
+                        <img
+                          src={liveLogoUrl}
+                          alt=""
+                          aria-hidden
+                          className="h-24 w-24 shrink-0 rounded-xl object-cover"
+                          style={{ border: "1px solid rgba(0,0,0,0.08)" }}
+                        />
+                      ) : (
+                        <div
+                          className="grid h-24 w-24 shrink-0 place-items-center rounded-xl text-[44px] font-bold text-white"
+                          style={{
+                            background: previewBg,
+                            fontFamily: "ui-serif, Georgia, serif",
+                            border: "1px solid rgba(0,0,0,0.08)",
+                          }}
+                          aria-hidden
+                        >
+                          {previewBrandInitial}
+                        </div>
+                      )}
                     </div>
                   </Field>
                   <p
@@ -551,15 +563,24 @@ export function GeneralSection() {
                       className="flex items-center gap-2.5 px-4 py-3"
                       style={{ borderBottom: "1px solid rgb(var(--color-border-subtle))" }}
                     >
-                      <div
-                        className="grid h-7 w-7 place-items-center rounded text-[14px] font-bold text-white"
-                        style={{
-                          background: previewBg,
-                          fontFamily: "ui-serif, Georgia, serif",
-                        }}
-                      >
-                        {previewBrandInitial}
-                      </div>
+                      {previewLogoValid ? (
+                        <img
+                          src={liveLogoUrl}
+                          alt=""
+                          aria-hidden
+                          className="h-7 w-7 shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="grid h-7 w-7 place-items-center rounded text-[14px] font-bold text-white"
+                          style={{
+                            background: previewBg,
+                            fontFamily: "ui-serif, Georgia, serif",
+                          }}
+                        >
+                          {previewBrandInitial}
+                        </div>
+                      )}
                       <div className="text-[13px] font-bold truncate">{liveName}</div>
                       <div className="ml-auto shrink-0 text-[11px]" style={{ color: "rgb(var(--color-text-muted))" }}>
                         Menu · Kontakt

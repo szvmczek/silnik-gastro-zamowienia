@@ -53,6 +53,7 @@ export function AdminLayout() {
 
   const settings = usePublicSettings();
   const restaurantName = settings.data?.name ?? "Panel";
+  const logoUrl = settings.data?.logoUrl ?? null;
   const initials = computeInitials(user?.displayName);
 
   const handleLogout = () => {
@@ -91,6 +92,7 @@ export function AdminLayout() {
           displayName={user?.displayName ?? null}
           userInitials={initials}
           brandName={restaurantName}
+          logoUrl={logoUrl}
           className="w-full"
         />
       </aside>
@@ -106,6 +108,7 @@ export function AdminLayout() {
             displayName={user?.displayName ?? null}
             userInitials={initials}
             brandName={restaurantName}
+            logoUrl={logoUrl}
             onNavClick={closeMobile}
           />
         </SheetContent>
