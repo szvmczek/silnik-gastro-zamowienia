@@ -8,6 +8,7 @@ import {
   fetchAdminCategories,
   fetchAdminProducts,
   patchAdminProductAvailability,
+  updateAdminProduct,
   type AdminProductDto,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
@@ -21,6 +22,7 @@ import {
   MenuTableError,
   MenuTableLoading,
 } from "../components/MenuTableParts";
+import { useDragReorder } from "../lib/dragReorder";
 
 // Bundle ref: frame-menu.jsx L85-181 (Produkty tab). Self-contained — edycja
 // produktu to route nav (/admin/menu/products/:id), nie dialog. Drag handle
@@ -98,18 +100,95 @@ export function ProductsList() {
   const isFirst = productsQuery.data?.first ?? true;
   const isLast = productsQuery.data?.last ?? true;
 
+  // Backend /admin/products (findAllFiltered) has no ORDER BY — sorts by
+  // insertion. Sort client-side by displayOrder so the list reflects
+  // reorder (M-042). Patrz PHASE5_FINDINGS #27 — proper fix = backend
+  // ORDER BY (1 linia), zero-touch path frontend-sortuje page 0.
   const filtered = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
-    return allProducts.filter((p) => {
-      if (availabilityFilter === "available" && !p.available) return false;
-      if (availabilityFilter === "unavailable" && p.available) return false;
-      if (q && !p.name.toLowerCase().includes(q) && !p.slug.toLowerCase().includes(q))
-        return false;
-      return true;
-    });
+    return allProducts
+      .filter((p) => {
+        if (availabilityFilter === "available" && !p.available) return false;
+        if (availabilityFilter === "unavailable" && p.available) return false;
+        if (
+          q &&
+          !p.name.toLowerCase().includes(q) &&
+          !p.slug.toLowerCase().includes(q)
+        )
+          return false;
+        return true;
+      })
+      .sort((a, b) => a.displayOrder - b.displayOrder || a.id - b.id);
   }, [allProducts, searchTerm, availabilityFilter]);
 
   const hasCategories = (categories ?? []).length > 0;
+
+  // M-042 — reorder enabled only within a single clean category view (N44):
+  // category filter set, no search, page 0. Availability filter must be "all"
+  // too — otherwise `filtered` is a partial subset and reorder would corrupt
+  // displayOrder of the hidden products. (Correctness extension of N44.)
+  const reorderEnabled =
+    categoryId !== undefined &&
+    searchTerm.trim().length === 0 &&
+    page === 0 &&
+    availabilityFilter === "all";
+
+  const productsKey = [
+    "admin",
+    "menu",
+    "products",
+    { categoryId, page, size: PAGE_SIZE },
+  ] as const;
+
+  const reorderMutation = useMutation({
+    mutationFn: async (reordered: AdminProductDto[]) => {
+      const changed = reordered
+        .map((p, index) => ({ p, index }))
+        .filter(({ p, index }) => p.displayOrder !== index);
+      await Promise.all(
+        changed.map(({ p, index }) =>
+          updateAdminProduct(p.id, {
+            version: p.version,
+            categoryId: p.categoryId,
+            name: p.name,
+            description: p.description,
+            basePrice: p.basePrice,
+            imageUrl: p.imageUrl,
+            displayOrder: index,
+            available: p.available,
+          }),
+        ),
+      );
+    },
+    onMutate: async (reordered) => {
+      await queryClient.cancelQueries({ queryKey: productsKey });
+      const prev =
+        queryClient.getQueryData<typeof productsQuery.data>(productsKey);
+      if (prev) {
+        queryClient.setQueryData(productsKey, {
+          ...prev,
+          content: reordered.map((p, index) => ({ ...p, displayOrder: index })),
+        });
+      }
+      return { prev };
+    },
+    onError: (err, _r, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(productsKey, ctx.prev);
+      toast.error(
+        extractProblem(err)?.detail ?? "Nie udało się zmienić kolejności",
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
+    },
+  });
+
+  const { getRowProps, dragIndex, overIndex } = useDragReorder(
+    filtered,
+    (reordered) => reorderMutation.mutate(reordered),
+    reorderEnabled,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -199,6 +278,7 @@ export function ProductsList() {
             {filtered.map((product, idx) => (
               <div
                 key={product.id}
+                {...getRowProps(idx)}
                 className="grid items-center gap-3 px-4 py-3"
                 style={{
                   gridTemplateColumns: GRID,
@@ -206,14 +286,27 @@ export function ProductsList() {
                     idx < filtered.length - 1
                       ? "1px solid rgb(var(--color-border-subtle))"
                       : "none",
-                  opacity: product.available ? 1 : 0.55,
+                  borderTop:
+                    overIndex === idx && dragIndex !== null && dragIndex !== idx
+                      ? "2px solid rgb(var(--color-primary))"
+                      : undefined,
+                  opacity:
+                    dragIndex === idx ? 0.4 : product.available ? 1 : 0.55,
                 }}
               >
                 <span
                   className="inline-flex"
-                  style={{ color: "rgb(var(--color-text-faint))", cursor: "grab" }}
+                  style={{
+                    color: "rgb(var(--color-text-faint))",
+                    cursor: reorderEnabled ? "grab" : "not-allowed",
+                    opacity: reorderEnabled ? 1 : 0.5,
+                  }}
                   aria-hidden
-                  title="Przeciągnij, aby zmienić kolejność (wkrótce)"
+                  title={
+                    reorderEnabled
+                      ? "Przeciągnij, aby zmienić kolejność"
+                      : "Wybierz kategorię, aby zmienić kolejność"
+                  }
                 >
                   <GripVertical size={16} strokeWidth={1.8} />
                 </span>

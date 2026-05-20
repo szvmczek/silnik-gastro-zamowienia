@@ -19,6 +19,7 @@ import { extractProblem } from "@/shared/api/client";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
 import { MenuIconButton } from "../components/MenuTableParts";
+import { useDragReorder } from "../lib/dragReorder";
 
 // Bundle ref: frame-product-edit.jsx L106-170 (Warianty rozmiaru).
 // SKU + Aktywny kolumny z bundle dropped — AdminVariantDto nie ma tych pól
@@ -104,6 +105,48 @@ export function VariantsSection({ productId }: Props) {
   });
 
   const variants = data ?? [];
+  const variantsKey = ["admin", "menu", "variants", productId] as const;
+
+  // M-042 — reorder. Disabled while a row editor / add form is open.
+  const reorderMutation = useMutation({
+    mutationFn: async (reordered: AdminVariantDto[]) => {
+      const changed = reordered
+        .map((v, index) => ({ v, index }))
+        .filter(({ v, index }) => v.displayOrder !== index);
+      await Promise.all(
+        changed.map(({ v, index }) =>
+          updateAdminVariant(v.id, {
+            version: v.version,
+            name: v.name,
+            price: v.price,
+            displayOrder: index,
+          }),
+        ),
+      );
+    },
+    onMutate: async (reordered) => {
+      await queryClient.cancelQueries({ queryKey: variantsKey });
+      const prev = queryClient.getQueryData<AdminVariantDto[]>(variantsKey);
+      queryClient.setQueryData(
+        variantsKey,
+        reordered.map((v, index) => ({ ...v, displayOrder: index })),
+      );
+      return { prev };
+    },
+    onError: (err, _r, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(variantsKey, ctx.prev);
+      toast.error(
+        extractProblem(err)?.detail ?? "Nie udało się zmienić kolejności",
+      );
+    },
+    onSettled: () => invalidate(),
+  });
+
+  const { getRowProps, dragIndex, overIndex } = useDragReorder(
+    variants,
+    (reordered) => reorderMutation.mutate(reordered),
+    editingId === null && !adding,
+  );
 
   return (
     <section
@@ -196,6 +239,7 @@ export function VariantsSection({ productId }: Props) {
             ) : (
               <div
                 key={variant.id}
+                {...getRowProps(idx)}
                 className="grid items-center gap-2.5 px-1 py-2.5"
                 style={{
                   gridTemplateColumns: GRID,
@@ -203,13 +247,22 @@ export function VariantsSection({ productId }: Props) {
                     idx < variants.length - 1 || adding
                       ? "1px solid rgb(var(--color-border-subtle))"
                       : "none",
+                  borderTop:
+                    overIndex === idx && dragIndex !== null && dragIndex !== idx
+                      ? "2px solid rgb(var(--color-primary))"
+                      : undefined,
+                  opacity: dragIndex === idx ? 0.4 : 1,
                 }}
               >
                 <span
                   className="inline-flex"
-                  style={{ color: "rgb(var(--color-text-faint))", cursor: "grab" }}
+                  style={{
+                    color: "rgb(var(--color-text-faint))",
+                    cursor:
+                      editingId === null && !adding ? "grab" : "not-allowed",
+                  }}
                   aria-hidden
-                  title="Przeciągnij, aby zmienić kolejność (wkrótce)"
+                  title="Przeciągnij, aby zmienić kolejność"
                 >
                   <GripVertical size={15} strokeWidth={1.8} />
                 </span>

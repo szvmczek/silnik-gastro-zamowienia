@@ -332,10 +332,45 @@ robi osobny task który dotyka frontendu + backendu spójnie:
 
 ---
 
-**Wersja 2.8** · 2026-05-20 · Warstwa 5 in progress (M-034..M-039).
-Dodane #20 mobile metadata, #21 image upload deferred, #22 mobile
-settings deferred, #23 (no gap), #24 window.confirm→Dialog deferred,
-#25 auto-ETA-on-create deferred. AD-Δ15..25 w MIGRATION_ERRATA.md.
+26. Keyboard-a11y reorder — deferred Warstwa 6 (M-042 N43):
+    - M-042 reorder = native HTML5 drag-and-drop (`useDragReorder`).
+      Native DnD obsługuje tylko mysz / touch — brak keyboard
+      operability (Tab + Space/Arrow do reorder).
+    - WCAG 2.1 — operacja drag musi mieć keyboard-dostępną alternatywę
+      (2.1.1 Keyboard, 2.5.7 Dragging Movements AA).
+    - Operator N43 A decision 2026-05-20: native DnD (zero-dep,
+      proporcjonalne dla MVP); keyboard-a11y deferred do Warstwa 6
+      M-046 (Focus rings / WCAG audit).
+    - Post-MVP scope: albo (a) keyboard handlers w `useDragReorder`
+      (focus handle → Space podnosi → Arrow przesuwa → Space upuszcza),
+      albo (b) „Przenieś w górę / w dół" przyciski jako alternatywa,
+      albo (c) migracja do @dnd-kit (built-in keyboard sensor).
+
+27. Admin /admin/products bez ORDER BY displayOrder (M-042):
+    - `ProductRepository.findAllFiltered` (@Query dla admin product
+      list) nie ma `ORDER BY` — Pageable bez sort → DB zwraca wiersze
+      w kolejności wstawienia (de facto id ASC). Kategorie
+      (`findAllByOrderByDisplayOrderAscIdAsc`) i warianty
+      (`findAllByProductIdOrderByDisplayOrderAscIdAsc`) — sortowane
+      server-side poprawnie.
+    - M-042 zero-backend-touch path: `ProductsList` sortuje
+      `filtered` client-side po `displayOrder` (potem `id`). Działa
+      poprawnie dla pojedynczej kategorii ≤20 produktów (mieści się na
+      page 0 — realny przypadek pizzerii). Dla kategorii >20 produktów
+      page 0 to arbitralne 20 wierszy (id-order) → client-sort page 0
+      ≠ globalny porządek.
+    - Proper fix (post-MVP, 1 linia backend): dodać
+      `ORDER BY p.displayOrder ASC, p.id ASC` do `findAllFiltered`
+      @Query — wtedy paginacja respektuje displayOrder globalnie i
+      client-sort można usunąć. Warstwa 6 lub backend M2 batch.
+
+---
+
+**Wersja 2.9** · 2026-05-20 · Warstwa 5 **complete** (M-034..M-042).
+Dodane #20 mobile metadata, #21 image upload, #22 mobile settings,
+#23 (no gap), #24 window.confirm→Dialog, #25 auto-ETA-on-create,
+#26 keyboard-a11y reorder, #27 admin products ORDER BY. Wszystkie
+deferred do Warstwa 6 / backend M2. AD-Δ15..29 w MIGRATION_ERRATA.md.
 
 21. Image upload backend (storage decision) — post-MVP (Warstwa 5 · M-042 N2):
     - CLAUDE.md ground rule: "Admin: CRUD menu (z URL dla zdjęć, nie

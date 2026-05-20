@@ -16,6 +16,9 @@ import {
   MenuTableError,
   MenuTableLoading,
 } from "../components/MenuTableParts";
+import { useDragReorder } from "../lib/dragReorder";
+
+const CATEGORIES_KEY = ["admin", "menu", "categories"] as const;
 
 // Bundle ref: frame-menu.jsx L183-208 (Kategorie tab). Pure list — add/edit
 // dialog owned przez MenuOverviewPage (N36). Drag handle static (M-042 dnd).
@@ -74,6 +77,47 @@ export function CategoriesList({ onEdit }: CategoriesListProps) {
     deleteMutation.mutate(cat.id);
   };
 
+  // M-042 — reorder: optimistic + PUT only rows whose index changed.
+  const reorderMutation = useMutation({
+    mutationFn: async (reordered: AdminCategoryDto[]) => {
+      const changed = reordered
+        .map((cat, index) => ({ cat, index }))
+        .filter(({ cat, index }) => cat.displayOrder !== index);
+      await Promise.all(
+        changed.map(({ cat, index }) =>
+          updateAdminCategory(cat.id, {
+            version: cat.version,
+            name: cat.name,
+            description: cat.description,
+            displayOrder: index,
+            active: cat.active,
+          }),
+        ),
+      );
+    },
+    onMutate: async (reordered) => {
+      await queryClient.cancelQueries({ queryKey: CATEGORIES_KEY });
+      const prev = queryClient.getQueryData<AdminCategoryDto[]>(CATEGORIES_KEY);
+      queryClient.setQueryData(
+        CATEGORIES_KEY,
+        reordered.map((cat, index) => ({ ...cat, displayOrder: index })),
+      );
+      return { prev };
+    },
+    onError: (err, _reordered, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(CATEGORIES_KEY, ctx.prev);
+      toast.error(
+        extractProblem(err)?.detail ?? "Nie udało się zmienić kolejności",
+      );
+    },
+    onSettled: () => invalidate(),
+  });
+
+  const { getRowProps, dragIndex, overIndex } = useDragReorder(
+    data ?? [],
+    (reordered) => reorderMutation.mutate(reordered),
+  );
+
   if (isLoading) return <MenuTableLoading />;
   if (isError) return <MenuTableError what="kategorii" />;
   if (!data || data.length === 0) {
@@ -94,6 +138,7 @@ export function CategoriesList({ onEdit }: CategoriesListProps) {
       {data.map((cat, idx) => (
         <div
           key={cat.id}
+          {...getRowProps(idx)}
           className="grid items-center gap-3 px-4 py-3"
           style={{
             gridTemplateColumns: GRID,
@@ -101,13 +146,18 @@ export function CategoriesList({ onEdit }: CategoriesListProps) {
               idx < data.length - 1
                 ? "1px solid rgb(var(--color-border-subtle))"
                 : "none",
+            borderTop:
+              overIndex === idx && dragIndex !== null && dragIndex !== idx
+                ? "2px solid rgb(var(--color-primary))"
+                : undefined,
+            opacity: dragIndex === idx ? 0.4 : 1,
           }}
         >
           <span
             className="inline-flex"
             style={{ color: "rgb(var(--color-text-faint))", cursor: "grab" }}
             aria-hidden
-            title="Przeciągnij, aby zmienić kolejność (wkrótce)"
+            title="Przeciągnij, aby zmienić kolejność"
           >
             <GripVertical size={16} strokeWidth={1.8} />
           </span>

@@ -965,7 +965,43 @@ Bundle match: ~88% — layout 8fr/4fr 1:1, RIGHT column simplified.
 
 **Wykonane:** M-041 (`<commit>`).
 
+### AD-Δ29: M-042 Reorder — frontend-only native HTML5 DnD
+
+> 2026-05-20 · Warstwa 5 · M-042 · operator N2 Option C + N43/N44.
+
+**N2 discovery:** `UpdateCategoryRequest` / `UpdateProductRequest` /
+`UpdateVariantRequest` — wszystkie 3 mają `int displayOrder`. Reorder
+realizowalny przez istniejące PUT endpointy → **N2 Option C: zero
+backend touch**, brak nowych endpointów / migracji.
+
+**Implementacja:**
+- `lib/dragReorder.ts` — `useDragReorder` hook, **native HTML5 DnD**
+  (N43 A, zero-dependency). Cały wiersz `draggable`; `⋮⋮` GripVertical
+  to wizualny afford. Visual feedback: dragged row `opacity 0.4`,
+  drop-target `border-top 2px primary`.
+- 3 listy: `CategoriesList` (M-040), `ProductsList` (M-040, conditional),
+  `VariantsSection` (M-041).
+- Persistence: optimistic `onMutate` setQueryData → PUT **tylko wierszy
+  gdzie `displayOrder !== index`** → `Promise.all` (wiersze niezależne,
+  każdy własny `version`) → `onError` rollback `setQueryData(prev)` +
+  toast → `onSettled` invalidate. Zweryfikowane E2E (kategorie / warianty
+  / produkty real drag + forced-404 rollback).
+
+**N44 — products drag conditional:** drag produktów aktywny **tylko gdy**
+`categoryId !== undefined && !searchTerm && page === 0 &&
+availabilityFilter === "all"`. 4-ty warunek (`availabilityFilter`)
+**dodany ponad operator N44** jako correctness fix — przy filtrze
+dostępności `filtered` jest podzbiorem, reorder korumpowałby displayOrder
+ukrytych produktów. Handle dimmed (`opacity 0.5` + `not-allowed` +
+tooltip „Wybierz kategorię, aby zmienić kolejność") gdy warunki
+niespełnione. Kategorie + warianty — drag zawsze aktywny.
+
+**Keyboard-a11y reorder:** native HTML5 DnD nie wspiera klawiatury —
+deferred do Warstwa 6 M-046 (PHASE5_FINDINGS #26).
+
+**Wykonane:** M-042 (`<commit>`).
+
 ---
 
-**Wersja 2.13** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ28 dodane
-przy M-035..M-041 + mini-fix V203. Total deltas: 28.
+**Wersja 2.14** · 2026-05-20 · Warstwa 5 **complete** (M-034..M-042 +
+mini-fix V203). AD-Δ19..Δ29 — total deltas: 29.
