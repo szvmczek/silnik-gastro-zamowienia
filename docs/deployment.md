@@ -108,6 +108,35 @@ Skrypt zostawia:
 Nie uruchamiaj tego na produkcji, chyba ze intencjonalnie chcesz usunac
 zamowienia.
 
+## Reset + neutral demo orders
+
+Jesli demo ma pokazywac panel admina z przykladowymi zamowieniami, ale bez
+prywatnych danych klientow, uzyj:
+
+```powershell
+.\scripts\reset-and-seed-demo-orders.ps1 -ConfirmReset
+```
+
+Wrapper odpala kolejno:
+
+1. `scripts/reset-demo-orders.sql`
+2. `scripts/seed-demo-orders.sql`
+
+`seed-demo-orders.sql` nie jest migracja Flyway i nie odpala sie
+automatycznie. Skrypt zaklada, ze order domain jest pusty; jesli w tabeli
+`orders` sa jakiekolwiek rekordy, przerwie prace zamiast mieszac dane demo z
+realnymi zamowieniami.
+
+Seed tworzy neutralne zamowienia demonstracyjne na aktualny rok w formacie
+`YYYY-00001`, `YYYY-00002`, itd. Uzywa tylko fake danych typu `Jan Demo`,
+`Anna Test`, `Klient Testowy`, `E2E Demo`, telefonow `+48100000000` itd. oraz
+adresow `ul. Testowa`, `05-000 Demo`. Product/variant/addon IDs sa pobierane
+dynamicznie z menu seedow, a snapshoty nazw i cen sa zapisywane w
+`order_items` i `order_item_addons`.
+
+Nie uruchamiaj resetu + seedu na produkcji, chyba ze intencjonalnie chcesz
+usunac realne zamowienia i zastapic je neutralnymi demo danymi.
+
 ## Post-deploy smoke
 
 Po deployu sprawdz:
