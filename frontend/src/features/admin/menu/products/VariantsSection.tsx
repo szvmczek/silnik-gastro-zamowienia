@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Layers, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   createAdminVariant,
   deleteAdminVariant,
@@ -15,19 +16,15 @@ import {
   type UpdateVariantPayload,
 } from "@/shared/api/menuApi";
 import { extractProblem } from "@/shared/api/client";
-import { Button } from "@/shared/components/ui/Button";
-import { Input } from "@/shared/components/ui/Input";
-import { Label } from "@/shared/components/ui/Label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/Card";
-import { EmptyState } from "@/shared/components/ui/EmptyState";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
+import { MenuIconButton } from "../components/MenuTableParts";
+
+// Bundle ref: frame-product-edit.jsx L106-170 (Warianty rozmiaru).
+// SKU + Aktywny kolumny z bundle dropped — AdminVariantDto nie ma tych pól
+// (tylko id/version/productId/name/price/displayOrder). Patrz AD-Δ28.
+
+const GRID = "30px 1fr 128px 104px 72px";
 
 const schema = z.object({
   name: z.string().min(1, "Nazwa wariantu jest wymagana").max(60),
@@ -39,7 +36,6 @@ const schema = z.object({
 });
 
 type FormValues = z.input<typeof schema>;
-
 const empty: FormValues = { name: "", priceStr: "", displayOrder: 0 };
 
 function toPayload(v: FormValues): CreateVariantPayload {
@@ -67,164 +63,227 @@ export function VariantsSection({ productId }: Props) {
     queryFn: () => fetchAdminVariants(productId),
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "menu", "variants", productId] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "menu", "product", productId] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "menu", "products"] });
+    queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (payload: CreateVariantPayload) => createAdminVariant(productId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "variants", productId] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "product", productId] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
+      invalidate();
       setAdding(false);
       toast.success("Wariant dodany");
     },
-    onError: (err) => {
-      const problem = extractProblem(err);
-      toast.error(problem?.detail ?? problem?.title ?? "Nie udało się dodać wariantu");
-    },
+    onError: (err) =>
+      toast.error(extractProblem(err)?.detail ?? "Nie udało się dodać wariantu"),
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: UpdateVariantPayload }) =>
       updateAdminVariant(id, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "variants", productId] });
-      queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
+      invalidate();
       setEditingId(null);
       toast.success("Wariant zapisany");
     },
-    onError: (err) => {
-      const problem = extractProblem(err);
-      toast.error(problem?.detail ?? problem?.title ?? "Nie udało się zapisać wariantu");
-    },
+    onError: (err) =>
+      toast.error(extractProblem(err)?.detail ?? "Nie udało się zapisać wariantu"),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteAdminVariant(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "variants", productId] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "product", productId] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "menu", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["public", "menu"] });
+      invalidate();
       toast.success("Wariant usunięty");
     },
-    onError: (err) => {
-      const problem = extractProblem(err);
-      toast.error(problem?.detail ?? problem?.title ?? "Nie udało się usunąć wariantu");
-    },
+    onError: (err) =>
+      toast.error(extractProblem(err)?.detail ?? "Nie udało się usunąć wariantu"),
   });
 
   const variants = data ?? [];
-  const showEmptyState = !isLoading && !isError && variants.length === 0 && !adding;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[17px]">
-          <Layers className="h-4 w-4 text-slate-400" /> Warianty rozmiaru
-        </CardTitle>
-        <CardDescription>
-          Rozmiary lub wersje produktu (np. 30 cm, 40 cm). Każdy wariant ma własną cenę,
-          która zastępuje cenę bazową.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {isLoading ? (
-          <div className="text-[13px] text-slate-500">Ładowanie…</div>
-        ) : null}
-        {isError ? (
-          <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-700">
-            Nie udało się pobrać wariantów.
-          </div>
-        ) : null}
-
-        {variants.map((variant) =>
-          editingId === variant.id ? (
-            <VariantRowEditor
-              key={variant.id}
-              initial={variant}
-              pending={updateMutation.isPending}
-              onCancel={() => setEditingId(null)}
-              onSubmit={(values) =>
-                updateMutation.mutate({
-                  id: variant.id,
-                  payload: { ...toPayload(values), version: variant.version },
-                })
-              }
-            />
-          ) : (
-            <div
-              key={variant.id}
-              className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50/50 p-3"
-            >
-              <div className="flex flex-1 items-center gap-4">
-                <span className="text-[14px] font-medium text-slate-900">{variant.name}</span>
-                <span className="font-mono text-[13px] font-semibold text-slate-700">
-                  {formatPrice(variant.price, currency)}
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  kolejność: {variant.displayOrder}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAdding(false);
-                    setEditingId(variant.id);
-                  }}
-                  aria-label={`Edytuj wariant ${variant.name}`}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-white hover:text-slate-700"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!window.confirm(`Usunąć wariant "${variant.name}"?`)) return;
-                    deleteMutation.mutate(variant.id);
-                  }}
-                  disabled={deleteMutation.isPending}
-                  aria-label={`Usuń wariant ${variant.name}`}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )
-        )}
-
-        {adding ? (
-          <VariantRowEditor
-            initial={null}
-            pending={createMutation.isPending}
-            onCancel={() => setAdding(false)}
-            onSubmit={(values) => createMutation.mutate(toPayload(values))}
-          />
-        ) : null}
-
-        {showEmptyState ? (
-          <EmptyState
-            icon={<Layers className="h-5 w-5" />}
-            title="Brak wariantów"
-            description="Produkt jest sprzedawany w cenie bazowej. Dodaj rozmiary, jeśli są różne ceny."
-          />
-        ) : null}
-
-        {!adding ? (
+    <section
+      className="rounded-xl p-5"
+      style={{
+        background: "rgb(var(--color-bg-card))",
+        border: "1px solid rgb(var(--color-border-card))",
+      }}
+    >
+      <div className="mb-3.5 flex items-baseline justify-between gap-4">
+        <h3
+          className="m-0 text-[15px] font-bold"
+          style={{ color: "rgb(var(--color-text-primary))" }}
+        >
+          Warianty rozmiaru
+        </h3>
+        {!adding && (
           <button
             type="button"
             onClick={() => {
               setEditingId(null);
               setAdding(true);
             }}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 text-[13px] text-slate-600 transition-colors hover:border-primary hover:text-primary"
+            className="inline-flex h-[30px] items-center gap-1.5 rounded-md px-3 text-[12px] font-semibold"
+            style={{
+              border: "1px solid rgb(var(--color-border-card))",
+              background: "rgb(var(--color-bg-card))",
+              color: "rgb(var(--color-text-body))",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
           >
-            <Plus className="h-4 w-4" /> Dodaj wariant
+            <Plus size={13} strokeWidth={2.4} aria-hidden /> Dodaj wariant
           </button>
-        ) : null}
-      </CardContent>
-    </Card>
+        )}
+      </div>
+
+      {isLoading && (
+        <div className="text-[13px]" style={{ color: "rgb(var(--color-text-muted))" }}>
+          Ładowanie…
+        </div>
+      )}
+      {isError && (
+        <div
+          className="rounded-md p-3 text-[13px]"
+          style={{
+            border: "1px solid rgb(var(--status-cancelled) / 0.3)",
+            background: "rgb(var(--status-cancelled-tint))",
+            color: "rgb(var(--status-cancelled))",
+          }}
+        >
+          Nie udało się pobrać wariantów.
+        </div>
+      )}
+
+      {!isLoading && !isError && (
+        <>
+          {(variants.length > 0 || adding) && (
+            <div
+              className="grid gap-2.5 px-1 py-2 text-[11px] font-bold uppercase"
+              style={{
+                gridTemplateColumns: GRID,
+                borderBottom: "1px solid rgb(var(--color-border-subtle))",
+                color: "rgb(var(--color-text-muted))",
+                letterSpacing: "0.04em",
+              }}
+            >
+              <span />
+              <span>Nazwa</span>
+              <span>Cena</span>
+              <span>Kolejność</span>
+              <span />
+            </div>
+          )}
+
+          {variants.map((variant, idx) =>
+            editingId === variant.id ? (
+              <VariantRowEditor
+                key={variant.id}
+                initial={variant}
+                pending={updateMutation.isPending}
+                onCancel={() => setEditingId(null)}
+                onSubmit={(values) =>
+                  updateMutation.mutate({
+                    id: variant.id,
+                    payload: { ...toPayload(values), version: variant.version },
+                  })
+                }
+              />
+            ) : (
+              <div
+                key={variant.id}
+                className="grid items-center gap-2.5 px-1 py-2.5"
+                style={{
+                  gridTemplateColumns: GRID,
+                  borderBottom:
+                    idx < variants.length - 1 || adding
+                      ? "1px solid rgb(var(--color-border-subtle))"
+                      : "none",
+                }}
+              >
+                <span
+                  className="inline-flex"
+                  style={{ color: "rgb(var(--color-text-faint))", cursor: "grab" }}
+                  aria-hidden
+                  title="Przeciągnij, aby zmienić kolejność (wkrótce)"
+                >
+                  <GripVertical size={15} strokeWidth={1.8} />
+                </span>
+                <span
+                  className="truncate text-[14px] font-semibold"
+                  style={{ color: "rgb(var(--color-text-primary))" }}
+                >
+                  {variant.name}
+                </span>
+                <span
+                  className="text-[13px] font-semibold"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "rgb(var(--color-text-primary))",
+                  }}
+                >
+                  {formatPrice(variant.price, currency)}
+                </span>
+                <span
+                  className="text-[13px]"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color: "rgb(var(--color-text-muted))",
+                  }}
+                >
+                  {variant.displayOrder}
+                </span>
+                <span className="flex justify-end gap-1">
+                  <MenuIconButton
+                    label={`Edytuj wariant ${variant.name}`}
+                    onClick={() => {
+                      setAdding(false);
+                      setEditingId(variant.id);
+                    }}
+                  >
+                    <Pencil size={13} strokeWidth={1.8} />
+                  </MenuIconButton>
+                  <MenuIconButton
+                    label={`Usuń wariant ${variant.name}`}
+                    onClick={() => {
+                      if (!window.confirm(`Usunąć wariant „${variant.name}”?`)) return;
+                      deleteMutation.mutate(variant.id);
+                    }}
+                    disabled={deleteMutation.isPending}
+                    danger
+                  >
+                    <Trash2 size={13} strokeWidth={1.8} />
+                  </MenuIconButton>
+                </span>
+              </div>
+            ),
+          )}
+
+          {adding && (
+            <VariantRowEditor
+              initial={null}
+              pending={createMutation.isPending}
+              onCancel={() => setAdding(false)}
+              onSubmit={(values) => createMutation.mutate(toPayload(values))}
+            />
+          )}
+
+          {variants.length === 0 && !adding && (
+            <p
+              className="py-3 text-[13px]"
+              style={{ color: "rgb(var(--color-text-muted))", lineHeight: 1.55 }}
+            >
+              Brak wariantów — produkt sprzedawany w cenie bazowej. Dodaj rozmiary
+              jeśli mają różne ceny.
+            </p>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
@@ -241,10 +300,7 @@ function VariantRowEditor({ initial, pending, onCancel, onSubmit }: EditorProps)
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: empty,
-  });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: empty });
 
   useEffect(() => {
     if (initial) {
@@ -259,82 +315,136 @@ function VariantRowEditor({ initial, pending, onCancel, onSubmit }: EditorProps)
   }, [initial, reset]);
 
   return (
-    <div className="rounded-md border border-primary bg-primary/5 p-4">
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px_120px_auto] sm:items-end"
-        noValidate
-      >
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="my-2 rounded-lg p-3"
+      style={{
+        border: "1px solid rgb(var(--color-primary))",
+        background: "rgb(var(--color-primary-tint))",
+      }}
+      noValidate
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_130px_104px_auto] sm:items-start">
         <div>
-          <Label htmlFor="v-name" className="text-[12px]">
-            Nazwa
-          </Label>
-          <Input
-            id="v-name"
-            placeholder="np. 30 cm"
-            error={!!errors.name}
-            {...register("name")}
-            autoFocus
-          />
-          {errors.name ? (
-            <p className="mt-1 text-[12px] text-rose-600">{errors.name.message}</p>
-          ) : null}
+          <EditorLabel>Nazwa</EditorLabel>
+          <EditorInput placeholder="np. 30 cm" autoFocus {...register("name")} />
+          {errors.name && <EditorError>{errors.name.message}</EditorError>}
         </div>
         <div>
-          <Label htmlFor="v-price" className="text-[12px]">
-            Cena
-          </Label>
-          <div className="relative">
-            <Input
-              id="v-price"
+          <EditorLabel>Cena</EditorLabel>
+          <div style={{ position: "relative" }}>
+            <EditorInput
+              mono
               inputMode="decimal"
               placeholder="29.00"
-              className="pr-8 font-mono"
-              error={!!errors.priceStr}
+              style={{ paddingRight: 30 }}
               {...register("priceStr")}
             />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">
+            <span
+              className="text-[12px]"
+              style={{
+                position: "absolute",
+                right: 10,
+                top: 10,
+                color: "rgb(var(--color-text-muted))",
+                pointerEvents: "none",
+              }}
+            >
               zł
             </span>
           </div>
-          {errors.priceStr ? (
-            <p className="mt-1 text-[12px] text-rose-600">{errors.priceStr.message as string}</p>
-          ) : null}
+          {errors.priceStr && (
+            <EditorError>{errors.priceStr.message as string}</EditorError>
+          )}
         </div>
         <div>
-          <Label htmlFor="v-order" className="text-[12px]">
-            Kolejność
-          </Label>
-          <Input
-            id="v-order"
+          <EditorLabel>Kolejność</EditorLabel>
+          <EditorInput
             type="number"
             min={0}
-            error={!!errors.displayOrder}
             {...register("displayOrder", { valueAsNumber: true })}
           />
-          {errors.displayOrder ? (
-            <p className="mt-1 text-[12px] text-rose-600">
-              {errors.displayOrder.message as string}
-            </p>
-          ) : null}
+          {errors.displayOrder && (
+            <EditorError>{errors.displayOrder.message as string}</EditorError>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={pending}>
-            <Save className="h-4 w-4" />
+        <div className="flex gap-2 sm:pt-[22px]">
+          <button
+            type="submit"
+            disabled={pending}
+            className="h-9 rounded-md px-3.5 text-[13px] font-semibold text-white"
+            style={{
+              border: "none",
+              background: pending ? "#D4D0C2" : "rgb(var(--color-primary))",
+              cursor: pending ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
             {pending ? "Zapisywanie…" : initial ? "Zapisz" : "Dodaj"}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            size="sm"
-            variant="ghost"
             onClick={onCancel}
             disabled={pending}
-            aria-label="Anuluj"
+            className="h-9 rounded-md px-3 text-[13px] font-medium"
+            style={{
+              border: "1px solid rgb(var(--color-border-card))",
+              background: "rgb(var(--color-bg-card))",
+              color: "rgb(var(--color-text-body))",
+              cursor: pending ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+            }}
           >
-            <X className="h-4 w-4" />
-          </Button>
+            Anuluj
+          </button>
         </div>
-      </form>
+      </div>
+    </form>
+  );
+}
+
+function EditorLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="mb-1 text-[12px] font-semibold"
+      style={{ color: "rgb(var(--color-text-body))" }}
+    >
+      {children}
     </div>
   );
 }
+
+function EditorError({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mt-1 text-[12px]" style={{ color: "rgb(var(--status-cancelled))" }}>
+      {children}
+    </p>
+  );
+}
+
+interface EditorInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  mono?: boolean;
+}
+
+const EditorInput = ((props: EditorInputProps) => {
+  const { mono, style, ...rest } = props;
+  return (
+    <input
+      {...rest}
+      style={{
+        width: "100%",
+        height: 38,
+        padding: "0 12px",
+        borderRadius: 8,
+        border: "1px solid rgb(var(--color-border-card))",
+        background: "rgb(var(--color-bg-card))",
+        fontSize: 14,
+        color: "rgb(var(--color-text-primary))",
+        fontFamily: mono ? "var(--font-mono)" : "inherit",
+        outline: "none",
+        boxSizing: "border-box",
+        ...style,
+      }}
+    />
+  );
+}) as React.FC<EditorInputProps>;

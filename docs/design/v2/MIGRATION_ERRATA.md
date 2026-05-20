@@ -918,7 +918,54 @@ przy 2 akcjach. Świadomy mismatch vs bundle.
 
 **Wykonane:** M-040 (`<commit>`).
 
+### AD-Δ28: Product edit — Status card simplified + Sprzedaż card dropped + variant kolumny
+
+> 2026-05-20 · Warstwa 5 · M-041 ProductEditPage · operator N38/N39 + N41.
+
+Bundle Stage 3 `frame-product-edit.jsx` RIGHT column ma 3 cards (Zdjęcie /
+Status / Sprzedaż 30 dni) gdzie Status ma 3 toggle. Backend model nie
+wspiera większości.
+
+**Δ1 — Status card 3 toggle → 1 (N38 A):** bundle Status = „Produkt
+aktywny" + „Oznacz jako Hit" + „Tymczasowo niedostępny". Backend `Product`
+ma tylko `available`. Current Status card = pojedynczy toggle **„Produkt
+dostępny"** → `available`.
+- „Oznacz jako Hit" (badge) — brak `badge` field w `Product` / DTO.
+  PHASES.md M-035 wspomina badge HIT/NOWOŚĆ/none — nie zaimplementowane
+  (operator N38 A: scope tight, badge nice-to-have, jeśli kiedyś →
+  osobny backend touch).
+- „Tymczasowo niedostępny" — semantycznie identyczne z `!available`.
+  Dwa pola dostępności = mylące UX (CLAUDE.md „prostsze wygrywa").
+  Dropped.
+
+**Δ2 — „Sprzedaż 30 dni" card dropped (N39 A):** brak per-product sales
+endpoint. Pokrewne PHASE5_FINDINGS #13 (Top products revenue/share)
+frozen do Warstwa 6 M2. Card całkowicie usunięty. RIGHT column = Zdjęcie
++ Status + Usuń produkt.
+
+**Δ3 — Warianty: kolumny SKU + Aktywny dropped (N41):** bundle
+„Warianty rozmiaru" table (L115-169) ma kolumny drag / Nazwa / Cena /
+**SKU** / **Aktywny** / ×. `AdminVariantDto` ma tylko `id / version /
+productId / name / price / displayOrder` — **brak `sku`, brak `active`**.
+Variant table = drag(static) / Nazwa / Cena / Kolejność / Pencil+Trash.
+SKU + Aktywny columns dropped (no backend field); „Kolejność"
+(`displayOrder`) dodane bo realne pole.
+
+**Δ4 — Image upload:** „Zmień zdjęcie" upload button z bundle → URL text
+input + 1:1 preview (image upload deferred, PHASE5_FINDINGS #21).
+
+**Δ5 — Base price field:** bundle „Podstawowe" pokazuje tylko nazwa /
+kategoria / opis (Margherita ma warianty, brak base price w mockupie).
+Current dodaje **Cena bazowa** field do Podstawowe card — realne pole
+`basePrice`, wymagane przy CREATE (backend rule: produkt musi mieć
+basePrice przy tworzeniu; warianty nadpisują po fakcie). Bez tego pola
+nie da się utworzyć produktu bez wariantów (napoje).
+
+Bundle match: ~88% — layout 8fr/4fr 1:1, RIGHT column simplified.
+
+**Wykonane:** M-041 (`<commit>`).
+
 ---
 
-**Wersja 2.12** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ27 dodane
-przy M-035..M-040 + mini-fix V203. Total deltas: 27.
+**Wersja 2.13** · 2026-05-20 · Warstwa 5 in progress. AD-Δ19..Δ28 dodane
+przy M-035..M-041 + mini-fix V203. Total deltas: 28.
