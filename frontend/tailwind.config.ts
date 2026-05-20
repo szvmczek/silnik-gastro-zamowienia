@@ -8,7 +8,7 @@ const config: Config = {
         primary: "rgb(var(--color-primary) / <alpha-value>)",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Geist Variable", "system-ui", "sans-serif"],
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       transitionTimingFunction: {

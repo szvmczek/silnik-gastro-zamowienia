@@ -1,116 +1,145 @@
-# Deployment — Railway
+# Deployment - Railway
 
-Target deploy: Railway (https://railway.app). Jeden serwis aplikacji
-(Dockerfile multi-stage) + jeden plugin PostgreSQL. HTTPS out-of-the-box.
+Target deploy: Railway. Jeden serwis aplikacji z root `Dockerfile` +
+jeden plugin PostgreSQL. Frontend jest buildowany do static assets i
+serwowany przez Spring Boot.
 
 ## Prerekwizyty
 
-- Konto Railway (darmowe tier wystarczy na showcase).
-- Repo na GitHub z branchem `main` (lub innym deploy branchem).
-- Wygenerowany `JWT_SECRET` — min 64 znaki: `openssl rand -base64 48`.
+- Konto Railway.
+- Repo na GitHub z branchem deployowym.
+- Wygenerowany `JWT_SECRET`: `openssl rand -base64 48`.
+- Haslo admina w `ADMIN_PASSWORD`.
 
-## Krok 1: Utworz projekt Railway
+## Krok 1: Projekt i PostgreSQL
 
-1. Zaloguj sie na https://railway.app.
-2. `New Project` → `Empty Project`.
-3. Nazwij projekt (np. `pizza-showcase-klient-X`).
+1. Railway: `New Project` -> `Empty Project`.
+2. Dodaj `Database` -> `PostgreSQL`.
+3. Railway wystawi zmienne Postgresa, zwykle jako referencje pluginu:
+   `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` i/lub
+   `DATABASE_URL`.
 
-## Krok 2: Dodaj plugin PostgreSQL
+Kod aplikacji uzywa aktualnie `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+`DATABASE_URL` z Railway nie jest parsowany automatycznie przez aplikacje,
+wiec ustaw `DB_URL` jako JDBC URL.
 
-1. W projekcie: `+ New` → `Database` → `Add PostgreSQL`.
-2. Railway wstrzyknie automatycznie zmienne `DATABASE_URL`, `PGUSER`,
-   `PGPASSWORD`, `PGHOST`, `PGPORT`, `PGDATABASE` w namespace plugina
-   (dostepne jako `${{Postgres.*}}` w innych serwisach projektu).
-3. Flyway odpali migracje V1-V7 + V100 / V101 przy pierwszym starcie
-   aplikacji. Sprawdz logi po deploy.
+## Krok 2: Serwis aplikacji
 
-## Krok 3: Dodaj serwis z GitHub repo
+1. Dodaj serwis z GitHub repo.
+2. Wybierz branch deployowy, np. `design/v2-stage5-handoff` dla stagingu.
+3. Railway powinien uzyc root `Dockerfile`, nie Nixpacks.
+4. Health Check Path: `/actuator/health`.
 
-1. W projekcie: `+ New` → `GitHub Repo` → autoryzuj dostep i wybierz repo.
-2. Ustaw `Branch`: `main` (albo inny branch deployowy).
-3. Railway wykryje `Dockerfile` w root i odpali multi-stage build
-   (node:20-alpine → eclipse-temurin:21-jdk-jammy → 21-jre-jammy).
-4. `Settings` → `Build` → potwierdz, ze builder = `Dockerfile` (nie Nixpacks).
+## Krok 3: Env vars
 
-## Krok 4: Env vars na serwisie aplikacji
-
-`Settings` → `Variables` → dodaj:
+Ustaw na serwisie aplikacji:
 
 | Zmienna | Wartosc |
 |---|---|
 | `SPRING_PROFILES_ACTIVE` | `prod` |
-| `JWT_SECRET` | wygeneruj `openssl rand -base64 48` (min 64 znaki) |
-| `ADMIN_EMAIL` | email dla pierwszego logowania (np. `admin@klient.pl`) |
-| `ADMIN_PASSWORD` | haslo dla pierwszego logowania (zmien po pierwszym logu) |
-| `CORS_ALLOWED_ORIGINS` | URL frontu (po nadaniu custom domain: `https://twoja-domena.pl`, do czasu: Railway-assigned `https://xxx.up.railway.app`) |
+| `PORT` | opcjonalnie; aplikacja czyta `${PORT:8080}` |
+| `JWT_SECRET` | min 32 bajty po decode; rekomendowane `openssl rand -base64 48` |
+| `ADMIN_EMAIL` | email pierwszego admina |
+| `ADMIN_PASSWORD` | haslo pierwszego admina; seeder tworzy usera tylko gdy go jeszcze nie ma |
+| `ADMIN_DISPLAY_NAME` | opcjonalnie, default `Admin` |
+| `CORS_ALLOWED_ORIGINS` | finalny origin HTTPS, np. `https://xxx.up.railway.app` albo custom domain |
 | `DB_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
 | `DB_USERNAME` | `${{Postgres.PGUSER}}` |
 | `DB_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
-| `PORT` | `8080` (Railway ustawia automatycznie, ale warto jawnie) |
 
-**Uwaga o seed data:**
-Migracje `V100__seed_demo.sql` i `V101__seed_menu.sql` odpala sie
-**rowniez w produkcji** (brak gatingu po profilu). Znaczy to, ze swieza
-instancja Railway ruszy z demo menu "Pizza Demo". Jesli klient chce
-czysty start:
-- Przed pierwszym deploy usun `V100__seed_demo.sql` i `V101__seed_menu.sql`,
-  albo
-- Po pierwszym deploy zaloguj sie do Adminer / Postgres (`railway run psql`)
-  i wyczysc tabele `products`, `product_variants`, `addon_groups`, `addons`,
-  `categories` + zaktualizuj `restaurant_settings`.
+`application-prod.yml` wymaga `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+Brak ktorejs zmiennej zatrzyma start aplikacji.
 
-## Krok 5: Healthcheck
+## Seed data
 
-`Settings` → `Deploy` → `Health Check Path`: `/actuator/health`
+Flyway uruchamia migracje z `backend/src/main/resources/db/migration` przy
+starcie aplikacji. `V100__seed_demo.sql`, `V101__seed_menu.sql` oraz
+pozniejsze migracje content/legal odpalaja sie tez w profilu `prod`.
 
-Railway restartuje kontener gdy endpoint zwroci !=200 przez uzywany
-timeout (domyslnie 300s start grace + health checks co 10s). Spring
-Boot `/actuator/health` wraca `{"status":"UP"}` gdy DB + liveness OK.
+Dla Pizza Showcase to jest celowe: swieza baza Railway startuje z demo
+restaurant settings, godzinami, tresciami, menu i legal templates. Przed
+publicznym demo zweryfikuj tresc polityki prywatnosci i regulaminu w
+panelu admina: `Ustawienia` -> `RODO i regulaminy`.
 
-## Krok 6: Custom domain (opcjonalnie)
+Admin user nie jest w Flyway seedzie. Tworzy go runtime seeder z
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_DISPLAY_NAME` i zapisuje w tabeli
+`users`.
 
-1. `Settings` → `Networking` → `Custom Domain` → wpisz `twoja-domena.pl`.
-2. Railway pokaze rekord CNAME. Ustaw u rejestratora domeny:
-   - `CNAME pizza.twoja-domena.pl` → `xxx.up.railway.app`
-3. Poczekaj na propagacje DNS (do 10 min), Railway automatycznie
-   wystawi certyfikat Let's Encrypt.
-4. Po aktywacji custom domain, **zaktualizuj `CORS_ALLOWED_ORIGINS`** na
-   nowa domene i zredeployuj.
+## Reset demo orders/customer data
+
+Do wyczyszczenia lokalnej lub demo bazy z zamowien i danych klientow uzyj:
+
+```powershell
+.\scripts\reset-demo-orders.ps1 -ConfirmReset
+```
+
+Wrapper zaklada lokalny `docker-compose.yml` i baze:
+
+- host/container: serwis `postgres`
+- database: `pizza_showcase`
+- user: `pizza`
+
+Mozesz tez odpalic sam SQL recznie przez `psql`:
+
+```powershell
+Get-Content -Raw .\scripts\reset-demo-orders.sql | docker exec -i <postgres-container> psql -U pizza -d pizza_showcase -v ON_ERROR_STOP=1
+```
+
+`scripts/reset-demo-orders.sql` nie jest migracja Flyway i nie odpala sie
+automatycznie. Skrypt czysci tylko order domain:
+
+- `order_status_history`
+- `order_item_addons`
+- `order_items`
+- `orders`
+- numeracje w `order_number_sequence` dla aktualnego roku
+
+Skrypt zostawia:
+
+- `users`
+- `restaurant_settings`
+- `opening_hours`
+- `page_content`
+- legal content
+- `categories`, `products`, `product_variants`
+- `addon_groups`, `addons`, `product_addon_groups`
+- `delivery_zone`, `delivery_zone_area`
+
+Nie uruchamiaj tego na produkcji, chyba ze intencjonalnie chcesz usunac
+zamowienia.
 
 ## Post-deploy smoke
 
-Po pierwszym deploy (lub redeployu po zmianie env vars):
+Po deployu sprawdz:
 
-1. `https://<railway-url>/actuator/health` → `{"status":"UP"}`
-2. `https://<railway-url>/api/public/settings` → JSON z `RestaurantSettings`
-3. `https://<railway-url>/` → landing page z menu
-4. `/admin/login` → zaloguj z `ADMIN_EMAIL` / `ADMIN_PASSWORD`
-5. End-to-end: zloz zamowienie jako public, obsluz w panelu admina,
-   sprawdz tracking.
+1. `https://<railway-url>/actuator/health` -> `{"status":"UP"}`.
+2. `https://<railway-url>/api/public/settings` -> JSON z ustawieniami.
+3. `https://<railway-url>/api/public/legal` -> JSON z legal content.
+4. `/` -> landing.
+5. `/menu` -> menu.
+6. `/privacy` i `/terms` -> publiczne strony legal.
+7. `/admin/login` -> logowanie admina.
+8. E2E demo: zloz zamowienie, obsluz w adminie, sprawdz `/track/{token}`.
 
 ## Troubleshooting
 
-**Flyway checksum mismatch:** ktos edytowal juz zaaplikowana migracje.
-`railway run psql` → `DELETE FROM flyway_schema_history WHERE version = 'X';`
-albo `./gradlew flywayRepair` lokalnie ze zmiennymi produkcji.
+**Flyway checksum mismatch:** ktos zmienil juz zaaplikowana migracje.
+Nie edytuj historii w ciemno. Dla demo mozna uzyc `flywayRepair`, ale dla
+produkcji najpierw ustal stan `flyway_schema_history`.
 
-**CORS error w konsoli przegladarki:** `CORS_ALLOWED_ORIGINS` nie pasuje
-do realnej domeny frontu. Zaktualizuj env var, redeploy.
+**CORS error:** `CORS_ALLOWED_ORIGINS` musi pasowac do realnego originu
+frontu, lacznie ze schematem `https://`.
 
-**JWT fail przy logowaniu admina:** `JWT_SECRET` za krotki (wymagane >=64
-znaki). Wygeneruj nowy `openssl rand -base64 48` i zaktualizuj.
+**JWT fail przy starcie albo logowaniu:** `JWT_SECRET` jest pusty albo za
+krotki. Wygeneruj nowy `openssl rand -base64 48`.
 
-**Kontener restartuje sie w kolko:** sprawdz `Deployments` → `Logs`.
-Typowe: flyway migration fail (checksum, syntax), DB unreachable
-(`DB_URL` zly), missing env var (sprawdz sekcje "Krok 4").
+**Brak admina:** seeder tworzy rekord w `users` tylko gdy `ADMIN_PASSWORD`
+jest ustawione i dany email nie istnieje. Jesli pierwszy start byl bez
+hasla, ustaw env i zrestartuj serwis.
 
-**Brak dostepu do admin panelu po deploy:** admin seeder odpala sie raz
-przy pierwszym starcie. Jesli `ADMIN_EMAIL` / `ADMIN_PASSWORD` byly
-puste przy pierwszym deploy, zaden user nie zostal utworzony. Ustaw
-zmienne i zrestartuj serwis, LUB recznie: `railway run psql`, wyczysc
-`admin_user`, zrestartuj.
+**DB unreachable:** sprawdz, czy `DB_URL` ma format JDBC:
+`jdbc:postgresql://host:port/database`, a `DB_USERNAME` i `DB_PASSWORD`
+pochodza z tego samego pluginu Postgres.
 
-**Tomcat access log masked?:** `server.tomcat.accesslog.enabled: false`
-w `application-prod.yml` (BUG-1 z Fazy 4 — JWT w SSE query param nie
-trafia do logu). Railway stdout logs pokazuja tylko Spring Boot logs,
-nie access log.
+**SSE token w query param:** Tomcat access log jest wylaczony w profilu
+`prod`. Railway stdout logs pokazuja logi aplikacji, nie access log URL.
