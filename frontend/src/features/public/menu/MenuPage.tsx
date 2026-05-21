@@ -140,8 +140,8 @@ export function MenuPage() {
 
       <InfoBar />
 
-      <main className="mx-auto w-full max-w-[1440px] pb-28 lg:pb-16">
-        <div className="px-5 pt-8 md:px-10 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8 xl:px-12">
+      <main className="public-shell pb-28 lg:pb-16">
+        <div className="pt-8 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">
           <div className="min-w-0">
             <header className="pb-8 md:pb-10">
               <div className="t-kicker t-kicker--accent mb-2 md:mb-3">MENU</div>

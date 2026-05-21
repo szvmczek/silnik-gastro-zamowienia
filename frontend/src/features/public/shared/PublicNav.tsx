@@ -76,7 +76,7 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
         scrolled && "shadow-sm"
       )}
     >
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:h-16 md:px-8">
+      <div className="public-shell flex h-14 items-center justify-between md:h-16">
         {/* Mobile: hamburger + brand */}
         <div className="flex items-center gap-2 md:hidden">
           <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

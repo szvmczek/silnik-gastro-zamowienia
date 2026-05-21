@@ -110,8 +110,8 @@ export function HeroSection({ hero, settings }: Props) {
 
       {/* Desktop: split 50/50 — cream left, full-bleed image right */}
       <div className="hidden md:grid md:h-[calc(100vh-4rem)] md:min-h-[560px] md:max-h-[820px] md:grid-cols-2">
-        <div className="flex items-center bg-[rgb(var(--color-bg-card))] px-8 py-16 lg:px-12">
-          <div className="w-full max-w-[520px] space-y-6 md:ml-auto md:pr-2 lg:pr-6">
+        <div className="public-hero-copy-shell flex items-center bg-[rgb(var(--color-bg-card))] py-16">
+          <div className="w-full max-w-[560px] space-y-6">
             {textContent}
           </div>
         </div>

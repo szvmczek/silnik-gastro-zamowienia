@@ -57,7 +57,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
     <div className="border-y border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page)/0.95)] backdrop-blur">
       <nav
         aria-label="Kategorie menu"
-        className="flex h-14 items-center gap-2 overflow-x-auto px-4 scrollbar-none md:h-[68px] md:px-12"
+        className="public-shell flex h-14 items-center gap-2 overflow-x-auto scrollbar-none md:h-[68px]"
       >
         {tabs.map((tab, i) => {
           const sectionId = sectionIds[i];

@@ -35,7 +35,7 @@ export function ContactSection({ settings }: Props) {
       id="contact"
       className="border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] py-12 md:py-20"
     >
-      <div className="mx-auto max-w-6xl px-4 md:px-8">
+      <div className="public-shell">
         <div className="grid gap-8 md:grid-cols-2 md:gap-16">
           <div>
             <div className="t-kicker t-kicker--accent mb-3">KONTAKT</div>

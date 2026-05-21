@@ -48,7 +48,7 @@ export function PublicFooter() {
 
   return (
     <footer className="bg-[rgb(var(--color-bg-dark))] pb-24 pt-12 text-[rgb(var(--color-text-on-dark))] md:pb-8 md:pt-16">
-      <div className="mx-auto max-w-6xl px-4 md:px-12">
+      <div className="public-shell">
         <div className="mb-10 grid grid-cols-1 gap-8 md:mb-12 md:grid-cols-[2fr_1fr_1fr_1fr] md:gap-16">
           {/* Col 1 — Brand */}
           <div>

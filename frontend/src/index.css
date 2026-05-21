@@ -15,6 +15,8 @@ html, body, #root {
 html {
   font-size: 16px;
   text-size-adjust: 100%;
+  --public-shell-max: 1760px;
+  --public-gutter: 1rem;
 }
 
 body {
@@ -22,6 +24,31 @@ body {
   font-size: 16px;
   line-height: 1.5;
   @apply bg-white text-slate-900 antialiased;
+}
+
+@media (min-width: 768px) {
+  html {
+    --public-gutter: 3rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    --public-gutter: 4.5rem;
+  }
+}
+
+.public-shell {
+  width: min(calc(100% - (var(--public-gutter) * 2)), var(--public-shell-max));
+  margin-inline: auto;
+}
+
+.public-hero-copy-shell {
+  padding-left: max(
+    var(--public-gutter),
+    calc((100vw - var(--public-shell-max)) / 2)
+  );
+  padding-right: var(--public-gutter);
 }
 
 @layer components {
