@@ -86,7 +86,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-[rgb(var(--color-bg-page))]">
-      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:w-60">
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-20 md:flex md:w-64">
         <AdminSidebar
           items={navItems}
           displayName={user?.displayName ?? null}
@@ -100,7 +100,7 @@ export function AdminLayout() {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent
           side="left"
-          className="w-60 border-r border-[rgb(var(--color-border-subtle))] p-0 sm:max-w-none"
+          className="w-64 border-r border-[rgb(var(--color-border-subtle))] p-0 sm:max-w-none"
           showClose={false}
         >
           <AdminSidebar
@@ -114,7 +114,7 @@ export function AdminLayout() {
         </SheetContent>
       </Sheet>
 
-      <div className="flex min-h-screen flex-col md:pl-60">
+      <div className="flex min-h-screen flex-col md:pl-64">
         <div ref={setTopbarSlot} />
         <main className="flex-1 p-4 md:p-8">
           <Outlet context={outletValue} />

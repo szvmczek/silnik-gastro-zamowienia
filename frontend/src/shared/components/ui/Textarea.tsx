@@ -10,9 +10,9 @@ interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
 }
 
 const SIZE_CLASS: Record<TextareaSize, string> = {
-  sm: "min-h-[72px] text-[13px]",
-  md: "min-h-[96px] text-sm",
-  lg: "min-h-[120px] text-sm",
+  sm: "min-h-[72px] text-[14px]",
+  md: "min-h-[96px] text-[15px]",
+  lg: "min-h-[120px] text-[15px]",
 };
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(

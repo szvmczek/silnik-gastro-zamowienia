@@ -708,7 +708,7 @@ function Card({ title, sub, children }: CardProps) {
       }}
     >
       <h3
-        className="m-0 text-[15px] font-bold"
+        className="m-0 text-[16px] font-bold"
         style={{ color: "rgb(var(--color-text-primary))" }}
       >
         {title}
@@ -766,7 +766,7 @@ function FieldLabel({
   return (
     <div className="mb-1.5 flex items-baseline gap-1.5">
       <span
-        className="text-[13px] font-semibold"
+        className="text-[14px] font-semibold"
         style={{ color: "rgb(var(--color-text-body))" }}
       >
         {children}
@@ -810,7 +810,7 @@ const Input = ((props: InputProps) => {
         borderRadius: 8,
         border: "1px solid rgb(var(--color-border-card))",
         background: "rgb(var(--color-bg-card))",
-        fontSize: 14,
+        fontSize: 15,
         color: "rgb(var(--color-text-primary))",
         fontFamily: mono ? "var(--font-mono)" : "inherit",
         textTransform: uppercase ? "uppercase" : undefined,
@@ -837,7 +837,7 @@ const Textarea = ((props: TextareaProps) => {
         borderRadius: 8,
         border: "1px solid rgb(var(--color-border-card))",
         background: "rgb(var(--color-bg-card))",
-        fontSize: 14,
+        fontSize: 15,
         color: "rgb(var(--color-text-primary))",
         fontFamily: "inherit",
         lineHeight: 1.55,

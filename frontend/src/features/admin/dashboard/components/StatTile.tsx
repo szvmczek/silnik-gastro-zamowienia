@@ -19,12 +19,12 @@ export function StatTile({
   isLoading = false,
 }: StatTileProps) {
   return (
-    <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5">
+    <div className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5 md:p-6">
       <Kicker className="block">{label}</Kicker>
       <div className="mt-3 flex flex-wrap items-baseline gap-2.5">
         <span
           className={cn(
-            "font-mono text-[30px] font-semibold leading-none tracking-[-0.01em] text-[rgb(var(--color-text-primary))]",
+            "font-mono text-[34px] font-semibold leading-none tracking-[-0.01em] text-[rgb(var(--color-text-primary))] md:text-[36px]",
             isLoading && "text-[rgb(var(--color-text-faint))]",
           )}
         >
@@ -44,7 +44,7 @@ export function StatTile({
         )}
       </div>
       {hint && (
-        <div className="mt-2 text-[12px] text-[rgb(var(--color-text-faint))]">
+        <div className="mt-2 text-[13px] text-[rgb(var(--color-text-faint))]">
           {hint}
         </div>
       )}

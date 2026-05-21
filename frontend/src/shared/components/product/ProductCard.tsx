@@ -69,7 +69,7 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
       onClick={handleOpen}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group relative flex flex-col gap-3 rounded-lg border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-[transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)]",
+        "group relative flex flex-col gap-3.5 rounded-lg border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-[transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] sm:p-5",
         "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
         disabled
           ? "cursor-not-allowed opacity-55"
@@ -99,11 +99,11 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
       </div>
 
       <div className="flex min-h-[3.5rem] flex-col gap-1">
-        <h3 className="text-[16px] font-bold leading-tight tracking-[-0.015em] text-[rgb(var(--color-text-primary))]">
+        <h3 className="text-[17px] font-bold leading-tight tracking-[-0.015em] text-[rgb(var(--color-text-primary))]">
           {product.name}
         </h3>
         {product.description ? (
-          <p className="line-clamp-2 text-[13px] leading-[1.45] text-[rgb(var(--color-text-body))]">
+          <p className="line-clamp-2 text-[14px] leading-[1.45] text-[rgb(var(--color-text-body))]">
             {product.description}
           </p>
         ) : null}
@@ -116,7 +116,7 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
           </span>
         ) : (
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-[17px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
+            <span className="font-mono text-[18px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
               {headlinePrice}
             </span>
             {fromPrefix ? (
@@ -134,9 +134,9 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
               onOpen(product);
             }}
             aria-label={`Otwórz ${product.name}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.08] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.08] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
           >
-            <Plus className="h-4 w-4" strokeWidth={2.4} />
+            <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} />
           </button>
         ) : null}
       </div>

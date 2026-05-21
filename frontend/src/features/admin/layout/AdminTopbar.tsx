@@ -20,7 +20,7 @@ function LiveBadge({ status, label }: { status: AdminTopbarLiveStatus; label?: s
   const text = label ?? (isLive ? "Live · połączono" : "Polling 15s");
   return (
     <span
-      className="hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:inline-flex"
+      className="hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-semibold sm:inline-flex"
       style={{
         background: isLive ? "rgb(var(--status-ready-tint))" : "rgb(var(--color-bg-section))",
         color: isLive ? "#065F46" : "rgb(var(--color-text-muted))",
@@ -57,29 +57,29 @@ export function AdminTopbar({
         className
       )}
     >
-      <div className="flex h-12 items-center justify-between gap-3 px-4 md:px-8">
+      <div className="flex h-14 items-center justify-between gap-3 px-4 md:px-8">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             type="button"
             onClick={openMobileMenu}
-            className="-ml-1 inline-flex h-9 w-9 items-center justify-center rounded-md text-[rgb(var(--color-text-body))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:hidden"
+            className="-ml-1 inline-flex h-10 w-10 items-center justify-center rounded-md text-[rgb(var(--color-text-body))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:hidden"
             aria-label="Otwórz menu"
           >
             <Menu className="h-5 w-5" />
           </button>
           <div className="flex min-w-0 flex-1 items-baseline gap-2">
-            <h1 className="min-w-0 truncate text-[15px] font-bold tracking-tight text-[rgb(var(--color-text-primary))] sm:shrink-0 sm:overflow-visible sm:text-clip">
+            <h1 className="min-w-0 truncate text-[17px] font-bold tracking-tight text-[rgb(var(--color-text-primary))] sm:shrink-0 sm:overflow-visible sm:text-clip md:text-[18px]">
               {title}
             </h1>
             {metadata && (
               <>
                 <span
                   aria-hidden
-                  className="hidden shrink-0 text-[13px] text-[rgb(var(--color-text-faint))] sm:inline"
+                  className="hidden shrink-0 text-[14px] text-[rgb(var(--color-text-faint))] sm:inline"
                 >
                   ·
                 </span>
-                <span className="hidden min-w-0 truncate text-[12px] text-[rgb(var(--color-text-muted))] sm:inline">
+                <span className="hidden min-w-0 truncate text-[13px] text-[rgb(var(--color-text-muted))] sm:inline">
                   {metadata}
                 </span>
               </>

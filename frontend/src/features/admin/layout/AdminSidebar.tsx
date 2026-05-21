@@ -54,7 +54,7 @@ export function AdminSidebar({
         className
       )}
     >
-      <div className="flex items-center gap-2.5 border-b border-[rgb(var(--color-border-subtle))] px-4 py-4">
+      <div className="flex items-center gap-3 border-b border-[rgb(var(--color-border-subtle))] px-4 py-4">
         {logoUrl ? (
           <img
             src={logoUrl}
@@ -74,7 +74,7 @@ export function AdminSidebar({
           </div>
         )}
         <div className="min-w-0">
-          <div className="truncate text-[14px] font-bold leading-tight tracking-tight text-[rgb(var(--color-text-primary))]">
+          <div className="truncate text-[15px] font-bold leading-tight tracking-tight text-[rgb(var(--color-text-primary))]">
             {resolvedBrand}
           </div>
           <Kicker className="mt-0.5 block">Panel admina</Kicker>
@@ -110,7 +110,7 @@ export function AdminSidebar({
               onClick={onNavClick}
               className={({ isActive }) =>
                 cn(
-                  "flex h-10 items-center gap-2.5 rounded-md px-3 text-[14px] transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+                  "flex h-11 items-center gap-3 rounded-md px-3 text-[15px] transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
                   isActive
                     ? "bg-[rgb(var(--color-primary-tint))] font-medium text-[rgb(var(--color-primary))]"
                     : "text-[rgb(var(--color-text-body))] hover:bg-[rgb(var(--color-bg-section))] hover:text-[rgb(var(--color-text-primary))]"
@@ -131,7 +131,7 @@ export function AdminSidebar({
 
       {userInitials && displayName && (
         <div className="border-t border-[rgb(var(--color-border-subtle))] p-3">
-          <div className="flex h-10 items-center gap-2.5 px-2">
+          <div className="flex h-11 items-center gap-2.5 px-2">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-bg-section))] text-[11px] font-semibold text-[rgb(var(--color-text-body))]">
               {userInitials}
             </div>

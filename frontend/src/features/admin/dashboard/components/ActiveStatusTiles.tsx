@@ -47,7 +47,7 @@ export function ActiveStatusTiles({ counts }: ActiveStatusTilesProps) {
         <Link
           key={tile.label}
           to={tile.to}
-          className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+          className="rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:p-5"
           style={{
             borderLeft: `3px solid rgb(var(${tile.statusVar}))`,
           }}
@@ -58,11 +58,11 @@ export function ActiveStatusTiles({ counts }: ActiveStatusTilesProps) {
               style={{ background: `rgb(var(${tile.statusVar}))` }}
               aria-hidden
             />
-            <span className="truncate text-[12px] font-semibold text-[rgb(var(--color-text-body))]">
+            <span className="truncate text-[13px] font-semibold text-[rgb(var(--color-text-body))]">
               {tile.label}
             </span>
           </div>
-          <div className="mt-2 font-mono text-[28px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
+          <div className="mt-2 font-mono text-[32px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
             {tile.value}
           </div>
         </Link>

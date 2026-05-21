@@ -2,7 +2,7 @@ import type { HTMLAttributes, ElementType } from "react";
 import { cn } from "@/shared/lib/cn";
 
 /* Kicker — editorial label nad naglowkiem.
-   Geist 600 12px / spacing 0.06em / uppercase / muted color (default).
+   Inter/system 600 12px / spacing 0.06em / uppercase / muted color (default).
    Variant accent uzywa primary color zamiast muted.
    Bundle ref: docs/design/v2/patterns.jsx (KickerExample)
    + tokens.css .t-kicker / .t-kicker--accent */

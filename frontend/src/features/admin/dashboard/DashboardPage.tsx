@@ -98,7 +98,7 @@ export function DashboardPage() {
 
       <section>
         <Kicker className="mb-4 block">Dziś</Kicker>
-        <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
           <StatTile
             label="Zamówienia dziś"
             value={stats ? String(stats.today.orderCount) : "—"}
