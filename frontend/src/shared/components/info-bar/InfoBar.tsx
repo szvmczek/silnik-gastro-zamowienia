@@ -210,7 +210,9 @@ export function InfoBar({ compact = false }: Props) {
       aria-live="polite"
       className={cn(
         "flex flex-wrap items-center bg-[rgb(var(--color-bg-dark))] text-[rgb(var(--color-text-on-dark))]",
-        compact ? "gap-x-4 gap-y-2 px-4 py-3.5" : "gap-x-8 gap-y-3 px-12 py-5"
+        compact
+          ? "gap-x-4 gap-y-2 px-4 py-3.5"
+          : "gap-x-5 gap-y-3 px-4 py-4 md:gap-x-10 md:px-[var(--public-gutter)] md:py-6"
       )}
     >
       <div className="flex items-center gap-2.5">
@@ -224,7 +226,7 @@ export function InfoBar({ compact = false }: Props) {
         <span
           className={cn(
             "font-semibold",
-            compact ? "text-[13px]" : "text-[14px]"
+            compact ? "text-[13px]" : "text-[15px] md:text-[16px]"
           )}
         >
           {statusLabel}
@@ -235,18 +237,18 @@ export function InfoBar({ compact = false }: Props) {
         <div key={`${m.label}-${i}`} className="flex items-center gap-2">
           {!compact && (
             <span
-              className="hidden h-5 w-px bg-white/15 md:block"
+              className="hidden h-6 w-px bg-white/15 md:block"
               aria-hidden="true"
             />
           )}
           <span className="flex items-center gap-1.5">
-            <span className={compact ? "text-[14px]" : "text-base"}>
+            <span className={compact ? "text-[14px]" : "text-[17px] md:text-[18px]"}>
               {m.icon}
             </span>
             <span
               className={cn(
                 "text-white/85",
-                compact ? "text-[13px]" : "text-[14px]"
+                compact ? "text-[13px]" : "text-[15px] md:text-[16px]"
               )}
             >
               {m.label}{" "}

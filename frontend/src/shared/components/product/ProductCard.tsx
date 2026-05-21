@@ -36,7 +36,7 @@ const StripedPlaceholder = ({ label }: { label: string }) => (
     }}
     aria-hidden="true"
   >
-    <span className="font-mono text-[11px] tracking-[0.02em] text-[rgb(var(--color-text-muted))]">
+    <span className="font-mono text-[11px] tracking-[0.02em] text-[rgb(var(--color-text-muted))] md:text-[13px]">
       {label}
     </span>
   </div>
@@ -69,7 +69,7 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
       onClick={handleOpen}
       onKeyDown={handleKeyDown}
       className={cn(
-        "group relative flex flex-col gap-3.5 rounded-lg border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-[transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] sm:p-5",
+        "group relative flex flex-col gap-3.5 rounded-lg border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-4 transition-[transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] sm:p-5 md:gap-4 md:p-6",
         "focus-visible:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
         disabled
           ? "cursor-not-allowed opacity-55"
@@ -98,12 +98,12 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
         */}
       </div>
 
-      <div className="flex min-h-[3.5rem] flex-col gap-1">
-        <h3 className="text-[17px] font-bold leading-tight tracking-[-0.015em] text-[rgb(var(--color-text-primary))]">
+      <div className="flex min-h-[3.5rem] flex-col gap-1 md:min-h-[4.25rem] md:gap-1.5">
+        <h3 className="text-[17px] font-bold leading-tight tracking-[-0.015em] text-[rgb(var(--color-text-primary))] md:text-[20px]">
           {product.name}
         </h3>
         {product.description ? (
-          <p className="line-clamp-2 text-[14px] leading-[1.45] text-[rgb(var(--color-text-body))]">
+          <p className="line-clamp-2 text-[14px] leading-[1.45] text-[rgb(var(--color-text-body))] md:text-[16px] md:leading-[1.5]">
             {product.description}
           </p>
         ) : null}
@@ -111,16 +111,16 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
 
       <div className="mt-auto flex items-center justify-between">
         {disabled ? (
-          <span className="text-[13px] italic text-[rgb(var(--color-text-muted))]">
+          <span className="text-[13px] italic text-[rgb(var(--color-text-muted))] md:text-[14px]">
             chwilowo niedostępne
           </span>
         ) : (
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-[18px] font-semibold leading-none text-[rgb(var(--color-text-primary))]">
+            <span className="font-mono text-[18px] font-semibold leading-none text-[rgb(var(--color-text-primary))] md:text-[21px]">
               {headlinePrice}
             </span>
             {fromPrefix ? (
-              <span className="text-[11px] text-[rgb(var(--color-text-muted))]">
+              <span className="text-[11px] text-[rgb(var(--color-text-muted))] md:text-[13px]">
                 od
               </span>
             ) : null}
@@ -134,9 +134,9 @@ export function ProductCard({ product, currency = "PLN", onOpen }: Props) {
               onOpen(product);
             }}
             aria-label={`Otwórz ${product.name}`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.08] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.08] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:h-12 md:w-12"
           >
-            <Plus className="h-[18px] w-[18px]" strokeWidth={2.4} />
+            <Plus className="h-[18px] w-[18px] md:h-[22px] md:w-[22px]" strokeWidth={2.4} />
           </button>
         ) : null}
       </div>

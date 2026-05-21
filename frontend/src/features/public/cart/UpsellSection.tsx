@@ -70,7 +70,7 @@ export function UpsellSection({
     <section
       className={cn(
         "border-t border-dashed border-[rgb(var(--color-border-card))]",
-        "mt-1 pt-2"
+        "mt-1 pt-2 md:pt-3"
       )}
       aria-label="Sugerowane dodatki do zamówienia"
     >
@@ -83,14 +83,14 @@ export function UpsellSection({
       >
         <span className="t-kicker t-kicker--accent">A może jeszcze?</span>
         <span className="flex items-baseline gap-1.5">
-          <span className="font-mono text-[11px] text-[rgb(var(--color-text-faint))]">
+          <span className="font-mono text-[11px] text-[rgb(var(--color-text-faint))] md:text-[12px]">
             {suggestions.length} {suffix}
           </span>
           <ChevronDown
             aria-hidden="true"
             strokeWidth={2.4}
             className={cn(
-              "h-3.5 w-3.5 self-center text-[rgb(var(--color-text-faint))] transition-transform duration-200",
+              "h-3.5 w-3.5 self-center text-[rgb(var(--color-text-faint))] transition-transform duration-200 md:h-4 md:w-4",
               isOpen && "rotate-180"
             )}
           />
@@ -104,7 +104,7 @@ export function UpsellSection({
         )}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col gap-1.5 pt-1.5">
+          <div className="flex flex-col gap-1.5 pt-1.5 md:gap-2">
             {suggestions.map((product) => (
               <UpsellRow
                 key={product.id}
@@ -135,24 +135,24 @@ function UpsellRow({ product, currency, leaving, onAdd }: UpsellRowProps) {
   return (
     <div
       className={cn(
-        "group flex min-h-[48px] items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-2.5 py-2 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))]",
+        "group flex min-h-[48px] items-center gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] px-2.5 py-2 transition-[opacity,transform,border-color] duration-[200ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:border-[rgb(var(--color-border-strong))] md:min-h-[56px] md:gap-3 md:px-3",
         leaving && "translate-y-2 opacity-0"
       )}
     >
       <span
         aria-hidden="true"
-        className="w-7 shrink-0 text-center text-[22px] leading-none"
+        className="w-7 shrink-0 text-center text-[22px] leading-none md:w-8 md:text-[26px]"
       >
         {emoji}
       </span>
 
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[13.5px] font-semibold leading-tight text-[rgb(var(--color-text-primary))]">
+        <div className="truncate text-[13.5px] font-semibold leading-tight text-[rgb(var(--color-text-primary))] md:text-[15px]">
           {product.name}
         </div>
       </div>
 
-      <span className="whitespace-nowrap font-mono text-[13px] font-bold tabular-nums text-[rgb(var(--color-text-primary))]">
+      <span className="whitespace-nowrap font-mono text-[13px] font-bold tabular-nums text-[rgb(var(--color-text-primary))] md:text-[14px]">
         {price}
       </span>
 
@@ -161,9 +161,9 @@ function UpsellRow({ product, currency, leaving, onAdd }: UpsellRowProps) {
         onClick={() => onAdd(product)}
         disabled={leaving}
         aria-label={`Dodaj ${product.name} do koszyka`}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.06] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] disabled:opacity-50"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--color-primary))] text-white transition-transform duration-[120ms] ease-[cubic-bezier(0.2,0.7,0.3,1)] hover:bg-[rgb(var(--color-primary-hover))] group-hover:scale-[1.06] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] disabled:opacity-50 md:h-9 md:w-9"
       >
-        <Plus className="h-4 w-4" strokeWidth={2.4} />
+        <Plus className="h-4 w-4 md:h-[18px] md:w-[18px]" strokeWidth={2.4} />
       </button>
     </div>
   );

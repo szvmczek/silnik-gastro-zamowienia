@@ -43,12 +43,18 @@ export function CartRow({
   return (
     <li
       className={cn(
-        "flex flex-col gap-1.5 py-2.5",
+        "flex flex-col",
+        compact ? "gap-2 py-3.5" : "gap-1.5 py-2.5",
         !last && "border-b border-[rgb(var(--color-border-subtle))]"
       )}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="min-w-0 flex-1 text-[14px] font-semibold leading-tight text-[rgb(var(--color-text-primary))]">
+        <h4
+          className={cn(
+            "min-w-0 flex-1 font-semibold leading-tight text-[rgb(var(--color-text-primary))]",
+            compact ? "text-[15px]" : "text-[14px]"
+          )}
+        >
           <span className="truncate">{item.productName}</span>
           {item.variantName ? (
             <span className="font-normal text-[rgb(var(--color-text-muted))]">
@@ -57,37 +63,63 @@ export function CartRow({
             </span>
           ) : null}
         </h4>
-        <span className="whitespace-nowrap font-mono text-[14px] font-semibold tabular-nums text-[rgb(var(--color-text-primary))]">
+        <span
+          className={cn(
+            "whitespace-nowrap font-mono font-semibold tabular-nums text-[rgb(var(--color-text-primary))]",
+            compact ? "text-[15px]" : "text-[14px]"
+          )}
+        >
           {lineTotalLabel}
         </span>
       </div>
 
       {meta ? (
-        <div className="text-[12px] leading-snug text-[rgb(var(--color-text-muted))]">
+        <div
+          className={cn(
+            "leading-snug text-[rgb(var(--color-text-muted))]",
+            compact ? "text-[13px]" : "text-[12px]"
+          )}
+        >
           {meta}
         </div>
       ) : null}
 
       <div className="flex items-center justify-between gap-2">
-        <div className="inline-flex h-7 items-center overflow-hidden rounded border border-[rgb(var(--color-border-card))]">
+        <div
+          className={cn(
+            "inline-flex items-center overflow-hidden rounded border border-[rgb(var(--color-border-card))]",
+            compact ? "h-8" : "h-7"
+          )}
+        >
           <button
             type="button"
             onClick={onDecrement}
             aria-label="Zmniejsz ilość"
-            className="flex h-7 w-7 items-center justify-center text-[rgb(var(--color-text-primary))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className={cn(
+              "flex items-center justify-center text-[rgb(var(--color-text-primary))] transition-colors hover:bg-[rgb(var(--color-bg-section))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+              compact ? "h-8 w-8" : "h-7 w-7"
+            )}
           >
-            <Minus className="h-3 w-3" strokeWidth={2.5} />
+            <Minus className={cn(compact ? "h-3.5 w-3.5" : "h-3 w-3")} strokeWidth={2.5} />
           </button>
-          <div className="flex w-8 items-center justify-center border-x border-[rgb(var(--color-border-card))] font-mono text-[13px] font-semibold tabular-nums">
+          <div
+            className={cn(
+              "flex items-center justify-center border-x border-[rgb(var(--color-border-card))] font-mono font-semibold tabular-nums",
+              compact ? "w-9 text-[14px]" : "w-8 text-[13px]"
+            )}
+          >
             {item.quantity}
           </div>
           <button
             type="button"
             onClick={onIncrement}
             aria-label="Zwiększ ilość"
-            className="flex h-7 w-7 items-center justify-center text-[rgb(var(--color-primary))] transition-colors hover:bg-[rgb(var(--color-primary-tint))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className={cn(
+              "flex items-center justify-center text-[rgb(var(--color-primary))] transition-colors hover:bg-[rgb(var(--color-primary-tint))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+              compact ? "h-8 w-8" : "h-7 w-7"
+            )}
           >
-            <Plus className="h-3 w-3" strokeWidth={2.5} />
+            <Plus className={cn(compact ? "h-3.5 w-3.5" : "h-3 w-3")} strokeWidth={2.5} />
           </button>
         </div>
 
@@ -113,18 +145,24 @@ export function CartRow({
               type="button"
               onClick={onEdit}
               aria-label={`Edytuj: ${item.productName}`}
-              className="flex h-7 w-7 items-center justify-center rounded border border-[rgb(var(--color-border-card))] text-[rgb(var(--color-text-muted))] transition-colors hover:bg-[rgb(var(--color-bg-section))] hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+              className={cn(
+                "flex items-center justify-center rounded border border-[rgb(var(--color-border-card))] text-[rgb(var(--color-text-muted))] transition-colors hover:bg-[rgb(var(--color-bg-section))] hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+                compact ? "h-8 w-8" : "h-7 w-7"
+              )}
             >
-              <Edit3 className="h-3.5 w-3.5" />
+              <Edit3 className={cn(compact ? "h-4 w-4" : "h-3.5 w-3.5")} />
             </button>
           ) : null}
           <button
             type="button"
             onClick={onRemove}
             aria-label={`Usuń: ${item.productName}`}
-            className="flex h-7 w-7 items-center justify-center rounded border border-[rgb(var(--color-border-card))] text-[rgb(var(--color-text-faint))] transition-colors hover:border-[rgb(var(--status-cancelled))] hover:bg-[rgb(var(--status-cancelled-tint))] hover:text-[rgb(var(--status-cancelled))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className={cn(
+              "flex items-center justify-center rounded border border-[rgb(var(--color-border-card))] text-[rgb(var(--color-text-faint))] transition-colors hover:border-[rgb(var(--status-cancelled))] hover:bg-[rgb(var(--status-cancelled-tint))] hover:text-[rgb(var(--status-cancelled))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+              compact ? "h-8 w-8" : "h-7 w-7"
+            )}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className={cn(compact ? "h-4 w-4" : "h-3.5 w-3.5")} />
           </button>
         </div>
       </div>

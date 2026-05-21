@@ -57,7 +57,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
     <div className="border-y border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page)/0.95)] backdrop-blur">
       <nav
         aria-label="Kategorie menu"
-        className="public-shell flex h-14 items-center gap-2 overflow-x-auto scrollbar-none md:h-[68px]"
+        className="public-shell flex h-14 items-center gap-2 overflow-x-auto scrollbar-none md:h-[76px] md:gap-3"
       >
         {tabs.map((tab, i) => {
           const sectionId = sectionIds[i];
@@ -69,7 +69,7 @@ export function CategoryTabs({ tabs, sectionIds }: Props) {
               type="button"
               onClick={() => handleClick(sectionId)}
               className={cn(
-                "inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-4 text-[14px] font-semibold leading-none transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+                "inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded px-4 text-[14px] font-semibold leading-none transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:h-12 md:gap-2 md:px-5 md:text-[16px]",
                 isActive
                   ? "border-[1.5px] border-[rgb(var(--color-primary))] bg-[rgb(var(--color-primary-tint))] text-[rgb(var(--color-primary))]"
                   : "border-[1.5px] border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-body))] hover:border-[rgb(var(--color-border-strong))] hover:text-[rgb(var(--color-text-primary))]"

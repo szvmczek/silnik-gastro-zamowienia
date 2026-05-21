@@ -35,16 +35,16 @@ export function CartButton({ onClick }: Props) {
       onClick={onClick}
       aria-label={count > 0 ? `Koszyk (${count})` : "Koszyk"}
       className={cn(
-        "inline-flex h-10 shrink-0 items-center rounded-md transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]",
+        "inline-flex h-10 shrink-0 items-center rounded-md transition-colors focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:h-12",
         count > 0
-          ? "gap-2 border border-transparent bg-[rgb(var(--color-primary))] px-3 text-white hover:bg-[rgb(var(--color-primary-hover))]"
-          : "w-10 justify-center border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-primary))] hover:border-[rgb(var(--color-border-strong))]",
+          ? "gap-2 border border-transparent bg-[rgb(var(--color-primary))] px-3 text-white hover:bg-[rgb(var(--color-primary-hover))] md:gap-2.5 md:px-4"
+          : "w-10 justify-center border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-primary))] hover:border-[rgb(var(--color-border-strong))] md:w-12",
         bumping && "is-bumping"
       )}
     >
-      <ShoppingCart className="h-5 w-5" />
+      <ShoppingCart className="h-5 w-5 md:h-[22px] md:w-[22px]" />
       {count > 0 ? (
-        <span className="font-mono text-[13px] font-semibold leading-none tabular-nums">
+        <span className="font-mono text-[13px] font-semibold leading-none tabular-nums md:text-[14px]">
           {count > 99 ? "99+" : count}
         </span>
       ) : null}

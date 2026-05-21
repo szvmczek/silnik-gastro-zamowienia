@@ -141,11 +141,11 @@ export function MenuPage() {
       <InfoBar />
 
       <main className="public-shell pb-28 lg:pb-16">
-        <div className="pt-8 md:pt-10 lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-8">
+        <div className="pt-8 md:pt-10 lg:grid lg:grid-cols-[1fr_376px] lg:items-start lg:gap-8 xl:grid-cols-[1fr_392px] xl:gap-12">
           <div className="min-w-0">
-            <header className="pb-8 md:pb-10">
+            <header className="pb-8 md:pb-12">
               <div className="t-kicker t-kicker--accent mb-2 md:mb-3">MENU</div>
-              <h1 className="text-[28px] font-black leading-[1.05] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[48px] md:tracking-[-0.03em]">
+              <h1 className="text-[28px] font-black leading-[1.05] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[56px] md:tracking-[-0.03em] xl:text-[64px]">
                 Wybierz, co zjesz
                 <span className="text-[rgb(var(--color-primary))]">.</span>
               </h1>
@@ -174,25 +174,25 @@ export function MenuPage() {
                 key={category.id}
                 id={categoryAnchorId(category.slug)}
                 aria-labelledby={`${categoryAnchorId(category.slug)}-title`}
-                className="scroll-mt-32 border-t border-[rgb(var(--color-border-card))] pt-10 first:border-t-0 first:pt-0"
+                className="scroll-mt-32 border-t border-[rgb(var(--color-border-card))] pt-12 first:border-t-0 first:pt-0 md:pt-14"
               >
-                <header className="pb-5 md:pb-6">
+                <header className="pb-6 md:pb-8">
                   <div className="flex items-baseline justify-between gap-3">
-                    <div className="flex min-w-0 items-baseline gap-3">
+                    <div className="flex min-w-0 items-baseline gap-3 md:gap-4">
                       <span
                         aria-hidden="true"
-                        className="text-[22px] leading-none md:text-[32px]"
+                        className="text-[22px] leading-none md:text-[40px]"
                       >
                         {getCategoryEmoji(category.slug)}
                       </span>
                       <h2
                         id={`${categoryAnchorId(category.slug)}-title`}
-                        className="text-[22px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[36px] md:tracking-[-0.025em]"
+                        className="text-[22px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[44px] md:tracking-[-0.025em] xl:text-[48px]"
                       >
                         {category.name}
                       </h2>
                     </div>
-                    <div className="shrink-0 font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))] md:text-[13px]">
+                    <div className="shrink-0 font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))] md:text-[15px]">
                       {category.products.length}{" "}
                       {category.products.length === 1
                         ? "pozycja"
@@ -202,7 +202,7 @@ export function MenuPage() {
                     </div>
                   </div>
                   {category.description ? (
-                    <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[rgb(var(--color-text-muted))] md:text-[14px]">
+                    <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-[rgb(var(--color-text-muted))] md:text-[16px]">
                       {category.description}
                     </p>
                   ) : null}
@@ -213,7 +213,7 @@ export function MenuPage() {
                     Brak produktów w tej kategorii.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 pb-8 sm:gap-4 2xl:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 pb-8 sm:gap-4 md:gap-6 2xl:grid-cols-3">
                     {category.products.map((product) => (
                       <ProductCard
                         key={product.id}

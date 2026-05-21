@@ -55,15 +55,15 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
   }, []);
 
   const brand = (
-    <Link to="/" className="flex items-center gap-2">
+    <Link to="/" className="flex items-center gap-2 md:gap-3">
       {settings?.logoUrl ? (
         <img
           src={settings.logoUrl}
           alt={settings?.name ?? "Logo"}
-          className="h-8 w-8 rounded object-cover"
+          className="h-8 w-8 rounded object-cover md:h-11 md:w-11"
         />
       ) : null}
-      <span className="text-[15px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))] md:text-[17px]">
+      <span className="text-[15px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))] md:text-[20px]">
         {settings?.name ?? "Restauracja"}
       </span>
     </Link>
@@ -76,7 +76,7 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
         scrolled && "shadow-sm"
       )}
     >
-      <div className="public-shell flex h-14 items-center justify-between md:h-16">
+      <div className="public-shell flex h-14 items-center justify-between md:h-20">
         {/* Mobile: hamburger + brand */}
         <div className="flex items-center gap-2 md:hidden">
           <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -137,9 +137,9 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
         </div>
 
         {/* Desktop: brand + nav links */}
-        <div className="hidden items-center gap-10 md:flex">
+        <div className="hidden items-center gap-12 md:flex">
           {brand}
-          <nav className="flex items-center gap-7 text-[14px]">
+          <nav className="flex items-center gap-8 text-[16px]">
             {links.map((link) => {
               const isActive = link.to === "/menu" && active === "menu";
               const commonClass = cn(
@@ -162,13 +162,13 @@ export function PublicNav({ active = "home", onOpenCart }: Props) {
         </div>
 
         {/* Right actions — F-006: phone CTA (state-based desktop/mobile) + CartButton */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-4">
           {settings?.phone ? (
             <>
               {/* Desktop: phone z pełnym labelem */}
               <a
                 href={`tel:${settings.phone}`}
-                className="hidden h-10 items-center gap-2 rounded-md px-3 text-[14px] font-medium text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:inline-flex"
+                className="hidden h-12 items-center gap-2.5 rounded-md px-4 text-[16px] font-medium text-[rgb(var(--color-text-body))] transition-colors hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)] md:inline-flex"
               >
                 <span aria-hidden="true">📞</span>
                 <span>{settings.phone}</span>

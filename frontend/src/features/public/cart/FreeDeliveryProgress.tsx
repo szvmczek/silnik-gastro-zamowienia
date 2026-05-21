@@ -39,15 +39,16 @@ export function FreeDeliveryProgress({ compact = false }: Props) {
       className={cn(
         "flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b border-[rgb(var(--color-border-card))] transition-colors",
         reached ? "bg-[rgb(var(--color-primary-tint))]" : "bg-[rgb(var(--color-bg-card))]",
-        compact ? "px-4 py-2.5" : "px-12 py-2.5"
+        compact ? "px-4 py-2.5" : "px-4 py-2.5 md:px-[var(--public-gutter)] md:py-3.5"
       )}
     >
-      <span aria-hidden="true" className="text-[14px]">
+      <span aria-hidden="true" className={cn(compact ? "text-[14px]" : "text-[14px] md:text-[18px]")}>
         {reached ? "🎉" : "🛵"}
       </span>
       <span
         className={cn(
-          "text-[13px] font-medium leading-snug",
+          "font-medium leading-snug",
+          compact ? "text-[13px]" : "text-[13px] md:text-[15px]",
           reached
             ? "text-[rgb(var(--color-primary))]"
             : "text-[rgb(var(--color-text-primary))]"
@@ -71,7 +72,7 @@ export function FreeDeliveryProgress({ compact = false }: Props) {
         aria-hidden="true"
         className={cn(
           "h-1.5 flex-1 overflow-hidden rounded-[3px] bg-[rgb(var(--color-border-card))]",
-          compact ? "min-w-[80px] basis-full" : "min-w-[120px] max-w-[360px]"
+          compact ? "min-w-[80px] basis-full" : "min-w-[120px] max-w-[420px] md:h-2"
         )}
       >
         <div
@@ -79,7 +80,12 @@ export function FreeDeliveryProgress({ compact = false }: Props) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))]">
+      <span
+        className={cn(
+          "font-mono tabular-nums text-[rgb(var(--color-text-muted))]",
+          compact ? "text-[12px]" : "text-[12px] md:text-[14px]"
+        )}
+      >
         {formatPrice(subtotal).replace(" zł", "")} / {threshold} zł
       </span>
     </div>

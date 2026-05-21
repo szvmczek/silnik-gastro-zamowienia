@@ -114,7 +114,7 @@ export function CartSidebar({
   return (
     <aside
       className={cn(
-        "flex w-[360px] shrink-0 flex-col rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]",
+        "flex w-[376px] shrink-0 flex-col rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] xl:w-[392px]",
         "sticky",
         className
       )}
@@ -125,16 +125,16 @@ export function CartSidebar({
       aria-label="Koszyk"
     >
       {/* Header */}
-      <div className="border-b border-[rgb(var(--color-border-subtle))] px-5 py-4">
-        <div className="t-kicker t-kicker--accent mb-0.5">Twój koszyk</div>
+      <div className="border-b border-[rgb(var(--color-border-subtle))] px-6 py-5">
+        <div className="t-kicker t-kicker--accent mb-1">Twój koszyk</div>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-[20px] font-bold leading-tight tracking-[-0.02em] text-[rgb(var(--color-text-primary))]">
+          <h2 className="text-[24px] font-bold leading-tight tracking-[-0.02em] text-[rgb(var(--color-text-primary))]">
             {empty
               ? "Pusty"
               : `${items.length} ${plural(items.length, ["pozycja", "pozycje", "pozycji"])}`}
           </h2>
           {!empty ? (
-            <span className="font-mono text-[13px] text-[rgb(var(--color-text-muted))]">
+            <span className="font-mono text-[14px] text-[rgb(var(--color-text-muted))]">
               {totalQty} szt.
             </span>
           ) : null}
@@ -143,15 +143,15 @@ export function CartSidebar({
 
       {/* Body */}
       {empty ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-bg-section))] text-[rgb(var(--color-text-muted))]">
-            <ShoppingBag className="h-7 w-7" strokeWidth={1.5} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-12 text-center">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[rgb(var(--color-bg-section))] text-[rgb(var(--color-text-muted))]">
+            <ShoppingBag className="h-9 w-9" strokeWidth={1.5} />
           </div>
           <div>
-            <h3 className="text-[16px] font-bold leading-snug text-[rgb(var(--color-text-primary))]">
+            <h3 className="text-[18px] font-bold leading-snug text-[rgb(var(--color-text-primary))]">
               Tu pojawi się Twoje zamówienie
             </h3>
-            <p className="mt-1.5 max-w-[240px] text-[13.5px] leading-snug text-[rgb(var(--color-text-muted))]">
+            <p className="mt-2 max-w-[270px] text-[15px] leading-snug text-[rgb(var(--color-text-muted))]">
               Wybierz coś z menu — dodaj pierwszą pozycję, żeby zacząć.
             </p>
           </div>
@@ -160,7 +160,7 @@ export function CartSidebar({
             variant="outline"
             size="md"
             onClick={onBrowseMenu}
-            className="mt-2"
+            className="mt-2 h-12 px-5 text-[15px]"
           >
             Przeglądaj menu
           </Button>
@@ -169,7 +169,7 @@ export function CartSidebar({
         <div className="relative flex min-h-0 flex-1 flex-col">
           <ul
             ref={listRef}
-            className="flex-1 overflow-y-auto px-5 [scrollbar-color:rgb(var(--color-border-card))_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-[rgb(var(--color-border-strong))] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgb(var(--color-border-card))] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
+            className="flex-1 overflow-y-auto px-6 [scrollbar-color:rgb(var(--color-border-card))_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar-thumb:hover]:bg-[rgb(var(--color-border-strong))] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgb(var(--color-border-card))] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5"
           >
             {items.map((item, idx) => (
               <CartRow
@@ -197,18 +197,18 @@ export function CartSidebar({
 
       {/* Footer */}
       {!empty ? (
-        <div className="border-t border-[rgb(var(--color-border-subtle))] p-5">
+        <div className="border-t border-[rgb(var(--color-border-subtle))] p-6">
           <UpsellSection
             cartItems={items}
             onAdd={onUpsellAdd}
             currency={currency}
           />
 
-          <div className="mt-3.5">
+          <div className="mt-4">
             <FreeDeliveryProgress compact />
           </div>
 
-          <div className="mb-3.5 mt-3.5 flex flex-col gap-1.5 text-[13px]">
+          <div className="mb-4 mt-4 flex flex-col gap-2 text-[14px]">
             <div className="flex items-baseline justify-between text-[rgb(var(--color-text-body))]">
               <span>Suma</span>
               <span className="font-mono tabular-nums">
@@ -223,9 +223,9 @@ export function CartSidebar({
                 </span>
               </div>
             ) : null}
-            <div className="mt-1.5 flex items-baseline justify-between border-t border-dashed border-[rgb(var(--color-border-card))] pt-2.5 text-[16px] font-bold text-[rgb(var(--color-text-primary))]">
+            <div className="mt-2 flex items-baseline justify-between border-t border-dashed border-[rgb(var(--color-border-card))] pt-3 text-[18px] font-bold text-[rgb(var(--color-text-primary))]">
               <span>Do zapłaty</span>
-              <span className="font-mono text-[18px] tabular-nums">
+              <span className="font-mono text-[21px] tabular-nums">
                 {formatPrice(total, currency)}
               </span>
             </div>
@@ -235,7 +235,7 @@ export function CartSidebar({
             <div
               role="status"
               aria-live="polite"
-              className="mb-3 rounded-md bg-[rgb(var(--color-primary-tint))] px-3 py-2 text-[12px] font-medium leading-snug text-[rgb(var(--color-primary))]"
+              className="mb-4 rounded-md bg-[rgb(var(--color-primary-tint))] px-3.5 py-2.5 text-[13px] font-medium leading-snug text-[rgb(var(--color-primary))]"
             >
               Brakuje{" "}
               <strong className="font-mono font-semibold">
@@ -249,7 +249,7 @@ export function CartSidebar({
             type="button"
             variant="primary"
             size="xl"
-            className="w-full"
+            className="h-[68px] w-full text-[18px]"
             disabled={belowMin}
             onClick={onCheckout}
           >
@@ -261,7 +261,7 @@ export function CartSidebar({
           <button
             type="button"
             onClick={onBrowseMenu}
-            className="mt-2 h-9 w-full text-[12px] font-medium text-[rgb(var(--color-text-muted))] transition-colors hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
+            className="mt-3 h-10 w-full text-[13px] font-medium text-[rgb(var(--color-text-muted))] transition-colors hover:text-[rgb(var(--color-text-primary))] focus:outline-none focus-visible:[box-shadow:var(--shadow-focus)]"
           >
             ← Wróć do menu
           </button>
@@ -270,4 +270,3 @@ export function CartSidebar({
     </aside>
   );
 }
-
