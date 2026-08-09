@@ -1,276 +1,140 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useMemo } from "react";
 import { usePublicMenu } from "./hooks/usePublicMenu";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
-import { CategoryTabs } from "./components/CategoryTabs";
-import { getCategoryEmoji } from "./lib/categoryEmoji";
-import { ProductModal, type ProductModalDefaults } from "./components/ProductModal";
-import { ClosedBanner } from "@/shared/components/banners/ClosedBanner";
-import { InfoBar } from "@/shared/components/info-bar/InfoBar";
-import { ProductCard } from "@/shared/components/product/ProductCard";
-import { CartBottomSheet } from "@/features/public/cart/CartBottomSheet";
-import { CartSidebar } from "@/features/public/cart/CartSidebar";
-import { FreeDeliveryProgress } from "@/features/public/cart/FreeDeliveryProgress";
-import { MobileCartBar } from "@/features/public/cart/MobileCartBar";
-import { PublicNav } from "@/features/public/shared/PublicNav";
-import { PublicFooter } from "@/features/public/shared/PublicFooter";
-import { useCartStore, type CartItem } from "@/features/public/cart/cartStore";
-import type { PublicProductDto } from "@/shared/api/menuApi";
+import { CategoryChips } from "./components/CategoryChips";
+import { MenuProductCard } from "./components/MenuProductCard";
+import { SimpleProductRow } from "./components/SimpleProductRow";
+import { MenuSkeleton } from "./components/MenuSkeleton";
+import { ClosedNotice } from "@/features/public/shared/ClosedNotice";
+import { PiecHeader } from "@/features/public/shared/PiecHeader";
+import { PiecShell } from "@/features/public/shared/PiecShell";
+import { PiecFooter } from "@/features/public/shared/PiecFooter";
+import { CartPill } from "@/features/public/shared/CartPill";
+import { CartActionBar } from "@/features/public/cart/CartActionBar";
+import { formatPhoneDisplay } from "@/shared/lib/formatPhone";
+import type { PublicCategoryDto } from "@/shared/api/menuApi";
 
-function categoryAnchorId(slug: string) {
+function anchorId(slug: string) {
   return `cat-${slug}`;
+}
+
+/**
+ * Kategoria, w której żaden produkt nie ma wariantów ani grup dodatków,
+ * nie potrzebuje konfiguratora — paczka renderuje takie pozycje jako
+ * listę wierszy z przyciskiem +. To sosy, napoje i desery.
+ */
+function isSimpleCategory(category: PublicCategoryDto): boolean {
+  return (
+    category.products.length > 0 &&
+    category.products.every((p) => p.variants.length === 0 && p.addonGroups.length === 0)
+  );
 }
 
 export function MenuPage() {
   const { data: menu, isLoading, isError } = usePublicMenu();
   const { data: settings } = usePublicSettings();
-  const navigate = useNavigate();
-  const [selected, setSelected] = useState<PublicProductDto | null>(null);
-  const [editDefaults, setEditDefaults] = useState<ProductModalDefaults | null>(null);
-  const [cartOpen, setCartOpen] = useState(false);
-  const removeItem = useCartStore((s) => s.removeItem);
-
-  const activeCategories = useMemo(
-    () => (menu?.categories ?? []).filter((c) => c.active),
-    [menu]
-  );
-
-  const tabs = useMemo(
-    () =>
-      activeCategories.map((c) => ({
-        id: c.id,
-        slug: c.slug,
-        name: c.name,
-        count: c.products.length,
-      })),
-    [activeCategories]
-  );
-  const sectionIds = useMemo(
-    () => activeCategories.map((c) => categoryAnchorId(c.slug)),
-    [activeCategories]
-  );
-
-  const totalCount = useMemo(
-    () => activeCategories.reduce((sum, c) => sum + c.products.length, 0),
-    [activeCategories]
-  );
-
   const currency = settings?.currency ?? "PLN";
 
-  const findProductById = useCallback(
-    (productId: number): PublicProductDto | null => {
-      if (!menu) return null;
-      for (const category of menu.categories) {
-        for (const product of category.products) {
-          if (product.id === productId) return product;
-        }
-      }
-      return null;
-    },
-    [menu]
+  const categories = useMemo(
+    () => (menu?.categories ?? []).filter((c) => c.active && c.products.length > 0),
+    [menu],
   );
 
-  const handleOpenProduct = (product: PublicProductDto) => {
-    setEditDefaults(null);
-    setSelected(product);
-  };
-
-  const handleEditCartItem = (item: CartItem) => {
-    const product = findProductById(item.productId);
-    if (!product || !product.available) {
-      toast.error(`Produkt "${item.productName}" jest obecnie niedostępny`);
-      return;
-    }
-    setEditDefaults({
-      variantId: item.variantId,
-      addonIds: item.addons.map((a) => a.addonId),
-      quantity: item.quantity,
-    });
-    setSelected(product);
-    removeItem(item.lineKey);
-    setCartOpen(false);
-  };
-
-  const handleModalOpenChange = (open: boolean) => {
-    if (!open) {
-      setSelected(null);
-      setEditDefaults(null);
-    }
-  };
-
-  const handleCheckout = () => {
-    setCartOpen(false);
-    navigate("/checkout");
-  };
-
-  const handleBrowseMenu = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const stickyStackRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = stickyStackRef.current;
-    if (!el) return;
-    const apply = () => {
-      document.documentElement.style.setProperty(
-        "--sticky-stack-height",
-        `${el.offsetHeight}px`
-      );
-    };
-    apply();
-    const ro = new ResizeObserver(apply);
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      document.documentElement.style.removeProperty("--sticky-stack-height");
-    };
-  }, []);
+  const chips = useMemo(
+    () => categories.map((c) => ({ id: c.id, name: c.name, sectionId: anchorId(c.slug) })),
+    [categories],
+  );
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] text-[rgb(var(--color-text-primary))]">
-      <div ref={stickyStackRef} className="sticky top-0 z-50">
-        <ClosedBanner />
-        <PublicNav active="menu" onOpenCart={() => setCartOpen(true)} />
-        <FreeDeliveryProgress />
-        {activeCategories.length > 0 ? (
-          <CategoryTabs tabs={tabs} sectionIds={sectionIds} />
-        ) : null}
-      </div>
+    <>
+      <PiecHeader actions={<CartPill emptyVariant="label" />}>
+        <CategoryChips chips={chips} />
+      </PiecHeader>
 
-      <InfoBar />
+      <ClosedNotice />
 
-      <main className="public-shell pb-28 lg:pb-16">
-        <div className="pt-8 md:pt-10 lg:grid lg:grid-cols-[1fr_376px] lg:items-start lg:gap-8 xl:grid-cols-[1fr_392px] xl:gap-12">
-          <div className="min-w-0">
-            <header className="pb-8 md:pb-12">
-              <div className="t-kicker t-kicker--accent mb-2 md:mb-3">MENU</div>
-              <h1 className="text-[28px] font-black leading-[1.05] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[56px] md:tracking-[-0.03em] xl:text-[64px]">
-                Wybierz, co zjesz
-                <span className="text-[rgb(var(--color-primary))]">.</span>
-              </h1>
-            </header>
+      <PiecShell className="pt-5">
+        <h1 className="font-display text-[clamp(44px,10vw,64px)] tracking-[2px]">Menu</h1>
+        <p className="mt-1 text-sm leading-[1.6] text-piec-ink/60">
+          Rozmiar, dodatki i sosy wybierzesz po kliknięciu „Wybierz".
+        </p>
+      </PiecShell>
 
-            {isLoading ? (
-              <div className="py-16 text-center text-sm text-[rgb(var(--color-text-muted))]">
-                Ładowanie menu…
+      {isLoading ? <MenuSkeleton /> : null}
+
+      {isError ? (
+        <PiecShell className="py-16 text-center text-sm text-piec-warnSoft">
+          Nie udało się załadować menu. Spróbuj odświeżyć stronę.
+        </PiecShell>
+      ) : null}
+
+      {!isLoading && !isError && categories.length === 0 ? (
+        <PiecShell className="py-16 text-center text-sm text-piec-ink/55">
+          Menu jest chwilowo puste.
+        </PiecShell>
+      ) : null}
+
+      {categories.map((category) => {
+        const simple = isSimpleCategory(category);
+        const solo = !simple && category.products.length === 1;
+        return (
+          <section
+            key={category.id}
+            id={anchorId(category.slug)}
+            aria-labelledby={`${anchorId(category.slug)}-title`}
+            className="scroll-mt-40"
+          >
+            <PiecShell className="pt-8">
+              <div className="flex flex-wrap items-baseline gap-2.5">
+                <h2
+                  id={`${anchorId(category.slug)}-title`}
+                  className="font-display text-[27px] tracking-[1.5px] text-primary"
+                >
+                  {category.name}
+                </h2>
+                {category.description ? (
+                  <span className="text-[13px] text-piec-ink/50">{category.description}</span>
+                ) : null}
               </div>
-            ) : null}
 
-            {isError ? (
-              <div className="py-16 text-center text-sm text-rose-600">
-                Nie udało się załadować menu. Spróbuj odświeżyć stronę.
-              </div>
-            ) : null}
-
-            {!isLoading && !isError && activeCategories.length === 0 ? (
-              <div className="py-16 text-center text-sm text-[rgb(var(--color-text-muted))]">
-                Brak dostępnych kategorii.
-              </div>
-            ) : null}
-
-            {activeCategories.map((category) => (
-              <section
-                key={category.id}
-                id={categoryAnchorId(category.slug)}
-                aria-labelledby={`${categoryAnchorId(category.slug)}-title`}
-                className="scroll-mt-32 border-t border-[rgb(var(--color-border-card))] pt-12 first:border-t-0 first:pt-0 md:pt-14"
-              >
-                <header className="pb-6 md:pb-8">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="flex min-w-0 items-baseline gap-3 md:gap-4">
-                      <span
-                        aria-hidden="true"
-                        className="text-[22px] leading-none md:text-[40px]"
-                      >
-                        {getCategoryEmoji(category.slug)}
-                      </span>
-                      <h2
-                        id={`${categoryAnchorId(category.slug)}-title`}
-                        className="text-[22px] font-extrabold leading-[1.1] tracking-[-0.02em] text-[rgb(var(--color-text-primary))] md:text-[44px] md:tracking-[-0.025em] xl:text-[48px]"
-                      >
-                        {category.name}
-                      </h2>
-                    </div>
-                    <div className="shrink-0 font-mono text-[12px] tabular-nums text-[rgb(var(--color-text-muted))] md:text-[15px]">
-                      {category.products.length}{" "}
-                      {category.products.length === 1
-                        ? "pozycja"
-                        : category.products.length < 5
-                          ? "pozycje"
-                          : "pozycji"}
-                    </div>
-                  </div>
-                  {category.description ? (
-                    <p className="mt-2 max-w-3xl text-[13px] leading-relaxed text-[rgb(var(--color-text-muted))] md:text-[16px]">
-                      {category.description}
-                    </p>
-                  ) : null}
-                </header>
-
-                {category.products.length === 0 ? (
-                  <div className="mb-6 rounded-lg border border-dashed border-[rgb(var(--color-border-card))] py-8 text-center text-sm text-[rgb(var(--color-text-muted))]">
-                    Brak produktów w tej kategorii.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3 pb-8 sm:gap-4 md:gap-6 2xl:grid-cols-3">
-                    {category.products.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        currency={currency}
-                        onOpen={handleOpenProduct}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-            ))}
-
-            {activeCategories.length > 0 ? (
-              <footer className="flex items-baseline justify-between border-t border-[rgb(var(--color-border-card))] py-10">
-                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--color-text-faint))] md:text-[11px]">
-                  Razem: {totalCount}{" "}
-                  {totalCount === 1 ? "pozycja" : totalCount < 5 ? "pozycje" : "pozycji"}
+              {simple ? (
+                <div className="mt-1.5 grid gap-x-11 [grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))]">
+                  {category.products.map((product) => (
+                    <SimpleProductRow key={product.id} product={product} currency={currency} />
+                  ))}
                 </div>
-                <div className="hidden max-w-md text-right text-[12px] leading-relaxed text-[rgb(var(--color-text-muted))] md:block">
-                  Wszystkie ceny zawierają VAT. Lista alergenów dostępna na życzenie u obsługi.
+              ) : (
+                <div
+                  data-stagger="1"
+                  className="mt-3.5 grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(clamp(150px,26vw,250px),1fr))] max-[430px]:!grid-cols-2 max-[430px]:!gap-2.5"
+                >
+                  {category.products.map((product) => (
+                    <MenuProductCard
+                      key={product.id}
+                      product={product}
+                      currency={currency}
+                      solo={solo}
+                    />
+                  ))}
                 </div>
-              </footer>
-            ) : null}
-          </div>
+              )}
+            </PiecShell>
+          </section>
+        );
+      })}
 
-          <CartSidebar
-            className="hidden lg:flex"
-            onCheckout={handleCheckout}
-            onBrowseMenu={handleBrowseMenu}
-            onUpsellAdd={handleOpenProduct}
-            onEditItem={handleEditCartItem}
-          />
-        </div>
-      </main>
+      {settings?.phone ? (
+        <PiecShell className="py-6 text-[13.5px] leading-[1.6] text-piec-ink/50">
+          Czegoś brakuje? Zadzwoń —{" "}
+          <a href={`tel:${settings.phone}`} className="text-primary">
+            {formatPhoneDisplay(settings.phone)}
+          </a>
+          .
+        </PiecShell>
+      ) : null}
 
-      <PublicFooter />
-
-      <ProductModal
-        product={selected}
-        open={selected !== null}
-        onOpenChange={handleModalOpenChange}
-        currency={currency}
-        defaults={editDefaults}
-      />
-
-      <CartBottomSheet
-        open={cartOpen}
-        onOpenChange={setCartOpen}
-        onCheckout={handleCheckout}
-        onUpsellAdd={(p) => {
-          setCartOpen(false);
-          handleOpenProduct(p);
-        }}
-        onEditItem={handleEditCartItem}
-      />
-      <MobileCartBar onOpenCart={() => setCartOpen(true)} />
-    </div>
+      <PiecFooter />
+      <CartActionBar />
+    </>
   );
 }

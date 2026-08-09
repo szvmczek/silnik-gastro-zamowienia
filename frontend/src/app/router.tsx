@@ -13,6 +13,9 @@ const LandingPage = lazy(() =>
 const MenuPage = lazy(() =>
   import("@/features/public/menu/MenuPage").then((m) => ({ default: m.MenuPage })),
 );
+const ProductPage = lazy(() =>
+  import("@/features/public/menu/ProductPage").then((m) => ({ default: m.ProductPage })),
+);
 const CheckoutPage = lazy(() =>
   import("@/features/public/checkout/CheckoutPage").then((m) => ({ default: m.CheckoutPage })),
 );
@@ -125,7 +128,8 @@ export function AppRouter() {
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/menu" element={<MenuPage />} />
-            {/* /menu/:slug, /cart i /upsell dochodzą w M5 i M6 */}
+            <Route path="/menu/:slug" element={<ProductPage />} />
+            {/* /cart i /upsell dochodzą w M6 */}
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
             <Route path="/track/:token" element={<TrackingPage />} />
