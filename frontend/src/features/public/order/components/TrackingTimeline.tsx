@@ -1,172 +1,67 @@
-import {
-  Check,
-  CircleCheck,
-  ClipboardCheck,
-  Flame,
-  Home,
-  PackageCheck,
-  Truck,
-  type LucideIcon,
-} from "lucide-react";
 import { cn } from "@/shared/lib/cn";
-import type { OrderStatus } from "@/shared/api/orderApi";
+import type { FulfillmentType, OrderStatus } from "@/shared/api/orderApi";
+import { currentStepIndex, trackingSteps } from "../lib/trackingSteps";
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  NEW: "Przyjęte",
-  CONFIRMED: "Potwierdzone",
-  IN_PREPARATION: "W przygotowaniu",
-  READY: "Gotowe",
-  OUT_FOR_DELIVERY: "W drodze",
-  DELIVERED: "Dostarczone",
-  CANCELED: "Anulowane",
-};
-
-const STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
-  NEW: CircleCheck,
-  CONFIRMED: ClipboardCheck,
-  IN_PREPARATION: Flame,
-  READY: PackageCheck,
-  OUT_FOR_DELIVERY: Truck,
-  DELIVERED: Home,
-  CANCELED: CircleCheck,
-};
-
-interface TrackingTimelineProps {
-  timeline: OrderStatus[];
-  currentIndex: number;
-}
-
-export function TrackingTimeline({ timeline, currentIndex }: TrackingTimelineProps) {
-  const lastDoneSegment = Math.max(0, currentIndex);
-  const totalSegments = Math.max(1, timeline.length - 1);
-  const progressPct = (lastDoneSegment / totalSegments) * 100;
-
-  return (
-    <section className="rounded-2xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-5 lg:p-10">
-      {/* Desktop — horizontal */}
-      <div className="relative hidden lg:block">
-        <div className="relative flex items-start justify-between">
-          <div className="absolute left-5 right-5 top-5 h-[2px] bg-[rgb(var(--color-border-card))]" />
-          <div
-            className="absolute left-5 top-5 h-[2px] bg-[rgb(var(--status-ready))] transition-all duration-slow"
-            style={{ width: `calc((100% - 40px) * ${progressPct / 100})` }}
-          />
-          {timeline.map((status, idx) => (
-            <TimelineStep
-              key={status}
-              status={status}
-              idx={idx}
-              currentIndex={currentIndex}
-              layout="horizontal"
-              total={timeline.length}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Mobile — vertical */}
-      <ol className="space-y-5 lg:hidden">
-        {timeline.map((status, idx) => (
-          <TimelineStep
-            key={status}
-            status={status}
-            idx={idx}
-            currentIndex={currentIndex}
-            layout="vertical"
-            total={timeline.length}
-          />
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-interface StepProps {
+interface Props {
   status: OrderStatus;
-  idx: number;
-  currentIndex: number;
-  layout: "horizontal" | "vertical";
-  total: number;
+  fulfillmentType: FulfillmentType;
 }
 
-function TimelineStep({ status, idx, currentIndex, layout, total }: StepProps) {
-  const done = idx < currentIndex;
-  const active = idx === currentIndex;
-  const isLast = idx === total - 1;
-  const Icon = STATUS_ICONS[status];
-
-  const dot = (
-    <div className="relative">
-      {active ? (
-        <>
-          <span className="absolute inset-0 rounded-full bg-primary/35 animate-ping" />
-          <span className="absolute -inset-1 rounded-full border-2 border-primary/40" />
-        </>
-      ) : null}
-      <div
-        className={cn(
-          "relative flex items-center justify-center rounded-full transition-colors",
-          layout === "horizontal" ? "h-10 w-10" : "h-[30px] w-[30px]",
-          done
-            ? "bg-[rgb(var(--status-ready))] text-white"
-            : active
-              ? "bg-primary text-white animate-dotpulse"
-              : "border-2 border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] text-[rgb(var(--color-text-faint))]"
-        )}
-      >
-        {done ? (
-          <Check
-            className={layout === "horizontal" ? "h-4 w-4" : "h-3 w-3"}
-            strokeWidth={3}
-          />
-        ) : (
-          <Icon
-            className={layout === "horizontal" ? "h-4 w-4" : "h-3 w-3"}
-          />
-        )}
-      </div>
-    </div>
-  );
-
-  if (layout === "horizontal") {
-    return (
-      <div className="relative flex flex-col items-center" style={{ width: `${100 / total}%` }}>
-        {dot}
-        <div
-          className={cn(
-            "mt-3 text-center text-[12px] font-medium",
-            active ? "text-[rgb(var(--color-text-primary))]" : done ? "text-[rgb(var(--color-text-body))]" : "text-[rgb(var(--color-text-faint))]"
-          )}
-        >
-          {STATUS_LABELS[status]}
-        </div>
-      </div>
-    );
-  }
+/**
+ * Pionowa oś kroków z paczki. Mapowanie statusów na kroki żyje
+ * w lib/trackingSteps (D-05) — komponent tylko rysuje.
+ */
+export function TrackingTimeline({ status, fulfillmentType }: Props) {
+  const steps = trackingSteps(fulfillmentType);
+  const activeIndex = currentStepIndex(status, fulfillmentType);
 
   return (
-    <li className="relative flex items-start gap-3">
-      {!isLast ? (
-        <div
-          className={cn(
-            "absolute left-[15px] top-[34px] bottom-[-20px] w-px",
-            done ? "bg-[rgb(var(--status-ready))]" : "bg-[rgb(var(--color-border-card))]"
-          )}
-        />
-      ) : null}
-      <div className="shrink-0">{dot}</div>
-      <div className="flex-1 pt-1">
-        <div
-          className={cn(
-            "text-[13px] font-medium",
-            active ? "text-[rgb(var(--color-text-primary))]" : done ? "text-[rgb(var(--color-text-body))]" : "text-[rgb(var(--color-text-faint))]"
-          )}
-        >
-          {STATUS_LABELS[status]}
-        </div>
-      </div>
-    </li>
+    <ol className="mt-6">
+      {steps.map((step, index) => {
+        const isDone = activeIndex > index;
+        const isCurrent = activeIndex === index;
+        const isLast = index === steps.length - 1;
+        return (
+          <li key={step.label} className="flex gap-4">
+            <div className="flex w-4 flex-none flex-col items-center">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "mt-[3px] h-3.5 w-3.5 flex-none rounded-full",
+                  isDone && "bg-primary",
+                  isCurrent && "bg-primary motion-safe:animate-piec-amber",
+                  !isDone && !isCurrent && "border-2 border-piec-ink/25",
+                )}
+              />
+              {!isLast ? (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "min-h-[30px] w-0.5 flex-1",
+                    isDone ? "bg-primary" : "bg-piec-ink/15",
+                  )}
+                />
+              ) : null}
+            </div>
+            <div className="pb-6">
+              <p
+                className={cn(
+                  "text-[15.5px]",
+                  isDone || isCurrent
+                    ? "font-bold text-piec-ink"
+                    : "font-semibold text-piec-ink/45",
+                )}
+              >
+                {step.label}
+                {isCurrent ? <span className="sr-only"> — aktualny etap</span> : null}
+              </p>
+              {isCurrent && step.hint ? (
+                <p className="mt-0.5 text-[13.5px] text-piec-ink/60">{step.hint}</p>
+              ) : null}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
-
-export { STATUS_LABELS };

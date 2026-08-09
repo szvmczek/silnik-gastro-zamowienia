@@ -1,12 +1,10 @@
 import { Link, useLocation, useParams } from "react-router-dom";
-import { ArrowRight, CircleCheck, Info } from "lucide-react";
-import { Button } from "@/shared/components/ui/Button";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
-import {
-  type CartItem,
-  lineTotal as cartLineTotal,
-} from "@/features/public/cart/cartStore";
+import { formatShortOrderNumber } from "@/shared/lib/orderNumber";
+import { PiecShell } from "@/features/public/shared/PiecShell";
+import { PiecLinkButton } from "@/features/public/shared/PiecButton";
+import { type CartItem, lineTotal as cartLineTotal } from "@/features/public/cart/cartStore";
 
 interface ConfirmationLocationState {
   trackingToken?: string;
@@ -14,6 +12,7 @@ interface ConfirmationLocationState {
   items?: CartItem[];
   subtotal?: number;
   deliveryFee?: number | null;
+  cashChangeFrom?: string | null;
 }
 
 export function OrderConfirmationPage() {
@@ -23,184 +22,123 @@ export function OrderConfirmationPage() {
   const { data: settings } = usePublicSettings();
   const currency = settings?.currency ?? "PLN";
 
-  const hasSummarySnapshot = !!(state.items && state.items.length > 0);
+  const shortNumber = formatShortOrderNumber(orderNumber);
+  const items = state.items ?? [];
+  const hasSnapshot = items.length > 0;
+  const isDelivery = state.deliveryFee !== null && state.deliveryFee !== undefined;
+  const prepMinutes = settings?.defaultPreparationMinutes ?? null;
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--color-bg-page))] text-[rgb(var(--color-text-primary))]">
-      <header className="border-b border-[rgb(var(--color-border-subtle))] bg-[rgb(var(--color-bg-card))]">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3 md:px-10">
-          <Link to="/" className="text-[15px] font-semibold">
-            {settings?.name ?? "Restauracja"}
-          </Link>
-        </div>
-      </header>
+    <PiecShell size="narrow" className="pb-16 pt-5">
+      <Link to="/" className="flex min-h-[44px] items-center font-display text-xl tracking-[3px]">
+        {settings?.name ?? " "}
+      </Link>
 
-      <main className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-16 pt-10 md:pt-16">
-        <div className="w-full md:w-[580px]">
-          <div className="rounded-2xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] p-8 text-center sm:p-10">
-            <div className="inline-flex animate-in fade-in zoom-in-50 duration-500 ease-out">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[rgb(var(--color-primary-tint))]">
-                <CircleCheck className="h-8 w-8 text-[rgb(var(--color-primary))]" strokeWidth={2} />
-              </div>
-            </div>
-            <div className="t-kicker t-kicker--accent mt-5">
-              POTWIERDZENIE · #{orderNumber ?? "—"}
-            </div>
-            <h1 className="mt-3 text-[28px] font-black tracking-tight text-[rgb(var(--color-text-primary))] sm:text-[40px]">
-              Dziękujemy za zamówienie<span className="text-[rgb(var(--color-primary))]">.</span>
-            </h1>
-            <p className="mx-auto mt-3 max-w-[440px] text-[14px] leading-relaxed text-[rgb(var(--color-text-muted))] sm:text-[15px]">
-              Zapisaliśmy Twoje zamówienie. Poniżej znajdziesz numer zamówienia
-              i link do śledzenia.
-            </p>
-
-            <div className="mt-7 inline-block rounded-xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))] px-6 py-5">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[rgb(var(--color-text-faint))]">
-                Numer zamówienia
-              </div>
-              <div className="mt-1 font-mono text-[28px] font-semibold tracking-tight text-[rgb(var(--color-text-primary))] sm:text-[32px] md:text-[40px]">
-                {orderNumber ?? "—"}
-              </div>
-            </div>
-
-            {state.total && !hasSummarySnapshot ? (
-              <p className="mt-4 text-[13px] text-[rgb(var(--color-text-muted))]">
-                Do zapłaty:{" "}
-                <span className="font-semibold text-[rgb(var(--color-text-primary))]">
-                  {formatPrice(state.total, currency)}
-                </span>
-              </p>
-            ) : null}
-
-            <div className="mt-6 flex items-start gap-2.5 rounded-md border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))] px-4 py-3 text-left text-[13px] text-[rgb(var(--color-text-body))]">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-[rgb(var(--color-text-muted))]" />
-              <span>
-                Zachowaj ten link — to twój dostęp do śledzenia bez logowania.
-              </span>
-            </div>
-
-            {state.trackingToken ? (
-              <div className="mt-7">
-                <Link to={`/track/${state.trackingToken}`} className="inline-block w-full md:w-auto">
-                  <Button variant="primary" size="xl" className="w-full md:w-auto md:px-10">
-                    Śledź zamówienie
-                    <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-7 rounded-md border border-[rgb(var(--color-primary))]/30 bg-[rgb(var(--color-primary-tint))] p-4 text-left text-[13px] text-[rgb(var(--color-primary))]">
-                <p className="font-semibold">Nie widzisz przycisku śledzenia?</p>
-                <p className="mt-1 leading-relaxed">
-                  Link do śledzenia jest dostępny tylko zaraz po złożeniu zamówienia.
-                  Jeśli odświeżyłeś stronę, sprawdź wcześniej otwartą kartę.
-                  Twoje zamówienie <strong>{orderNumber}</strong> zostało zapisane.
-                </p>
-              </div>
-            )}
-
-            <Link
-              to="/menu"
-              className="mt-5 inline-block text-[13px] text-[rgb(var(--color-text-muted))] hover:text-[rgb(var(--color-text-primary))]"
-            >
-              ← Wróć do menu
-            </Link>
-          </div>
-
-          {hasSummarySnapshot ? (
-            <OrderSummarySnapshot
-              items={state.items!}
-              subtotal={state.subtotal ?? null}
-              deliveryFee={state.deliveryFee ?? null}
-              total={state.total ?? null}
-              currency={currency}
-            />
-          ) : null}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-interface OrderSummarySnapshotProps {
-  items: CartItem[];
-  subtotal: number | null;
-  deliveryFee: number | null;
-  total: string | null;
-  currency: string;
-}
-
-function OrderSummarySnapshot({
-  items,
-  subtotal,
-  deliveryFee,
-  total,
-  currency,
-}: OrderSummarySnapshotProps) {
-  return (
-    <section className="mt-5 overflow-hidden rounded-2xl border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
-      <div className="border-b border-[rgb(var(--color-border-card))] px-6 py-4">
-        <div className="text-[14px] font-semibold text-[rgb(var(--color-text-primary))]">
-          Podsumowanie zamówienia
-        </div>
+      <div className="mx-auto mt-6 flex h-16 w-16 items-center justify-center rounded-full border-[1.5px] border-piec-ok bg-piec-ok/[0.12] motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-50 motion-safe:duration-500">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M4 12.5L9.5 18L20 6.5"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-piec-ok"
+          />
+        </svg>
       </div>
-      <ul className="divide-y divide-[rgb(var(--color-border-subtle))] px-6 py-2">
-        {items.map((item) => {
-          const unit =
-            item.unitPrice + item.addons.reduce((acc, a) => acc + a.price, 0);
-          return (
-            <li
-              key={item.lineKey}
-              className="flex items-start justify-between gap-3 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium text-[rgb(var(--color-text-primary))]">
-                  <span className="text-[rgb(var(--color-text-muted))]">{item.quantity}× </span>
-                  {item.productName}
-                </p>
-                {(item.variantName || item.addons.length > 0) && (
-                  <p className="mt-0.5 text-[11px] text-[rgb(var(--color-text-muted))]">
-                    {[
-                      item.variantName,
-                      ...item.addons.map((a) => `+${a.name}`),
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                )}
-                <p className="mt-0.5 text-[11px] text-[rgb(var(--color-text-faint))]">
-                  {item.quantity} × {formatPrice(unit, currency)}
-                </p>
-              </div>
-              <span className="shrink-0 text-[13px] font-semibold text-[rgb(var(--color-text-primary))]">
+
+      <h1 className="mt-3.5 text-center font-display text-[clamp(30px,8vw,40px)] tracking-[1.5px]">
+        Zamówienie przyjęte
+      </h1>
+      {/* D-06: klient i telefon operują krótkim numerem; pełny „2026-00047"
+          zostaje w bazie i w panelu. */}
+      <p className="mt-1.5 text-center text-[14.5px] text-piec-ink/65">
+        Nr <b className="text-piec-ink">{shortNumber}</b>
+      </p>
+
+      <section className="mt-5 rounded-2xl border border-piec-ink/10 bg-piec-surface2 p-[18px] text-center">
+        <p className="text-[11.5px] font-bold uppercase tracking-[2px] text-piec-ink/55">
+          {isDelivery ? "Będzie u Ciebie" : "Do odbioru"}
+        </p>
+        <p className="mt-0.5 font-display text-[44px] tracking-[1px] text-primary">
+          {prepMinutes ? `~${prepMinutes} min` : "wkrótce"}
+        </p>
+        <p className="mt-1 text-[13.5px] text-piec-ink/60">
+          {isDelivery
+            ? "Dokładną godzinę zobaczysz po przyjęciu zamówienia przez kuchnię."
+            : `Odbiór: ${[settings?.addressLine, settings?.city].filter(Boolean).join(", ")}`}
+        </p>
+      </section>
+
+      {hasSnapshot ? (
+        <section className="mt-3 rounded-2xl border border-piec-ink/10 bg-piec-surface2 px-4 py-3.5">
+          {items.map((item) => (
+            <div key={item.lineKey} className="flex justify-between gap-2.5 py-1 text-sm">
+              <span className="text-piec-ink/75">
+                {item.productName}
+                {item.quantity > 1 ? ` ×${item.quantity}` : ""}
+              </span>
+              <span className="whitespace-nowrap font-semibold">
                 {formatPrice(cartLineTotal(item), currency)}
               </span>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="space-y-1.5 border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-section))] px-6 py-4">
-        {subtotal !== null && (
-          <div className="flex items-center justify-between text-[13px] text-[rgb(var(--color-text-body))]">
-            <span>Suma produktów</span>
-            <span>{formatPrice(subtotal, currency)}</span>
-          </div>
-        )}
-        {deliveryFee !== null && deliveryFee > 0 && (
-          <div className="flex items-center justify-between text-[13px] text-[rgb(var(--color-text-body))]">
-            <span>Dostawa</span>
-            <span>{formatPrice(deliveryFee, currency)}</span>
-          </div>
-        )}
-        {total ? (
-          <div className="flex items-center justify-between pt-1.5">
-            <span className="text-[14px] font-semibold text-[rgb(var(--color-text-primary))]">Razem</span>
-            <span className="text-[20px] font-semibold text-[rgb(var(--color-text-primary))]">
-              {formatPrice(total, currency)}
-            </span>
-          </div>
-        ) : null}
-      </div>
-    </section>
+            </div>
+          ))}
+          {state.deliveryFee ? (
+            <div className="flex justify-between gap-2.5 py-1 text-sm">
+              <span className="text-piec-ink/55">Dostawa</span>
+              <span className="font-semibold">{formatPrice(state.deliveryFee, currency)}</span>
+            </div>
+          ) : null}
+          {state.total ? (
+            <div className="mt-2 flex justify-between gap-2.5 border-t border-piec-ink/10 pt-2.5">
+              <span className="text-[14.5px] font-bold">Razem, gotówką</span>
+              <span className="font-display text-[22px] tracking-[0.5px] text-primary">
+                {formatPrice(state.total, currency)}
+              </span>
+            </div>
+          ) : null}
+          {state.cashChangeFrom ? (
+            <p className="mt-1.5 text-[13px] text-piec-ink/55">
+              Reszta z {formatPrice(state.cashChangeFrom, currency)}.
+            </p>
+          ) : null}
+        </section>
+      ) : (
+        <p className="mt-3 rounded-2xl border border-piec-ink/10 bg-piec-surface2 px-4 py-3.5 text-[13.5px] leading-[1.6] text-piec-ink/60">
+          Szczegóły zamówienia zobaczysz na stronie śledzenia.
+        </p>
+      )}
+
+      {state.trackingToken ? (
+        <>
+          <p className="mt-4 text-[13.5px] leading-[1.6] text-piec-ink/60">
+            Status sprawdzisz pod tym linkiem — bez logowania, bez konta:
+          </p>
+          <p className="mt-2 break-all rounded-[10px] border border-dashed border-piec-ink/[0.28] bg-piec-surface2 px-3.5 py-2.5 text-[13.5px] text-piec-ink/80">
+            {`${window.location.origin}/track/${state.trackingToken}`}
+          </p>
+          <PiecLinkButton
+            to={`/track/${state.trackingToken}`}
+            fullWidth
+            className="mt-3.5 text-[15.5px] uppercase"
+          >
+            Śledź zamówienie
+          </PiecLinkButton>
+        </>
+      ) : (
+        <p className="mt-4 rounded-xl border border-piec-warn/40 bg-piec-warn/[0.08] px-3.5 py-3 text-sm leading-[1.6] text-piec-warnSoft">
+          Link do śledzenia był jednorazowy i zniknął przy odświeżeniu strony. Zadzwoń, podając
+          numer {shortNumber} — sprawdzimy status.
+        </p>
+      )}
+
+      <PiecLinkButton to="/" variant="outline" height={50} fullWidth className="mt-2.5 text-[14.5px]">
+        Wróć na stronę główną
+      </PiecLinkButton>
+
+      <p className="mt-4 text-center text-[13px] leading-[1.6] text-piec-ink/45">
+        Zadzwonimy tylko, jeśli coś będzie niejasne.
+      </p>
+    </PiecShell>
   );
 }
