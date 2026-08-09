@@ -27,3 +27,16 @@ export async function fetchDeliveryCities(): Promise<DeliveryCity[]> {
   const { data } = await apiClient.get<DeliveryCity[]>("/public/delivery/cities");
   return data;
 }
+
+/** Kafle „Dostawa i odbiór" na landingu — D-01: dane realnie ze stref. */
+export interface DeliveryZonePublic {
+  name: string;
+  type: Exclude<DeliveryCheckStatus, "UNAVAILABLE">;
+  fee: number;
+  cities: string[];
+}
+
+export async function fetchDeliveryZones(): Promise<DeliveryZonePublic[]> {
+  const { data } = await apiClient.get<DeliveryZonePublic[]>("/public/delivery/zones");
+  return data;
+}

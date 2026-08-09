@@ -47,6 +47,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     "Too many delivery checks. Try again later."),
             new Rule("GET", "/api/public/delivery/cities",
                     Bandwidth.builder().capacity(60).refillGreedy(60, Duration.ofMinutes(1)).build(),
+                    "Too many requests. Try again later."),
+            new Rule("GET", "/api/public/delivery/zones",
+                    Bandwidth.builder().capacity(60).refillGreedy(60, Duration.ofMinutes(1)).build(),
                     "Too many requests. Try again later.")
     );
 

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { fetchPublicOpeningHours, type DayOfWeek } from "@/shared/api/openingHoursApi";
 import { formatPrice } from "@/features/public/menu/lib/formatPrice";
+import { formatPhoneDisplay } from "@/shared/lib/formatPhone";
 import { PiecShell } from "./PiecShell";
 
 const CLOSED_DAY_LABELS: Record<DayOfWeek, string> = {
@@ -38,7 +39,11 @@ export function PiecFooter() {
     .filter(Boolean)
     .join(", ");
 
-  const identity = [settings?.name, addressLine || null, settings?.phone ? `tel. ${settings.phone}` : null]
+  const identity = [
+    settings?.name,
+    addressLine || null,
+    settings?.phone ? `tel. ${formatPhoneDisplay(settings.phone)}` : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 

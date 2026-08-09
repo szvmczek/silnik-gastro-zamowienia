@@ -1,52 +1,42 @@
 import type { PageContentDto } from "@/shared/api/pageContentApi";
+import { PiecShell } from "@/features/public/shared/PiecShell";
 
 interface Props {
   about: PageContentDto | undefined;
 }
 
-/* AboutSection — F-007 retrofit pod bundle Stage 2 landing-shared.jsx
-   AboutSection. Stats trio (8 lat / 40+ pozycji / 35 min) pominięte
-   świadomie — AD-Δ5 (backend gap: PageContentDto bez stats fields).
-   Mobile image hidden (bundle pattern, oszczędność miejsca). */
-
+/**
+ * Sekcja „o nas" z paczki: dwie kolumny, tekst po lewej, zdjęcie po prawej,
+ * bez kickera — nagłówek sam niesie treść.
+ *
+ * Kafle statystyk z paczki (8 lat / 40+ pozycji) pominięte — nie ma dla
+ * nich źródła w bazie, a hardcode łamie CLAUDE.md §8.
+ */
 export function AboutSection({ about }: Props) {
   if (!about) return null;
 
   return (
-    <section
-      id="about"
-      className="border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))] py-12 md:py-20"
-    >
-      <div className="public-shell">
-        <div
-          className={
-            about.imageUrl
-              ? "grid gap-8 md:grid-cols-[5fr_6fr] md:items-center md:gap-16"
-              : "grid gap-8 md:grid-cols-1 md:items-center md:gap-16"
-          }
-        >
+    <section id="about" className="pt-10">
+      <PiecShell>
+        <div className="grid items-center gap-8 [grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr))]">
           <div>
-            <div className="t-kicker t-kicker--accent mb-3">O NAS</div>
-            <h2 className="text-[28px] font-extrabold leading-[1.1] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[44px]">
+            <h2 className="font-display text-[clamp(28px,6vw,42px)] leading-[1.1] tracking-[1px]">
               {about.title}
-              <span className="text-[rgb(var(--color-primary))]">.</span>
             </h2>
-            <div className="mt-5 max-w-[480px] space-y-4 text-[15px] leading-[1.6] text-[rgb(var(--color-text-body))] md:mt-6 md:text-[17px]">
-              <p className="whitespace-pre-line">{about.body}</p>
-            </div>
+            <p className="mt-3.5 whitespace-pre-line text-[15.5px] leading-[1.7] text-piec-ink/[0.78] [text-wrap:pretty]">
+              {about.body}
+            </p>
           </div>
           {about.imageUrl ? (
-            <div className="hidden md:block">
-              <img
-                src={about.imageUrl}
-                alt={about.title}
-                className="aspect-[4/3] w-full rounded-[12px] border border-[rgb(var(--color-border-card))] object-cover"
-                loading="lazy"
-              />
-            </div>
+            <img
+              src={about.imageUrl}
+              alt=""
+              loading="lazy"
+              className="block aspect-[3/2] w-full rounded-[18px] object-cover"
+            />
           ) : null}
         </div>
-      </div>
+      </PiecShell>
     </section>
   );
 }

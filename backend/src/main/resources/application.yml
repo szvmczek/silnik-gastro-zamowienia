@@ -7,10 +7,20 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+# `hibernate.jdbc.time_zone: UTC` celowo USUNIĘTE (design v3, M4).
+#
+# Ustawienie wiązało parametry temporalne kalendarzem UTC, co dla kolumn
+# `time without time zone` (opening_hours.open_time / close_time) dawało
+# przesunięcie o offset strefy serwera na epoce 1970-01-01 — czyli +1 h dla
+# Europe/Warsaw. Godzina 12:00 zapisana w bazie wracała z API jako 13:00.
+# Nie było tego widać wcześniej, bo zapis z panelu przesuwał o -1 h i
+# round-trip przez UI się zgadzał; ujawnił to dopiero seed pisany SQL-em.
+#
+# Usunięcie jest bezpieczne: jedyne kolumny temporalne mapowane przez
+# Hibernate to `timestamp with time zone` (Instant), gdzie PostgreSQL i tak
+# trzyma moment absolutny i wynik nie zależy od tego ustawienia. Jedyna
+# kolumna `timestamp without time zone` w schemacie należy do Flyway
+# i nie jest mapowana encją.
   flyway:
     enabled: true
     locations: classpath:db/migration

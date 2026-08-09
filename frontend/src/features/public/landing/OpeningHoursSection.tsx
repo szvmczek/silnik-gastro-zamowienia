@@ -1,5 +1,8 @@
 import type { DayOfWeek, OpeningHoursDto } from "@/shared/api/openingHoursApi";
 import { cn } from "@/shared/lib/cn";
+import { PiecShell } from "@/features/public/shared/PiecShell";
+import { usePublicSettings } from "@/shared/theme/usePublicSettings";
+import { SectionHeading } from "./SectionHeading";
 
 const DAY_ORDER: DayOfWeek[] = [
   "MONDAY",
@@ -11,13 +14,13 @@ const DAY_ORDER: DayOfWeek[] = [
   "SUNDAY",
 ];
 const DAY_LABELS: Record<DayOfWeek, string> = {
-  MONDAY: "Poniedziałek",
-  TUESDAY: "Wtorek",
-  WEDNESDAY: "Środa",
-  THURSDAY: "Czwartek",
-  FRIDAY: "Piątek",
-  SATURDAY: "Sobota",
-  SUNDAY: "Niedziela",
+  MONDAY: "poniedziałek",
+  TUESDAY: "wtorek",
+  WEDNESDAY: "środa",
+  THURSDAY: "czwartek",
+  FRIDAY: "piątek",
+  SATURDAY: "sobota",
+  SUNDAY: "niedziela",
 };
 const EN_DAY_MAP: Record<string, DayOfWeek> = {
   Monday: "MONDAY",
@@ -38,79 +41,72 @@ function resolveTodayInWarsaw(): DayOfWeek | null {
   return weekday ? EN_DAY_MAP[weekday] ?? null : null;
 }
 
+function trim(value: string | null): string {
+  return value ? value.slice(0, 5) : "";
+}
+
 interface Props {
   hours: OpeningHoursDto[] | undefined;
 }
 
-/* OpeningHoursSection — F-007 retrofit pod bundle Stage 2 HoursSection.
-   Centered max-w-720, table z border-radius 12px, każdy wiersz padding
-   16px 24px (desktop) / 14px 16px (mobile). DZIŚ row bg primary-tint
-   z DZIŚ label primary bg white text. */
-
+/**
+ * Godziny otwarcia w układzie z paczki: dwie kolumny wierszy oddzielonych
+ * cienką kreską, dzisiejszy dzień wyróżniony kropką i badge'em DZIŚ.
+ */
 export function OpeningHoursSection({ hours }: Props) {
   const byDay = new Map((hours ?? []).map((h) => [h.dayOfWeek, h]));
   const today = resolveTodayInWarsaw();
+  const { data: settings } = usePublicSettings();
 
   return (
-    <section
-      id="hours"
-      className="border-t border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-page))] py-12 md:py-20"
-    >
-      <div className="mx-auto max-w-[720px] px-4 md:px-8">
-        <div className="mb-7 text-center md:mb-9">
-          <div className="t-kicker t-kicker--accent mb-3">GODZINY OTWARCIA</div>
-          <h2 className="text-[26px] font-extrabold leading-[1.1] tracking-[-0.025em] text-[rgb(var(--color-text-primary))] md:text-[40px]">
-            Kiedy zapraszamy
-            <span className="text-[rgb(var(--color-primary))]">.</span>
-          </h2>
-        </div>
-        <div className="overflow-hidden rounded-[12px] border border-[rgb(var(--color-border-card))] bg-[rgb(var(--color-bg-card))]">
-          {DAY_ORDER.map((day, i) => {
+    <section id="hours" className="mt-24 border-t border-piec-ink/10">
+      <PiecShell>
+        <SectionHeading>Godziny otwarcia</SectionHeading>
+        <div className="mt-5 grid max-w-[860px] gap-x-[72px] [grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))]">
+          {DAY_ORDER.map((day) => {
             const entry = byDay.get(day);
             const isToday = today === day;
             const isClosed = !entry || entry.closed;
-            const isLast = i === DAY_ORDER.length - 1;
             return (
               <div
                 key={day}
-                className={cn(
-                  "flex items-center justify-between gap-4 px-4 py-3.5 md:px-6 md:py-4",
-                  !isLast && "border-b border-[rgb(var(--color-border-card))]",
-                  isToday && "bg-[rgb(var(--color-primary-tint))]"
-                )}
+                className="flex items-center justify-between gap-3 border-b border-piec-ink/10 py-3.5 text-[15.5px]"
               >
                 <span
                   className={cn(
-                    "inline-flex items-center gap-2 text-[14px] leading-none md:text-[15px]",
-                    isToday
-                      ? "font-semibold text-[rgb(var(--color-primary))]"
-                      : "font-medium text-[rgb(var(--color-text-primary))]"
+                    "flex items-center gap-2",
+                    isToday ? "font-semibold text-piec-ink" : "text-piec-ink/65",
                   )}
                 >
+                  {isToday ? (
+                    <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  ) : null}
                   {DAY_LABELS[day]}
                   {isToday ? (
-                    <span className="rounded-[3px] bg-[rgb(var(--color-primary))] px-1.5 py-1 font-mono text-[10px] font-bold uppercase leading-none tracking-[0.06em] text-white">
+                    <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-primary">
                       dziś
                     </span>
                   ) : null}
                 </span>
                 <span
                   className={cn(
-                    "whitespace-nowrap font-mono text-[14px] tabular-nums md:text-[15px]",
-                    isToday
-                      ? "font-semibold text-[rgb(var(--color-primary))]"
-                      : "font-medium text-[rgb(var(--color-text-body))]"
+                    "whitespace-nowrap font-semibold tabular-nums",
+                    isClosed ? "text-piec-ink/50" : isToday ? "text-piec-ink" : "text-piec-ink/85",
                   )}
                 >
-                  {isClosed
-                    ? "Zamknięte"
-                    : `${entry.openTime} – ${entry.closeTime}`}
+                  {isClosed ? "zamknięte" : `${trim(entry.openTime)}–${trim(entry.closeTime)}`}
                 </span>
               </div>
             );
           })}
         </div>
-      </div>
+        {settings?.defaultPreparationMinutes ? (
+          <p className="pb-4 pt-5 text-[13px] leading-[1.6] text-piec-ink/55">
+            Zamówienia online przyjmujemy do {settings.defaultPreparationMinutes} minut przed
+            zamknięciem.
+          </p>
+        ) : null}
+      </PiecShell>
     </section>
   );
 }

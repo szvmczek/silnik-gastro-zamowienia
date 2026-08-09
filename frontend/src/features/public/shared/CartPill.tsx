@@ -5,6 +5,7 @@ import { RollingNumber } from "@/shared/motion/RollingNumber";
 import { useCountBump } from "@/shared/motion/useCountBump";
 import { CART_ANCHOR_ATTR } from "@/shared/motion/flyToCart";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
+import { formatPhoneDisplay } from "@/shared/lib/formatPhone";
 import { cn } from "@/shared/lib/cn";
 
 interface CartPillProps {
@@ -30,9 +31,9 @@ export function CartPill({ emptyVariant = "label", className }: CartPillProps) {
       return (
         <a
           href={`tel:${settings.phone}`}
-          className="flex min-h-[44px] items-center text-sm font-semibold text-piec-ink/85 transition-colors hover:text-primary"
+          className="flex min-h-[44px] items-center whitespace-nowrap text-sm font-semibold text-piec-ink/85 transition-colors hover:text-primary"
         >
-          {settings.phone}
+          {formatPhoneDisplay(settings.phone)}
         </a>
       );
     }
