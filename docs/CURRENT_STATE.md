@@ -3,11 +3,117 @@
 Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
-Brak — Faza 4.5 (Operational UI Split) ZAMKNIĘTA na branchu
-`design/g10-polish` (2026-04-30). Faza 7.0 (Strefy dostawy MVP)
-wcześniej zamknięta (2026-04-28). Faza 4+5 zamknięte wcześniej,
-redesign post-MVP DONE. Następne kroki: Faza 4.6 (Kitchen item
-checklist, PLANNED — patrz ROADMAP.md) lub Railway deploy.
+Brak — Faza 8 (Design v3 „PIEC") ZAMKNIĘTA 2026-08-09 na branchu
+`design/v2-stage5-handoff`. Wcześniej: Faza 4.5 (2026-04-30),
+Faza 7.0 (2026-04-28), Fazy 4+5 i redesign post-MVP. Następne kroki:
+Railway deploy albo Faza 4.6 (Kitchen item checklist, PLANNED —
+patrz ROADMAP.md).
+
+## Faza 8 — Design v3 „PIEC" (DONE, 2026-08-09)
+
+Wdrożenie designu z Claude Design / Fable na całą publiczną ścieżkę.
+Dokument decyzji z korektami: `docs/design/v3/DECYZJE_PRZED_IMPLEMENTACJA.md`.
+Zakres i DoD: `docs/PHASES.md` → Faza 8.
+
+**Migracje:** `V206__cash_change_and_free_delivery.sql`
+(`orders.cash_change_from` D-03 + `restaurant_settings.free_delivery_from`
+D-01, oba z CHECK-ami), `V207__seed_piec_demo.sql` (demo PIEC: marka,
+godziny, treści, 7 kategorii, 18 pizz z wariantami 30/42 cm, 3 grupy
+dodatków, sosy jako osobne produkty per D-02, 2 strefy dostawy).
+Numeracja V2xx, nie V12 — prod ma `out-of-order` wyłączone.
+
+**Backend:**
+- `Order.cashChangeFrom` (nullable = odliczona kwota) w encji i wszystkich
+  DTO; `CheckoutService` odrzuca nominał niższy niż `total` jako 422
+  (**AD-026**), porównanie po doliczeniu `deliveryFee`
+- `RestaurantSettings.freeDeliveryFrom`; w `UpdateSettingsRequest` `null`
+  znaczy „nie zmieniaj", żeby zapis z panelu (bez tego pola) nie zerował
+  wartości z seeda
+- **NOWY** `GET /api/public/delivery/zones` — read-only lista aktywnych
+  stref z miejscowościami, rate-limited 60/min/IP jak reszta
+  `/public/delivery/*`. Zasila kafle „Dostawa i odbiór" (D-01)
+- **FIX:** usunięte `spring.jpa.properties.hibernate.jdbc.time_zone: UTC`.
+  Wiązało parametry temporalne kalendarzem UTC, przez co kolumny
+  `time without time zone` (`opening_hours`) wracały z API o godzinę
+  później niż w bazie. Niewidoczne wcześniej, bo zapis z panelu przesuwał
+  w drugą stronę i round-trip przez UI się zgadzał — ujawnił to seed
+  pisany SQL-em. Bezpieczne: jedyne kolumny temporalne mapowane encjami
+  to `timestamptz`
+- D-04 nie wymagał migracji — `customer_email` i walidacja istniały od V7,
+  brakowało wyłącznie pola w UI
+
+**Frontend — fundament:**
+- `styles/piec.css`: ciemna paleta pod `html[data-public-theme="piec"]`,
+  atrybut ustawia/zdejmuje `PublicLayout` → panel zostaje jasny (D-08)
+- Akcent z `primaryColor` (**AD-024**); `themeLoader` liczy dodatkowo
+  `--color-on-primary` porównując kontrast dwóch atramentów z paczki
+  (nie progiem luminancji — próg wywraca się na kolorach ze środka skali)
+- Fonty self-hosted `@fontsource/anton` + `@fontsource/ibm-plex-sans`
+  zamiast Google Fonts z paczki (demo może być na słabym wifi); usunięty
+  nieużywany `@fontsource-variable/geist`
+- Motion bez framer-motion: `RollingNumber` (rolka cyfrowa, pełna wartość
+  w `aria-label`), `flyToCart` (poza Reactem), `useCountBump`, keyframes
+  1:1 z paczki. Wszystko pod guardem `prefers-reduced-motion`
+- Powłoka: `PiecShell`, `PiecHeader`, `CartPill` (kotwica lotu),
+  `StickyActionBar`, `PiecButton`, `PiecFooter`
+
+**Frontend — ekrany:**
+- Landing: hero z driftem i linią statusu, „Najczęściej zamawiane",
+  o nas, godziny, „Dostawa i odbiór" z realnych stref, kontakt z wielkim
+  telefonem. Mapa OSM usunięta (paczka jej nie ma — zniknęła ostatnia
+  zależność landingu od Nominatim)
+- Menu: pigułki kategorii ze scroll-spy, siatka ze staggerem, skeleton
+  shimmer; kategorie bez wariantów i dodatków (sosy/napoje/desery) jako
+  wiersze z `+` — warunek liczony z danych, nie z listy slugów
+- **NOWE** `/menu/:slug` — pełnoekranowy konfigurator (**AD-025**),
+  zasilany dotąd nieużywanym `usePublicProduct`. Walidacja grup blokuje
+  CTA z konkretną podpowiedzią zamiast milczącego disabled
+- **NOWE** `/cart` i `/upsell` — dosprzedaż jako osobny krok, „Pomiń"
+  zawsze widoczne
+- Checkout: chipsy reszty (D-03) z nominałami liczonymi z kwoty
+  zamówienia, pole e-mail (D-04), miasto + kod pocztowy z live checkiem
+  stref (D-01 — backend liczy po nich, nie po ulicy jak paczka),
+  bramki zwinięte do jednego `blockingHint` pod CTA
+- Potwierdzenie i tracking: krótki numer (D-06, URL dalej UUID per
+  AD-007), ETA jako godzina zegarowa z `etaSetAt + etaMinutes` (zamyka
+  degradację odnotowaną przy G5), mapowanie statusów per `fulfillmentType`
+  (**AD-027**) — przy odbiorze `READY` to „Gotowe do odbioru", nie
+  „W drodze"
+- Strony prawne zwinięte do jednego `LegalPage`
+
+**Usunięte (zastąpione pełnymi ekranami):** `ProductModal`,
+`VariantPicker`, `AddonGroupPicker`, `CategoryTabs`, `CartSidebar`,
+`CartBottomSheet`, `MobileCartBar`, `CartRow`, `CartButton`,
+`UpsellSection`, `FreeDeliveryProgress`, `PublicNav`, `PublicFooter`,
+`ProductCard`, `InfoBar`, `ClosedBanner`, `categoryEmoji`,
+`useAddressGeocode`. `cartStore` NIETKNIĘTY — `buildLineKey` (AD-014),
+klucz persist i API akcji bez zmian.
+
+**Panel (D-08):** restyl wyłącznie `/admin/login` — zmieniona sama warstwa
+wizualna, zero zmian w logice logowania. Ciemne tokeny zdejmowane przy
+odmontowaniu, więc panel po zalogowaniu wraca na jasny motyw
+(zweryfikowane). Poza tym trzy linijki z resztą z gotówki
+(`OrderDetailPage`, `PickupOrderCard`, `DeliveryOrderCard`) — dana
+operacyjna wymagana przez D-03, nie zmiana stylu.
+
+**Nowe decyzje architektoniczne:** AD-024 (ciemny motyw z akcentem
+z ustawień), AD-025 (pełnoekranowy flow), AD-026 (walidacja
+`cashChangeFrom`), AD-027 (mapowanie statusów per typ realizacji) —
+wszystkie w `ARCHITECTURE.md`.
+
+**Weryfikacja:** `npm run build` i `./gradlew test` zielone po każdym
+milestone; migracje sprawdzone na realnej bazie przez `psql` (nie przez
+`Invoke-RestMethod` — PowerShell psuje polskie znaki). W przeglądarce
+na 1280×720 i 375 px: landing, menu, produkt, koszyk, dosprzedaż,
+checkout, potwierdzenie, tracking, stany brzegowe. E2E: zamówienie
+2026-00009 (DOSTAWA, e-mail, reszta ze 100 zł, strefa Pułtusk 6 zł,
+total 49 zł, auto-ETA 25 min) i 2026-00010 (ODBIÓR, `READY` → „Gotowe
+do odbioru").
+
+**Odłożone do ROADMAP:** ceny dodatków per rozmiar, tagi produktów
+(OSTRA/WEGE), `freeDeliveryFrom` w formularzu panelu, edycja pozycji
+koszyka, zdjęcia z paczki (MCP ucina pliki na 256 KiB — seed używa
+URL-i zgodnie z AD-010).
 
 ## Faza 4.5 — Operational UI Split (DONE, 2026-04-30)
 

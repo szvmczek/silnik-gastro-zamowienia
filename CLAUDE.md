@@ -60,8 +60,10 @@ element ma kategorię w `UX_GAP_ANALYSIS.md`: `MVP-critical` / `nice-to-have` /
 - Publiczny landing (hero, about, kontakt, godziny)
 - Menu (kategorie, produkty, warianty, dodatki)
 - Koszyk z persistence (localStorage)
-- Koszyk: sticky sidebar 360px na desktop ≥1024px (`MenuPage`),
-  bottom sheet drawer + floating bar na <1024px
+- Publiczny flow jako pełne ekrany (design v3 „PIEC", 2026-08-09):
+  `/menu` → `/menu/:slug` (konfigurator) → `/cart` → `/upsell` →
+  `/checkout`. Bez modala produktu, bez sticky sidebara i bottom sheeta —
+  zastąpiony wcześniejszy zapis o sidebarze 360px
 - Komentarze klienta per pozycja zamówienia (pole `OrderItem.itemNote`,
   edytowalne w koszyku, widoczne w panelu admina)
 - Checkout z walidacją

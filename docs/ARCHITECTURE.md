@@ -328,6 +328,98 @@ działa bez zmian.
 - Zmiana semantyki przycisku "Potwierdź" w `/admin/orders` detail
   (dalej `NEW → CONFIRMED`).
 
+### AD-024: Ciemny motyw publiczny z akcentem z ustawień
+
+**Decyzja:** Publiczna część serwisu (design v3 „PIEC") ma ciemną,
+ciepłą paletę wpisaną na stałe w tokeny, ale kolor akcentu dalej pochodzi
+z `RestaurantSettings.primaryColor`. Tokeny żyją w `styles/piec.css` pod
+selektorem `html[data-public-theme="piec"]`; atrybut ustawia `PublicLayout`
+na mount i zdejmuje na unmount.
+
+**Powody:**
+- Paczka designu jest ciemna i wygląda w tym konkretnym zestawie kolorów;
+  parametryzacja tła i neutralnych rozmyłaby efekt bez zysku.
+- Projekt jest jednak template'em adaptowanym pod kolejnych klientów
+  (CLAUDE.md), więc obietnica „zmiana koloru w panelu przebarwia stronę"
+  musi zostać. Akcent to jedyny kolor, który realnie definiuje markę.
+- Zakres przez atrybut na `<html>`, a nie globalne nadpisanie tokenów —
+  panel admina (D-08, nietknięty) zostaje na jasnych tokenach z
+  `tokens.css` bez żadnego warunkowania po stronie panelu.
+
+**Konsekwencje akceptowane:**
+- `themeLoader` liczy dodatkowo `--color-on-primary` — kolor tekstu NA
+  akcencie — porównując kontrast dwóch atramentów z paczki. Wybór przez
+  porównanie, nie przez próg luminancji: próg wywraca się na kolorach ze
+  środka skali (np. `#808080`). Bez tego ciemny akcent zjadałby napis
+  na przycisku.
+- Każdy nowy komponent publiczny musi używać `text-onPrimary` na tle
+  akcentu, nigdy `text-white`.
+
+**Trigger do reewaluacji:** klient chce jasnego wariantu strony publicznej
+albo przełącznika motywu — wtedy dochodzi drugi komplet tokenów i pole
+w `RestaurantSettings`.
+
+### AD-025: Publiczny flow jako pełne ekrany
+
+**Decyzja:** Ścieżka zamawiania to osobne route'y — `/menu`, `/menu/:slug`,
+`/cart`, `/upsell`, `/checkout` — zamiast modala produktu i sticky
+sidebara koszyka. Decyzja operatora przy wdrożeniu designu v3.
+
+**Powody:**
+- Design v3 projektuje każdy krok jako pełny ekran, z własnym sticky
+  paskiem akcji; wciśnięcie tego w modal i sidebar dałoby hybrydę
+  niepodobną do żadnej z wersji.
+- Jeden flow zamiast dwóch (desktop/mobile) to mniej kodu warunkowego.
+- Krok dosprzedaży (`/upsell`) nie ma sensownego odpowiednika w sidebarze —
+  a jest jednym z ekranów, które mają zostać pokazane właścicielowi.
+
+**Konsekwencje akceptowane:**
+- Usunięte: `ProductModal`, `CartSidebar`, `CartBottomSheet`,
+  `MobileCartBar`, `CartRow`, `CartButton`, `UpsellSection`,
+  `FreeDeliveryProgress`, `CategoryTabs`, `PublicNav`, `PublicFooter`,
+  `ProductCard`, `InfoBar`, `ClosedBanner`.
+- `cartStore` NIETKNIĘTY — `buildLineKey` (AD-014), klucz persist
+  i API akcji bez zmian. Zmienił się tylko sposób prezentacji.
+- Zapis w CLAUDE.md o sidebarze 360px zastąpiony opisem flow.
+- Edycja pozycji koszyka (dawny „edit pencil") wypadła: przy pełnych
+  ekranach oznaczałaby nawigację do konfiguratora z pre-fillem i usunięcie
+  starej linii. Klient usuwa i dodaje ponownie. Do ROADMAP, jeśli wróci.
+
+### AD-026: `cashChangeFrom` walidowane względem kwoty zamówienia
+
+**Decyzja:** `Order.cashChangeFrom` (D-03) jest nullable — `null` znaczy
+„klient płaci odliczoną kwotą". Gdy jest ustawione, `CheckoutService`
+odrzuca wartość niższą niż `total` jako 422.
+
+**Powody:** „reszta ze 100 zł" przy rachunku na 132 zł to nie preferencja,
+tylko błąd danych, którego kurier nie rozwiąże na miejscu. Porównanie
+po doliczeniu `deliveryFee`, bo klient płaci kwotę końcową.
+
+**Konsekwencje akceptowane:**
+- Frontend nie pokazuje nominałów niższych niż kwota zamówienia — lista
+  chipów jest liczona, nie sztywna jak w paczce.
+- Pole jest widoczne w DTO admina i na kartach Wydania/Dostawy mimo D-08
+  („panel nietknięty") — to dana operacyjna, nie zmiana stylu.
+
+### AD-027: Mapowanie statusów na kroki trackingu zależne od typu realizacji
+
+**Decyzja:** Publiczny tracking pokazuje cztery kroki mapowane z sześciu
+statusów backendu (D-05), z mapowaniem zależnym od `fulfillmentType`.
+Mapowanie żyje wyłącznie na froncie (`order/lib/trackingSteps.ts`);
+state machine i `OrderStatus` bez zmian.
+
+**Powody:**
+- `CONFIRMED` to opcjonalna ścieżka back-office (AD-023) — dla klienta
+  nieodróżnialna od `NEW`.
+- `READY` znaczy co innego przy dostawie („czeka na kuriera", chowane
+  pod „W drodze") niż przy odbiorze („przyjdź po odbiór") — i przy
+  odbiorze jest najważniejszym momentem całego zamówienia.
+- `CANCELED` nie jest krokiem osi, tylko osobnym stanem z telefonem.
+
+**Konsekwencje akceptowane:** dwa opisy tego samego statusu w zależności
+od kontekstu. Świadome — klient odbierający osobiście nigdy nie zobaczy
+„W drodze".
+
 ## Domain conventions
 
 ### Address normalization (od Fazy 7.0)

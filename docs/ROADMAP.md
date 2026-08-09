@@ -306,6 +306,38 @@ wymagają dodatkowego state managementu lub podejmowania decyzji UX).
 Bugi wykryte w review fazy, nie-blockery dla akceptacji, ale do uprzątnięcia
 gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
 
+### Z designu v3 „PIEC" (2026-08-09)
+
+- **Ceny dodatków per rozmiar**
+  Paczka różnicuje cenę dodatku zależnie od wielkości pizzy (ser 6 zł na
+  30 cm, 8 zł na 42 cm). `Addon.price` to jedna wartość — seed bierze cenę
+  dla 30 cm. Wymagałoby albo cennika per (addon, variant), albo mnożnika
+  na wariancie. Do zrobienia, gdy właściciel realnie tak liczy.
+
+- **Tagi produktów (OSTRA / WEGE)**
+  Karty pokazują badge OSTRA wywnioskowany ze słów kluczowych w opisie
+  (`menu/lib/productTags.ts`). WEGE świadomie nie jest pokazywane — „brak
+  mięsa na liście" to wnioskowanie z nieobecności i pomyliłoby się przy
+  pierwszym produkcie opisanym mniej dosłownie. Docelowo: kolumna `tags`
+  na `Product` + edycja w panelu; wtedy heurystyka znika.
+
+- **`freeDeliveryFrom` bez pola w panelu**
+  Kolumna i DTO istnieją (V206), wartość ustawia seed. Formularz ustawień
+  nie wystawia pola, bo panel był poza scope (D-08). `UpdateSettingsRequest`
+  traktuje `null` jako „nie zmieniaj", żeby zapis z panelu nie zerował
+  wartości. Do dołożenia razem z następnym dotknięciem ustawień.
+
+- **Edycja pozycji koszyka**
+  Dawny „edit pencil" w sidebarze wypadł razem z sidebarem (AD-025).
+  Przy pełnych ekranach oznaczałby nawigację do konfiguratora z pre-fillem
+  i usunięcie starej linii. Na razie klient usuwa i dodaje ponownie.
+
+- **Zdjęcia produktów z paczki**
+  Sześć JPG z bundla nie dało się pobrać (MCP tnie pliki na 256 KiB, wszystkie
+  wróciły bez markera EOI). Seed używa URL-i Unsplash rotowanych po
+  produktach, zgodnie z AD-010. Podmiana na własne pliki = jedna linia
+  na produkt.
+
 ### Z Fazy 2 (Menu)
 
 - **Bug #5 — N+1 w `GET /api/admin/products`**

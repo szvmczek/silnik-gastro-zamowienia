@@ -1126,3 +1126,64 @@ Lokalny autocomplete miast z bazy stref + format mask na kodzie pocztowym.
   (rabat oparty o subtotal, nie strefa), nie część rodziny 7.x
 - Multi-tenant per-zone (strefy per restauracja) — w roadmapie ogólnej
   pod multi-tenant, tu single-tenant
+
+## Faza 8: Design v3 „PIEC" — publiczna część serwisu
+STATUS: DONE (2026-08-09)
+
+> Wdrożenie designu z Claude Design / Fable na wszystkie ekrany publiczne.
+> Dokument decyzji: `docs/design/v3/DECYZJE_PRZED_IMPLEMENTACJA.md`
+> (D-01…D-08 + sekcja „Korekty po implementacji").
+> Paczka źródłowa: projekt `c2f6f1b6-0764-4b01-8355-2eccbffb5a45` w MCP
+> `claude_design` (`Pizzeria Piec.dc.html`, `Plansza ekranów.dc.html`).
+
+### Cel
+Wersja demo do pokazania realnemu właścicielowi pizzerii: działa
+end-to-end i wygląda dopracowanie na głównych ścieżkach.
+
+### Rozstrzygnięcia operatora (poza dokumentem decyzji)
+- Ciemna paleta na sztywno, ale `primaryColor` dalej steruje akcentem
+  (**AD-024**)
+- Design wygrywa wszędzie — pełne ekrany zamiast modala i sidebara
+  (**AD-025**)
+- Mikro-animacje na CSS/Tailwind, bez framer-motion
+- D-01: strefy zostają + dochodzi `freeDeliveryFrom`
+- Seed przeładowany na treść PIEC z paczki
+
+### Zakres — backend
+- `V206`: `orders.cash_change_from` (D-03) +
+  `restaurant_settings.free_delivery_from` (D-01), oba z CHECK-ami
+- `CheckoutService` odrzuca `cashChangeFrom < total` jako 422 (**AD-026**)
+- `V207`: seed demo PIEC — marka, godziny, treści, 7 kategorii, 18 pizz,
+  3 grupy dodatków, sosy jako osobne produkty (D-02), 2 strefy dostawy
+- **NOWY** `GET /api/public/delivery/zones` (read-only, rate-limited) —
+  kafle „Dostawa i odbiór" na landingu z realnych stref
+- FIX: usunięte `hibernate.jdbc.time_zone: UTC`, które przesuwało
+  `opening_hours` o +1 h względem bazy
+
+### Zakres — frontend
+- Tokeny `styles/piec.css`, fonty self-hosted (Anton + IBM Plex Sans),
+  keyframes z paczki, prymitywy motion (`RollingNumber`, `flyToCart`,
+  `useCountBump`) — wszystko z guardem `prefers-reduced-motion`
+- Nowe route'y: `/menu/:slug`, `/cart`, `/upsell`
+- Przebudowane: landing, menu, checkout, potwierdzenie, tracking,
+  strony prawne
+- D-05: mapowanie statusów per `fulfillmentType` (**AD-027**)
+- D-06: krótki numer dla klienta, URL trackingu dalej na UUID (AD-007)
+- ETA jako godzina zegarowa z `etaSetAt + etaMinutes`
+- D-08: restyl `/admin/login`; reszta panelu nietknięta poza trzema
+  linijkami z resztą z gotówki (D-03)
+
+### Definition of done — wszystkie zielone
+- [x] Migracje V206 + V207 zaaplikowane, `ddl-auto=validate` przechodzi
+- [x] Zamówienie end-to-end z e-mailem, resztą z gotówki i strefą
+- [x] D-05 zweryfikowane na dwóch zamówieniach (DOSTAWA i ODBIÓR)
+- [x] Stany brzegowe: zamknięte, niedostępny produkt, pusty koszyk,
+      poza strefą, skeleton ładowania
+- [x] 375 px i 1280×720 sprawdzone w przeglądarce
+- [x] Panel bez regresji, jasny motyw wraca po zalogowaniu
+
+### NIE w tej rundzie
+- Wysyłka e-maila (Faza 8 w ROADMAP — kolumna i pole tak, SMTP nie)
+- Panel admina poza loginem i wyświetleniem reszty z gotówki
+- Tagi produktów, ceny dodatków per rozmiar, `freeDeliveryFrom`
+  w formularzu panelu — patrz ROADMAP „Z designu v3"
