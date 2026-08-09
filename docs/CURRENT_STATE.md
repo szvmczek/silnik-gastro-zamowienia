@@ -111,15 +111,20 @@ total 49 zł, auto-ETA 25 min) i 2026-00010 (ODBIÓR, `READY` → „Gotowe
 do odbioru").
 
 **Zdjęcia:** `V207` seedował URL-e Unsplash, bo eksport obrazów przez MCP
-ucinał pliki na 256 KiB. Operator wrzucił oryginały ręcznie i weszły
-migracją `V208__local_menu_images.sql` — pizze (przypisania 1:1 z paczki
-plus rotacja czterech kadrów jak `imgFor()`) i sekcja „o nas". Brakuje
-`hero-01.jpg`, więc `page_content.HERO` zostaje na URL-u. Osobna migracja,
-bo `V207` była już zaaplikowana — zmiana jej treści łamie checksum Flyway.
+ucinał pliki na 256 KiB. Operator wrzucił pięć oryginałów ręcznie; weszły
+migracjami `V208__local_menu_images.sql` (pizze — przypisania 1:1 z paczki
+plus rotacja czterech kadrów jak `imgFor()`) i `V209__hero_image_fix.sql`
+(hero). Osobne migracje, bo poprzednie były już zaaplikowane — zmiana
+treści zaaplikowanej migracji łamie checksum Flyway.
+
+Uwaga na przyszłość: **nazwy dostarczonych plików są przesunięte względem
+paczki**. `hero-02.jpg` zawiera kadr hero („pizze z pieca na drewnianym
+blacie"), a nie zdjęcie sekcji „o nas" — stąd korekta w V209. Brakującym
+kadrem jest „pizza na desce" do sekcji ABOUT, która zostaje na URL-u.
 
 **Odłożone do ROADMAP:** ceny dodatków per rozmiar, tagi produktów
 (OSTRA/WEGE), `freeDeliveryFrom` w formularzu panelu, edycja pozycji
-koszyka, `hero-01.jpg`.
+koszyka, zdjęcie sekcji „o nas".
 
 ## Faza 4.5 — Operational UI Split (DONE, 2026-04-30)
 
