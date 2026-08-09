@@ -165,7 +165,8 @@ export function PickupRow({ order, slotEmphasis = true }: PickupRowProps) {
             fontWeight: 600,
           }}
         >
-          Gotówka
+          {/* D-03: wydający musi wiedzieć, ile przygotować na resztę. */}
+          {order.cashChangeFrom ? `Reszta z ${order.cashChangeFrom} zł` : "Gotówka odliczona"}
         </div>
       </div>
 

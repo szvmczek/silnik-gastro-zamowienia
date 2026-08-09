@@ -523,6 +523,12 @@ export function OrderDetailPage() {
             <div className="mt-1 text-[13px] text-[rgb(var(--color-text-muted))]">
               {fulfillmentLabel(order.fulfillmentType)}
             </div>
+            {/* D-03: kurier / osoba wydająca musi wiedzieć, ile brać na wydanie. */}
+            <div className="mt-1 text-[13px] font-semibold text-[rgb(var(--color-text-primary))]">
+              {order.cashChangeFrom
+                ? `Reszta z ${order.cashChangeFrom} zł`
+                : "Klient płaci odliczoną kwotą"}
+            </div>
           </AsideCard>
 
           <AsideCard title="Historia statusu">

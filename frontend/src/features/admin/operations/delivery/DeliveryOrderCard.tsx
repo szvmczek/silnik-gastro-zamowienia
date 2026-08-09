@@ -155,7 +155,10 @@ export function DeliveryRow({
         {order.customerName}
         {isToCollect ? (
           <>
-            {" · gotówka"}
+            {/* D-03: kurier musi wiedzieć, ile brać na wydanie reszty. */}
+            {order.cashChangeFrom
+              ? ` · gotówka, reszta z ${order.cashChangeFrom} zł`
+              : " · gotówka odliczona"}
             {addr?.notes && <span> · {addr.notes}</span>}
           </>
         ) : (

@@ -134,6 +134,8 @@ export interface AdminOrderListItemDto {
   // Delivery render full cards from a single list query (no per-card detail
   // round-trip). items + items.addons fetched eagerly server-side.
   customerNotes: string | null;
+  /** D-03: nominał, z którego wydać resztę. null = odliczona kwota. */
+  cashChangeFrom: string | null;
   deliveryAddress: OrderTrackingAddressDto | null;
   items: OrderTrackingItemDto[];
   total: string;
@@ -168,6 +170,8 @@ export interface AdminOrderDto {
   customerPhone: string;
   customerEmail: string | null;
   customerNotes: string | null;
+  /** D-03: nominał, z którego wydać resztę. null = odliczona kwota. */
+  cashChangeFrom: string | null;
   deliveryAddress: OrderTrackingAddressDto | null;
   items: OrderTrackingItemDto[];
   subtotal: string;
