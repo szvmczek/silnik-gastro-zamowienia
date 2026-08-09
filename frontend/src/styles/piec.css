@@ -1,0 +1,79 @@
+/* Design v3 „PIEC" — tokeny publicznej części serwisu.
+ *
+ * Zakres: atrybut data-public-theme="piec" na <html>, ustawiany przez
+ * PublicLayout i zdejmowany przy odmontowaniu. Dzięki temu panel admina
+ * (D-08 — nietknięty w tej rundzie) dalej działa na jasnych tokenach
+ * z tokens.css i nic z tego pliku go nie dotyka.
+ *
+ * Akcent NIE jest tu na sztywno: kolor bierzemy z --color-primary, które
+ * ThemeBootstrap ustawia z RestaurantSettings.primaryColor. Seed V207 daje
+ * #E9A13B, więc domyślnie wygląda 1:1 z paczką, ale właściciel dalej może
+ * przemalować markę z panelu. --color-on-primary (tekst na akcencie) liczy
+ * themeLoader z luminancji — bez tego ciemny akcent zjadałby napis.
+ */
+
+html[data-public-theme="piec"] {
+  --piec-bg: #171009;
+  --piec-bg-deep: #100c08;
+  --piec-surface: #1e140c;
+  --piec-surface-2: #211710;
+  --piec-surface-3: #241a11;
+  --piec-ink: #f3e9dc;
+  /* kanały RGB tekstu — do rgb(var(--piec-ink-rgb) / <alpha>) w Tailwindzie */
+  --piec-ink-rgb: 243 233 220;
+  --piec-ok: #8fbb6e;
+  --piec-ok-soft: #b9cf9c;
+  --piec-warn: #e86a4a;
+  --piec-warn-soft: #f0c0b0;
+  --piec-warn-bg: #33190f;
+
+  color-scheme: dark;
+}
+
+html[data-public-theme="piec"] body {
+  background: var(--piec-bg);
+  color: var(--piec-ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+html[data-public-theme="piec"] ::placeholder {
+  color: rgb(var(--piec-ink-rgb) / 0.35);
+}
+
+/* Sonner na ciemnym tle — toast z paczki: pigułka, obwódka w akcencie. */
+html[data-public-theme="piec"] [data-sonner-toast] {
+  background: var(--piec-surface-3);
+  border-color: rgb(var(--color-primary) / 0.55);
+  color: var(--piec-ink);
+}
+
+/* Stagger wejścia kart — odpowiednik [data-stagger] z paczki. */
+[data-stagger] > * {
+  animation: piecCardIn 0.24s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+[data-stagger] > *:nth-child(2) { animation-delay: 0.03s; }
+[data-stagger] > *:nth-child(3) { animation-delay: 0.06s; }
+[data-stagger] > *:nth-child(4) { animation-delay: 0.09s; }
+[data-stagger] > *:nth-child(5) { animation-delay: 0.12s; }
+[data-stagger] > *:nth-child(6) { animation-delay: 0.15s; }
+[data-stagger] > *:nth-child(n + 7) { animation-delay: 0.18s; }
+
+@keyframes piecCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Globalny guard z tokens.css obejmuje też te keyframes, ale stagger ma
+   własne animation-delay, które trzeba wyzerować osobno — inaczej karty
+   przy reduced-motion pojawiają się z opóźnieniem, tylko bez ruchu. */
+@media (prefers-reduced-motion: reduce) {
+  [data-stagger] > * {
+    animation-delay: 0s !important;
+  }
+}

@@ -4,6 +4,9 @@ import { ProtectedRoute } from "@/shared/auth/ProtectedRoute";
 import { CookieConsentBanner } from "@/shared/components/CookieConsentBanner";
 import { RouteFallback } from "@/shared/components/RouteFallback";
 
+const PublicLayout = lazy(() =>
+  import("@/features/public/shared/PublicLayout").then((m) => ({ default: m.PublicLayout })),
+);
 const LandingPage = lazy(() =>
   import("@/features/public/landing/LandingPage").then((m) => ({ default: m.LandingPage })),
 );
@@ -116,13 +119,19 @@ export function AppRouter() {
     <>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/menu" element={<MenuPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
-          <Route path="/track/:token" element={<TrackingPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
+          {/* Design v3 „PIEC": pełnoekranowy flow zamiast modala produktu
+              i sidebara koszyka. PublicLayout włącza ciemne tokeny tylko
+              na tych route'ach — panel admina zostaje jasny (D-08). */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/menu" element={<MenuPage />} />
+            {/* /menu/:slug, /cart i /upsell dochodzą w M5 i M6 */}
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order/confirmation/:orderNumber" element={<OrderConfirmationPage />} />
+            <Route path="/track/:token" element={<TrackingPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+          </Route>
           <Route path="/admin/login" element={<LoginPage />} />
           <Route
             path="/admin"

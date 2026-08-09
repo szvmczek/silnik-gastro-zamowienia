@@ -1,4 +1,5 @@
 @import "./styles/tokens.css";
+@import "./styles/piec.css";
 @import "tw-animate-css";
 
 @tailwind base;
@@ -17,6 +18,9 @@ html {
   text-size-adjust: 100%;
   --public-shell-max: 1760px;
   --public-gutter: 1rem;
+  /* Fallback zanim ThemeBootstrap policzy atrament z primaryColor
+     (patrz shared/theme/themeLoader.ts). Pasuje do seedowanego bursztynu. */
+  --color-on-primary: #1a1109;
 }
 
 body {
