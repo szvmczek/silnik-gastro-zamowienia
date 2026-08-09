@@ -332,16 +332,17 @@ gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
   Przy pełnych ekranach oznaczałby nawigację do konfiguratora z pre-fillem
   i usunięcie starej linii. Na razie klient usuwa i dodaje ponownie.
 
-- **Zdjęcie sekcji „o nas" z paczki** — *reszta zamknięta w V208 + V209*
-  Operator wrzucił ręcznie pięć zdjęć z bundla do
-  `frontend/public/uploads`; weszły migracjami `V208` (pizze) i `V209`
-  (hero). Nazewnictwo dostarczonych plików jest przesunięte względem
-  paczki: plik `hero-02.jpg` zawiera kadr hero („pizze z pieca na
-  drewnianym blacie"), nie zdjęcie do sekcji „o nas".
-  Brakuje więc kadru „pizza na desce" — `page_content.ABOUT` zostaje przy
-  URL-u Unsplash. Gdy plik się pojawi: jeden UPDATE na sekcji ABOUT.
-  Świadomie nie podstawiamy tam żadnego `pizza-0N` — te same zdjęcia lecą
-  w pasie „najczęściej zamawiane" kilkaset pikseli wyżej.
+- **Cztery zdjęcia na osiemnaście pizz** — *zamknięte w V210, ale z ograniczeniem*
+  Komplet sześciu zdjęć z paczki jest w `frontend/public/uploads` (hero,
+  sekcja „o nas", cztery pizze). Przypisania w `V210` robione po ZAWARTOŚCI
+  kadrów, nie po polu `img` z kodu paczki — nazwy plików są tam przesunięte.
+  Cztery pizze mają zdjęcie dokładnie swojego składu; pozostałe czternaście
+  dostaje kadr zgodny z rodzajem sosu (pomidorowy vs śmietana), żeby
+  Margherita nie lądowała ze zdjęciem carbonary.
+  Konsekwencja: w obrębie kategorii zdjęcia się powtarzają — przy czterech
+  kadrach na osiemnaście pozycji nie ma innego wyjścia. Docelowo właściciel
+  wgrywa własne zdjęcia per produkt (pole `imageUrl` jest edytowalne
+  w panelu, AD-010 — nie wymaga żadnej zmiany w kodzie).
   Napoje i desery zostają na URL-ach — paczka nie miała dla nich zdjęć.
 
 ### Z Fazy 2 (Menu)

@@ -111,20 +111,29 @@ total 49 zł, auto-ETA 25 min) i 2026-00010 (ODBIÓR, `READY` → „Gotowe
 do odbioru").
 
 **Zdjęcia:** `V207` seedował URL-e Unsplash, bo eksport obrazów przez MCP
-ucinał pliki na 256 KiB. Operator wrzucił pięć oryginałów ręcznie; weszły
-migracjami `V208__local_menu_images.sql` (pizze — przypisania 1:1 z paczki
-plus rotacja czterech kadrów jak `imgFor()`) i `V209__hero_image_fix.sql`
-(hero). Osobne migracje, bo poprzednie były już zaaplikowane — zmiana
-treści zaaplikowanej migracji łamie checksum Flyway.
+ucinał pliki na 256 KiB. Operator wrzucił oryginały ręcznie — najpierw
+niekompletnie (`V208`, `V209` przypisywały po nazwach plików), potem
+komplet sześciu w oryginalnym nazewnictwie, co domyka
+`V210__bundle_images_complete.sql`. Osobne migracje za każdym razem, bo
+poprzednie były już zaaplikowane — zmiana treści zaaplikowanej migracji
+łamie checksum Flyway.
 
-Uwaga na przyszłość: **nazwy dostarczonych plików są przesunięte względem
-paczki**. `hero-02.jpg` zawiera kadr hero („pizze z pieca na drewnianym
-blacie"), a nie zdjęcie sekcji „o nas" — stąd korekta w V209. Brakującym
-kadrem jest „pizza na desce" do sekcji ABOUT, która zostaje na URL-u.
+Stan końcowy: hero i sekcja „o nas" na plikach lokalnych, 18 pizz na
+czterech kadrach, napoje i desery na URL-ach (paczka nie miała dla nich
+zdjęć).
+
+Uwaga na przyszłość: **nazwy plików w paczce nie zgadzają się z ich
+zawartością** — pole `img` w kodzie bundla wskazuje inne kadry, niż
+sugerują nazwy. `V210` przypisuje zdjęcia po zawartości: cztery pizze
+dostają kadr swojego dokładnego składu (Ogrodowa, Carbonara,
+Wegetariańska, Kurczak i Gorgonzola), reszta kadr zgodny z rodzajem sosu,
+żeby Margherita nie dostała zdjęcia carbonary. Przy czterech zdjęciach na
+osiemnaście pozycji powtórki w obrębie kategorii są nieuniknione —
+docelowo właściciel wgrywa własne przez panel (AD-010).
 
 **Odłożone do ROADMAP:** ceny dodatków per rozmiar, tagi produktów
 (OSTRA/WEGE), `freeDeliveryFrom` w formularzu panelu, edycja pozycji
-koszyka, zdjęcie sekcji „o nas".
+koszyka, własne zdjęcia per produkt.
 
 ## Faza 4.5 — Operational UI Split (DONE, 2026-04-30)
 
