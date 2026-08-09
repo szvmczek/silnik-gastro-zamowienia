@@ -39,6 +39,8 @@ export interface CreateOrderRequest {
   paymentMethod: PaymentMethod;
   deliveryAddress?: AddressRequest | null;
   customerNotes?: string | null;
+  /** D-03: nominał, z którego wydać resztę. null = odliczona kwota. */
+  cashChangeFrom?: number | null;
   items: CreateOrderItemRequest[];
 }
 
@@ -48,6 +50,7 @@ export interface OrderConfirmationDto {
   total: string;
   deliveryFee: string;
   deliveryZoneName: string | null;
+  cashChangeFrom: string | null;
 }
 
 export async function placeOrder(payload: CreateOrderRequest): Promise<OrderConfirmationDto> {
@@ -95,6 +98,8 @@ export interface OrderTrackingDto {
   deliveryFee: string;
   deliveryZoneName: string | null;
   total: string;
+  /** D-03: null = klient płaci odliczoną kwotą. */
+  cashChangeFrom: string | null;
 }
 
 export async function fetchOrderByToken(token: string): Promise<OrderTrackingDto> {
