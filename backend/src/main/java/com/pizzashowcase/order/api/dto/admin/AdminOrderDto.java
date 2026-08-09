@@ -30,6 +30,10 @@ public record AdminOrderDto(
         String customerPhone,
         String customerEmail,
         String customerNotes,
+        // D-03: nominał, z którego wydać resztę. null = odliczona kwota.
+        // Wyjątek od D-08 „panel nietknięty" — to dana operacyjna, nie styl:
+        // kurier / osoba wydająca musi wiedzieć, ile brać na wydanie.
+        BigDecimal cashChangeFrom,
         OrderTrackingAddressDto deliveryAddress,
         List<OrderTrackingItemDto> items,
         BigDecimal subtotal,

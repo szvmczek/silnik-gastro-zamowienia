@@ -21,6 +21,8 @@ public record OrderTrackingDto(
         BigDecimal subtotal,
         BigDecimal deliveryFee,
         String deliveryZoneName,
-        BigDecimal total
+        BigDecimal total,
+        // D-03: null = odliczona kwota.
+        BigDecimal cashChangeFrom
 ) {
 }

@@ -79,6 +79,11 @@ class CheckoutServiceDeliveryFeeTest {
     }
 
     private CreateOrderRequest baseRequest(FulfillmentType ft, PaymentMethod pm, AddressRequest addr) {
+        return baseRequest(ft, pm, addr, null);
+    }
+
+    private CreateOrderRequest baseRequest(FulfillmentType ft, PaymentMethod pm, AddressRequest addr,
+                                           BigDecimal cashChangeFrom) {
         return new CreateOrderRequest(
                 "Jan Kowalski",
                 "+48123456789",
@@ -87,6 +92,7 @@ class CheckoutServiceDeliveryFeeTest {
                 pm,
                 addr,
                 null,
+                cashChangeFrom,
                 List.of(new CreateOrderItemRequest(1L, null, null, 1))
         );
     }
@@ -132,6 +138,63 @@ class CheckoutServiceDeliveryFeeTest {
 
         assertThat(conf.total()).isEqualByComparingTo("30.00");
         verify(deliveryLookup, never()).lookup(any(), any());
+    }
+
+    // D-03 — reszta z gotówki.
+
+    @Test
+    void cashChangeFromNullMeansExactAmount() {
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+
+        OrderConfirmationDto conf = service.placeOrder(
+                baseRequest(FulfillmentType.PICKUP, PaymentMethod.CASH_ON_PICKUP, null, null));
+
+        verify(orderRepository).save(captor.capture());
+        assertThat(captor.getValue().getCashChangeFrom()).isNull();
+        assertThat(conf.cashChangeFrom()).isNull();
+    }
+
+    @Test
+    void cashChangeFromAboveTotalIsStoredScaledToTwoDecimals() {
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+
+        OrderConfirmationDto conf = service.placeOrder(
+                baseRequest(FulfillmentType.PICKUP, PaymentMethod.CASH_ON_PICKUP, null, new BigDecimal("100")));
+
+        verify(orderRepository).save(captor.capture());
+        assertThat(captor.getValue().getCashChangeFrom()).isEqualByComparingTo("100.00");
+        assertThat(conf.cashChangeFrom()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void cashChangeFromEqualToTotalIsAccepted() {
+        OrderConfirmationDto conf = service.placeOrder(
+                baseRequest(FulfillmentType.PICKUP, PaymentMethod.CASH_ON_PICKUP, null, new BigDecimal("30.00")));
+
+        assertThat(conf.cashChangeFrom()).isEqualByComparingTo("30.00");
+    }
+
+    @Test
+    void cashChangeFromBelowTotalThrows422() {
+        assertThatThrownBy(() -> service.placeOrder(
+                baseRequest(FulfillmentType.PICKUP, PaymentMethod.CASH_ON_PICKUP, null, new BigDecimal("20.00"))))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("niższa niż wartość zamówienia");
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void cashChangeFromIsComparedAgainstTotalIncludingDeliveryFee() {
+        when(deliveryLookup.lookup("NDM", "05-160"))
+                .thenReturn(new DeliveryLookupResult(DeliveryZoneType.PAID, new BigDecimal("5.00"), "Modlin", 2L));
+        AddressRequest addr = new AddressRequest("Forteczna", "1", null, "05-160", "NDM", null);
+
+        // subtotal 30.00 + dostawa 5.00 = 35.00; banknot 32 zł nie wystarcza.
+        assertThatThrownBy(() -> service.placeOrder(baseRequest(
+                FulfillmentType.DELIVERY, PaymentMethod.CASH_ON_DELIVERY, addr, new BigDecimal("32.00"))))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("niższa niż wartość zamówienia");
     }
 
     @Test

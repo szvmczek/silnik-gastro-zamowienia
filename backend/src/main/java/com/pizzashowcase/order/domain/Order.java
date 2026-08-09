@@ -74,6 +74,10 @@ public class Order extends AuditableEntity {
     @Column(name = "delivery_zone_name", length = 80)
     private String deliveryZoneName;
 
+    // D-03: nominał, z którego klient chce resztę. null = odliczona kwota.
+    @Column(name = "cash_change_from", precision = 10, scale = 2)
+    private BigDecimal cashChangeFrom;
+
     @Column(name = "eta_minutes")
     private Integer etaMinutes;
 
@@ -104,6 +108,7 @@ public class Order extends AuditableEntity {
                  PaymentMethod paymentMethod,
                  Address deliveryAddress,
                  String customerNotes,
+                 BigDecimal cashChangeFrom,
                  BigDecimal subtotal,
                  BigDecimal deliveryFee,
                  String deliveryZoneName,
@@ -118,6 +123,7 @@ public class Order extends AuditableEntity {
         this.paymentMethod = paymentMethod;
         this.deliveryAddress = deliveryAddress != null ? deliveryAddress : Address.empty();
         this.customerNotes = customerNotes;
+        this.cashChangeFrom = cashChangeFrom;
         this.subtotal = subtotal;
         this.deliveryFee = deliveryFee != null ? deliveryFee : BigDecimal.ZERO;
         this.deliveryZoneName = deliveryZoneName;
@@ -170,6 +176,10 @@ public class Order extends AuditableEntity {
 
     public String getCustomerNotes() {
         return customerNotes;
+    }
+
+    public BigDecimal getCashChangeFrom() {
+        return cashChangeFrom;
     }
 
     public BigDecimal getSubtotal() {

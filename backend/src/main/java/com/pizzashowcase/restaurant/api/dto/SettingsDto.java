@@ -23,6 +23,7 @@ public record SettingsDto(
         String socialInstagram,
         int defaultPreparationMinutes,
         BigDecimal minOrderAmount,
+        BigDecimal freeDeliveryFrom,
         String manualClosedReason,
         Instant manualClosedUntil
 ) {
@@ -45,6 +46,7 @@ public record SettingsDto(
                 s.getSocialInstagram(),
                 s.getDefaultPreparationMinutes(),
                 s.getMinOrderAmount(),
+                s.getFreeDeliveryFrom(),
                 s.getManualClosedReason(),
                 s.getManualClosedUntil()
         );

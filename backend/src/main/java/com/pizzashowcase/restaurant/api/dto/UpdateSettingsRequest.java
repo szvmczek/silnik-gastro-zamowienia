@@ -30,6 +30,9 @@ public record UpdateSettingsRequest(
         @Size(max = 500) @Pattern(regexp = "^(https?://.+)?$", message = "socialInstagram must start with http:// or https://") String socialInstagram,
         @NotNull @Min(5) @Max(120) Integer defaultPreparationMinutes,
         @NotNull @DecimalMin("0.0") @DecimalMax("500.0") BigDecimal minOrderAmount,
+        // D-01: opcjonalny próg darmowej dostawy. null = brak progu.
+        // Formularz w panelu nie wystawia jeszcze tego pola — wartość ustawia seed.
+        @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1000.0") BigDecimal freeDeliveryFrom,
         @Size(max = 200) String manualClosedReason,
         Instant manualClosedUntil
 ) {

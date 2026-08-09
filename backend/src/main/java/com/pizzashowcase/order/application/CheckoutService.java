@@ -110,6 +110,10 @@ public class CheckoutService {
         UUID trackingToken = UUID.randomUUID();
         BigDecimal total = subtotal.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
 
+        // D-03: reszta z gotówki. null = odliczona kwota. Obie metody płatności,
+        // jakie mamy, są gotówkowe, więc nie ma tu rozgałęzienia na paymentMethod.
+        BigDecimal cashChangeFrom = normalizeCashChangeFrom(request.cashChangeFrom(), total);
+
         Order order = new Order(
                 orderNumber,
                 trackingToken,
@@ -120,6 +124,7 @@ public class CheckoutService {
                 request.paymentMethod(),
                 buildAddress(request),
                 normalizeNotes(request.customerNotes()),
+                cashChangeFrom,
                 subtotal,
                 deliveryFee,
                 deliveryZoneName,
@@ -147,7 +152,22 @@ public class CheckoutService {
                 persisted.getPublicTrackingToken(),
                 persisted.getTotal(),
                 persisted.getDeliveryFee(),
-                persisted.getDeliveryZoneName());
+                persisted.getDeliveryZoneName(),
+                persisted.getCashChangeFrom());
+    }
+
+    // D-03: banknot musi pokryć zamówienie, inaczej „reszta ze 100 zł" przy
+    // rachunku na 132 zł jest nonsensem, którego kurier nie rozwiąże.
+    private static BigDecimal normalizeCashChangeFrom(BigDecimal requested, BigDecimal total) {
+        if (requested == null) {
+            return null;
+        }
+        BigDecimal scaled = requested.setScale(2, RoundingMode.HALF_UP);
+        if (scaled.compareTo(total) < 0) {
+            throw ApiException.unprocessable(
+                    "Kwota, z której ma być wydana reszta, jest niższa niż wartość zamówienia.");
+        }
+        return scaled;
     }
 
     private void validateFulfillmentPaymentAddress(CreateOrderRequest req) {

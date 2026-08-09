@@ -43,6 +43,12 @@ public class RestaurantSettingsService {
         settings.setSocialInstagram(update.socialInstagram());
         settings.setDefaultPreparationMinutes(update.defaultPreparationMinutes());
         settings.setMinOrderAmount(update.minOrderAmount());
+        // D-01: null = "nie zmieniaj". Formularz ustawień w panelu nie wystawia
+        // jeszcze tego pola (D-08 — panel nietknięty w tej rundzie), więc każdy
+        // zapis z panelu przysyła null i nie może wyzerować wartości z seeda.
+        if (update.freeDeliveryFrom() != null) {
+            settings.setFreeDeliveryFrom(update.freeDeliveryFrom());
+        }
         // Manual close — N32: reason null clears the close; until only kept
         // when a reason is present.
         String reason = update.manualClosedReason();
@@ -86,6 +92,7 @@ public class RestaurantSettingsService {
             String socialInstagram,
             int defaultPreparationMinutes,
             BigDecimal minOrderAmount,
+            BigDecimal freeDeliveryFrom,
             String manualClosedReason,
             Instant manualClosedUntil
     ) {}

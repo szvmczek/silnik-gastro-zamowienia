@@ -47,6 +47,7 @@ public class AdminSettingsController {
                 request.socialInstagram(),
                 request.defaultPreparationMinutes(),
                 request.minOrderAmount(),
+                request.freeDeliveryFrom(),
                 request.manualClosedReason(),
                 request.manualClosedUntil()
         );

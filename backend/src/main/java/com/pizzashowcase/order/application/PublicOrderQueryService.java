@@ -57,7 +57,8 @@ public class PublicOrderQueryService {
                 order.getSubtotal(),
                 order.getDeliveryFee(),
                 order.getDeliveryZoneName(),
-                order.getTotal()
+                order.getTotal(),
+                order.getCashChangeFrom()
         );
     }
 

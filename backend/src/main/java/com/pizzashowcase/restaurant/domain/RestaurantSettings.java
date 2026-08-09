@@ -67,6 +67,11 @@ public class RestaurantSettings extends AuditableEntity {
     @Column(name = "min_order_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal minOrderAmount = BigDecimal.ZERO;
 
+    // D-01: próg darmowej dostawy. null = brak progu.
+    // Sam koszt dostawy żyje per DeliveryZone (V10), nie tutaj.
+    @Column(name = "free_delivery_from", precision = 10, scale = 2)
+    private BigDecimal freeDeliveryFrom;
+
     @Column(name = "manual_closed_reason", length = 200)
     private String manualClosedReason;
 
@@ -224,6 +229,14 @@ public class RestaurantSettings extends AuditableEntity {
 
     public void setMinOrderAmount(BigDecimal minOrderAmount) {
         this.minOrderAmount = minOrderAmount;
+    }
+
+    public BigDecimal getFreeDeliveryFrom() {
+        return freeDeliveryFrom;
+    }
+
+    public void setFreeDeliveryFrom(BigDecimal freeDeliveryFrom) {
+        this.freeDeliveryFrom = freeDeliveryFrom;
     }
 
     public String getManualClosedReason() {

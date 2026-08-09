@@ -20,6 +20,8 @@ public record AdminOrderListItemDto(
         String customerName,
         String customerPhone,
         String customerNotes,
+        // D-03: nominał, z którego wydać resztę. null = odliczona kwota.
+        BigDecimal cashChangeFrom,
         OrderTrackingAddressDto deliveryAddress,
         List<OrderTrackingItemDto> items,
         BigDecimal total,

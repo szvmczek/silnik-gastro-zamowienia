@@ -8,6 +8,8 @@ public record OrderConfirmationDto(
         UUID trackingToken,
         BigDecimal total,
         BigDecimal deliveryFee,
-        String deliveryZoneName
+        String deliveryZoneName,
+        // D-03: null = odliczona kwota.
+        BigDecimal cashChangeFrom
 ) {
 }
