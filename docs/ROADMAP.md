@@ -332,11 +332,13 @@ gdy będzie okazja (np. przy okolicznym refaktorze albo razem z fazą polish).
   Przy pełnych ekranach oznaczałby nawigację do konfiguratora z pre-fillem
   i usunięcie starej linii. Na razie klient usuwa i dodaje ponownie.
 
-- **Zdjęcia produktów z paczki**
-  Sześć JPG z bundla nie dało się pobrać (MCP tnie pliki na 256 KiB, wszystkie
-  wróciły bez markera EOI). Seed używa URL-i Unsplash rotowanych po
-  produktach, zgodnie z AD-010. Podmiana na własne pliki = jedna linia
-  na produkt.
+- **Zdjęcie hero z paczki (`hero-01.jpg`)** — *reszta zamknięta w V208*
+  Pięć z sześciu zdjęć z bundla operator wrzucił ręcznie do
+  `frontend/public/uploads` i weszły migracją `V208` (pizze + sekcja
+  „o nas"). Brakuje `hero-01.jpg` — tła hero na landingu; `page_content.HERO`
+  zostaje przy URL-u Unsplash. Gdy plik się pojawi: jeden UPDATE na
+  `/uploads/hero-01.jpg`.
+  Napoje i desery zostają na URL-ach — paczka nie miała dla nich zdjęć.
 
 ### Z Fazy 2 (Menu)
 
