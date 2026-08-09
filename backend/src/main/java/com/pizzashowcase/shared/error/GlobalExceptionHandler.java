@@ -173,8 +173,13 @@ public class GlobalExceptionHandler {
             return false;
         }
         try {
+            // Jawne `text/html` (nawigacja przeglądarki), NIE `*/*`. Przeglądarka
+            // wysyła `*/*` dla <script src>, <img> i fetch() — gdyby `*/*` łapało
+            // fallback, brakujący asset dostawałby index.html z kodem 200 zamiast
+            // czystego 404 (typowy objaw: "Unexpected token '<'" po redeployu,
+            // gdy zacache'owany index wskazuje nieaktualny hash pliku).
             for (MediaType mt : MediaType.parseMediaTypes(accept)) {
-                if (mt.includes(MediaType.TEXT_HTML)) {
+                if (MediaType.TEXT_HTML.equalsTypeAndSubtype(mt)) {
                     return true;
                 }
             }

@@ -26,9 +26,20 @@ wiec ustaw `DB_URL` jako JDBC URL.
 ## Krok 2: Serwis aplikacji
 
 1. Dodaj serwis z GitHub repo.
-2. Wybierz branch deployowy, np. `design/v2-stage5-handoff` dla stagingu.
-3. Railway powinien uzyc root `Dockerfile`, nie Nixpacks.
-4. Health Check Path: `/actuator/health`.
+2. Wybierz branch deployowy. Design v3 "PIEC" zyje na
+   `design/v2-stage5-handoff` — albo wskaz ten branch, albo zmerguj go do
+   `master` przed podpieciem repo. Deploy z `master` bez merge'a postawi
+   wersje sprzed redesignu.
+3. Railway powinien uzyc root `Dockerfile`, nie Nixpacks. Sprawdz w
+   `Settings` -> `Build`; jesli wykryl Nixpacks, ustaw builder na Dockerfile
+   recznie.
+4. Health Check Path: `/actuator/health`. Endpoint jest wystawiony
+   (`management.endpoints.web.exposure.include: health,info`) i jawnie
+   permit-owany w `SecurityConfig`, wiec nie wymaga zadnej dodatkowej
+   konfiguracji po stronie kodu.
+
+Aplikacja slucha na `${PORT:8080}`. Railway wstrzykuje `PORT` samo —
+nie ustawiaj go recznie.
 
 ## Krok 3: Env vars
 
@@ -36,19 +47,39 @@ Ustaw na serwisie aplikacji:
 
 | Zmienna | Wartosc |
 |---|---|
-| `SPRING_PROFILES_ACTIVE` | `prod` |
-| `PORT` | opcjonalnie; aplikacja czyta `${PORT:8080}` |
+| `SPRING_PROFILES_ACTIVE` | `prod` — **wymagane**. Bez tego wstanie profil `dev` (domyslka z `application.yml`) i `application-prod.yml` w ogole sie nie zaladuje |
 | `JWT_SECRET` | min 32 bajty po decode; rekomendowane `openssl rand -base64 48` |
 | `ADMIN_EMAIL` | email pierwszego admina |
 | `ADMIN_PASSWORD` | haslo pierwszego admina; seeder tworzy usera tylko gdy go jeszcze nie ma |
 | `ADMIN_DISPLAY_NAME` | opcjonalnie, default `Admin` |
-| `CORS_ALLOWED_ORIGINS` | finalny origin HTTPS, np. `https://xxx.up.railway.app` albo custom domain |
+| `CORS_ALLOWED_ORIGINS` | finalny origin HTTPS, np. `https://xxx.up.railway.app` albo custom domain. Front jest serwowany z tego samego originu co API, wiec CORS realnie nie wchodzi w gre — ale ustaw poprawna wartosc, bo domyslka to `http://localhost:5173` |
 | `DB_URL` | `jdbc:postgresql://${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}` |
 | `DB_USERNAME` | `${{Postgres.PGUSER}}` |
 | `DB_PASSWORD` | `${{Postgres.PGPASSWORD}}` |
 
 `application-prod.yml` wymaga `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 Brak ktorejs zmiennej zatrzyma start aplikacji.
+
+`PORT` **nie** ustawiaj — Railway wstrzykuje go sam.
+
+## Weryfikacja obrazu lokalnie (opcjonalna, przed pushem)
+
+```powershell
+docker build -t pizza-showcase:check .
+docker run --rm -p 8082:8080 `
+  --network <siec-z-postgresem> `
+  -e SPRING_PROFILES_ACTIVE=prod `
+  -e DB_URL='jdbc:postgresql://postgres:5432/<baza>' `
+  -e DB_USERNAME=pizza -e DB_PASSWORD=pizza `
+  -e JWT_SECRET='<48-bajtowy base64>' `
+  -e CORS_ALLOWED_ORIGINS='http://localhost:8082' `
+  -e ADMIN_EMAIL='admin@local.test' -e ADMIN_PASSWORD='<haslo>' `
+  pizza-showcase:check
+```
+
+Uzyj **swiezej, pustej bazy**, nie dev-owej — wtedy test pokrywa tez pelny
+przebieg migracji Flyway od zera, czyli dokladnie to, co zrobi Railway na
+nowym pluginie Postgres.
 
 ## Seed data
 
@@ -169,6 +200,18 @@ hasla, ustaw env i zrestartuj serwis.
 **DB unreachable:** sprawdz, czy `DB_URL` ma format JDBC:
 `jdbc:postgresql://host:port/database`, a `DB_USERNAME` i `DB_PASSWORD`
 pochodza z tego samego pluginu Postgres.
+
+**Odswiezenie podstrony daje 404:** SPA fallback nie zadzialal. Dwa miejsca
+go realizuja — `SpaErrorViewResolver` i `GlobalExceptionHandler.handleNoResource`
+— oba forwarduja na `/index.html` tylko dla jawnego `Accept: text/html` i tylko
+poza `/api/**` i `/actuator/**`. Jesli 404 wraca jako JSON, sprawdz czy request
+faktycznie idzie na apke, a nie na proxy.
+
+**`Unexpected token '<'` w konsoli po redeployu:** przegladarka trzyma stary
+`index.html` wskazujacy nieaktualny hash assetu. Od poprawki z 2026-08-10
+brakujacy asset dostaje czyste 404 (fallback nie lapie `Accept: */*`), wiec
+wystarczy hard refresh. Jesli blad wraca po hard refresh, problem jest w
+buildzie frontu, nie w cache.
 
 **SSE token w query param:** Tomcat access log jest wylaczony w profilu
 `prod`. Railway stdout logs pokazuja logi aplikacji, nie access log URL.

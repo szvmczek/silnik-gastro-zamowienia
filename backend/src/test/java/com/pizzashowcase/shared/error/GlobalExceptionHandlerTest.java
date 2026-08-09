@@ -1,16 +1,23 @@
 package com.pizzashowcase.shared.error;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.sql.SQLException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GlobalExceptionHandlerTest {
@@ -87,9 +94,62 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getDetail()).isEqualTo("Nieprawidłowe godziny otwarcia.");
     }
 
+    // --- SPA fallback (handleNoResource) ---
+
+    private static final String BROWSER_NAVIGATION_ACCEPT =
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,*/*;q=0.8";
+
+    @Test
+    void test06_browserNavigation_forwardsToIndexHtml() throws Exception {
+        HttpServletRequest req = request("/menu/pizza-ogrodowa", BROWSER_NAVIGATION_ACCEPT);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        when(req.getRequestDispatcher("/index.html")).thenReturn(dispatcher);
+
+        ResponseEntity<ProblemDetail> response = handler.handleNoResource(
+                new NoResourceFoundException(HttpMethod.GET, "/menu/pizza-ogrodowa"), req, res);
+
+        assertThat(response).isNull();
+        verify(dispatcher).forward(req, res);
+    }
+
+    @Test
+    void test07_missingAssetWithWildcardAccept_returns404NotIndexHtml() throws Exception {
+        // Przeglądarka wysyła `*/*` dla <script src>, <img> i fetch(). Gdyby to
+        // łapało fallback, brakujący asset dostawałby index.html z kodem 200.
+        HttpServletRequest req = request("/assets/index-stale-hash.js", "*/*");
+        HttpServletResponse res = mock(HttpServletResponse.class);
+
+        ResponseEntity<ProblemDetail> response = handler.handleNoResource(
+                new NoResourceFoundException(HttpMethod.GET, "/assets/index-stale-hash.js"), req, res);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(req, never()).getRequestDispatcher(anyString());
+    }
+
+    @Test
+    void test08_apiPathWithHtmlAccept_returns404NotIndexHtml() throws Exception {
+        HttpServletRequest req = request("/api/public/nope", BROWSER_NAVIGATION_ACCEPT);
+        HttpServletResponse res = mock(HttpServletResponse.class);
+
+        ResponseEntity<ProblemDetail> response = handler.handleNoResource(
+                new NoResourceFoundException(HttpMethod.GET, "/api/public/nope"), req, res);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(req, never()).getRequestDispatcher(anyString());
+    }
+
     private static HttpServletRequest request(String uri) {
         HttpServletRequest req = mock(HttpServletRequest.class);
         when(req.getRequestURI()).thenReturn(uri);
+        return req;
+    }
+
+    private static HttpServletRequest request(String uri, String acceptHeader) {
+        HttpServletRequest req = request(uri);
+        when(req.getHeader("Accept")).thenReturn(acceptHeader);
         return req;
     }
 

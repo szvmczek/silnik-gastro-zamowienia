@@ -9,6 +9,55 @@ Faza 7.0 (2026-04-28), Fazy 4+5 i redesign post-MVP. Następne kroki:
 Railway deploy albo Faza 4.6 (Kitchen item checklist, PLANNED —
 patrz ROADMAP.md).
 
+## Weryfikacja obrazu produkcyjnego (2026-08-10)
+
+Przed deployem na Railway zweryfikowano deploy-blockery Fazy 5 na realnym
+obrazie. **Wszystkie trzy elementy, o które pytał operator (Dockerfile,
+`application-prod.yml`, SPA fallback), były już gotowe od Fazy 5** — notatka
+o placeholderach z bootstrapu była nieaktualna. Nic nie trzeba było
+dopisywać; wykryto natomiast jedną usterkę w istniejącym fallbacku.
+
+**`docker build .`** — zielony, pełny przebieg trzech stage'y
+(node:20-alpine → JDK 21 → JRE 21), `bootJar` bez ostrzeżeń.
+
+**`docker run`** przeciwko **świeżej, pustej bazie** (`pizza_prodcheck`,
+nie dev-owej — żeby pokryć pełny przebieg Flyway od zera, tak jak zrobi
+Railway na nowym pluginie):
+- Flyway: 24 migracje zaaplikowane, zero błędów
+- `/actuator/health` → `{"status":"UP"}`; `/api/public/settings` → 200
+- Seed admina + `POST /api/auth/login` → 200 (JWT działa)
+- SPA fallback na `/menu/:slug` i `/admin/orders` → 200 `text/html`
+- `/api/public/nope` → 404 `application/problem+json` (API nie łapie
+  fallbacku)
+- Logi startowe: zero ERROR/WARN, format JSON
+- SIGTERM → graceful shutdown (Tomcat → JPA → Hikari), exit 143
+
+**FIX — SPA fallback łapał `Accept: */*`.** `acceptsHtml` w obu miejscach
+(`SpaErrorViewResolver`, `GlobalExceptionHandler.handleNoResource`) używało
+`mt.includes(TEXT_HTML)`, co przepuszcza `*/*` — a taki nagłówek wysyła
+przeglądarka dla `<script src>`, `<img>` i `fetch()`. Skutek: brakujący
+asset dostawał `index.html` z kodem **200** zamiast 404. Objaw w praktyce:
+po redeployu przeglądarka z zacache'owanym starym `index.html` prosi o
+nieaktualny hash i dostaje `Unexpected token '<'` zamiast czytelnego 404.
+Zmiana na `TEXT_HTML.equalsTypeAndSubtype(mt)` — fallback tylko dla jawnego
+`text/html`, czyli dla nawigacji przeglądarki. Nawigacja wysyła
+`text/html,application/xhtml+xml,...,*/*;q=0.8`, więc dopasowanie po
+pierwszym typie działa bez zmian.
+
+**Testy regresyjne:** nowy `SpaErrorViewResolverTest` (7 testów: nawigacja
+przeglądarki, `*/*`, `/api/**`, `/actuator/**`, status ≠ 404, brak nagłówka
+`Accept`, malformed `Accept`) + trzy testy w `GlobalExceptionHandlerTest`
+(test06–test08). `./gradlew test` zielony na całym pakiecie.
+
+**Dokumentacja:** `deployment.md` uzupełniony o wybór brancha (design v3
+żyje na `design/v2-stage5-handoff`, nie `master`), jawność
+`SPRING_PROFILES_ACTIVE=prod`, zakaz ręcznego ustawiania `PORT`, notkę że
+CORS jest formalnością przy same-origin, sekcję lokalnej weryfikacji obrazu
+i dwa nowe wpisy w troubleshootingu.
+
+**Otwarte:** sam deploy na Railway (krok manualny operatora) oraz E2E demo
+na live URL.
+
 ## Faza 8 — Design v3 „PIEC" (DONE, 2026-08-09)
 
 Wdrożenie designu z Claude Design / Fable na całą publiczną ścieżkę.
@@ -2099,6 +2148,9 @@ przy starcie deployment.
 - **Definition of done (PHASES.md:225-229):**
   - [x] Kod gotowy pod HTTPS (Dockerfile multi-stage, prod profile, SPA
     fallback, JSON logs, graceful shutdown, rate limit SSE, ETA guard).
+    **Zweryfikowane na realnym obrazie 2026-08-10** — patrz sekcja
+    „Weryfikacja obrazu produkcyjnego" na górze pliku (build + run przeszły,
+    jeden fix w `acceptsHtml`).
   - [x] README quickstart <30 min (6 krokow od clone → localhost:5173).
   - [x] Customization + deployment docs (rebranding + Railway w <30 min).
   - [ ] Live URL pod HTTPS — **czeka na manualny deploy Railway** (M3

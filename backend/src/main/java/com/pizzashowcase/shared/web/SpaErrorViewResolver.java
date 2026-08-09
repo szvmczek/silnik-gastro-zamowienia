@@ -39,9 +39,12 @@ public class SpaErrorViewResolver implements ErrorViewResolver {
             return false;
         }
         try {
+            // Jawne `text/html` (nawigacja przeglądarki), NIE `*/*` — patrz
+            // komentarz w GlobalExceptionHandler.acceptsHtml. Oba miejsca muszą
+            // trzymać tę samą regułę, bo pokrywają dwie różne ścieżki 404.
             List<MediaType> parsed = MediaType.parseMediaTypes(accept);
             for (MediaType mt : parsed) {
-                if (mt.includes(MediaType.TEXT_HTML)) {
+                if (MediaType.TEXT_HTML.equalsTypeAndSubtype(mt)) {
                     return true;
                 }
             }
