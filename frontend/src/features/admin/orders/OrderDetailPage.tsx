@@ -17,6 +17,7 @@ import {
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
 import { formatDateTime } from "@/shared/lib/formatDate";
+import { cashChangeText } from "@/shared/lib/cashChange";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { EtaDialog } from "./components/EtaDialog";
@@ -527,12 +528,9 @@ export function OrderDetailPage() {
             <div className="mt-1 text-[13px] text-[rgb(var(--color-text-muted))]">
               {fulfillmentLabel(order.fulfillmentType)}
             </div>
-            {/* D-03: kurier / osoba wydająca musi wiedzieć, ile brać na wydanie. */}
-            <div className="mt-1 text-[13px] font-semibold text-[rgb(var(--color-text-primary))]">
-              {order.cashChangeFrom
-                ? `Reszta z ${order.cashChangeFrom} zł`
-                : "Klient płaci odliczoną kwotą"}
-            </div>
+            {/* D-03: wydający ma wiedzieć, ILE wydać — nie z jakiego
+                nominału ma sam policzyć. */}
+            <CashChangeLine cashChangeFrom={order.cashChangeFrom} total={order.total} />
           </AsideCard>
 
           <AsideCard title="Historia statusu">
@@ -566,6 +564,26 @@ export function OrderDetailPage() {
           });
         }}
       />
+    </div>
+  );
+}
+
+function CashChangeLine({
+  cashChangeFrom,
+  total,
+}: {
+  cashChangeFrom: string | null;
+  total: string;
+}) {
+  const { text, warn } = cashChangeText(cashChangeFrom, total);
+  return (
+    <div
+      className="mt-1 text-[13px] font-semibold"
+      style={{
+        color: warn ? "rgb(var(--status-cancelled))" : "rgb(var(--color-text-primary))",
+      }}
+    >
+      {text}
     </div>
   );
 }

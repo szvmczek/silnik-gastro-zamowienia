@@ -4,6 +4,7 @@ import type {
   OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { useElapsedTick } from "../shared/useElapsedTick";
+import { cashChangeText } from "@/shared/lib/cashChange";
 
 interface PickupRowProps {
   order: AdminOrderListItemDto;
@@ -51,6 +52,7 @@ export function PickupRow({ order, slotEmphasis = true }: PickupRowProps) {
   const slot = formatSlot(order);
   const itemsBrief = fmtItemsBrief(order.items);
   const detailHref = `/admin/orders/${order.id}`;
+  const cash = cashChangeText(order.cashChangeFrom, order.total);
 
   return (
     <div
@@ -160,13 +162,15 @@ export function PickupRow({ order, slotEmphasis = true }: PickupRowProps) {
         <div
           style={{
             fontSize: 11,
-            color: "rgb(var(--color-text-muted))",
+            color: cash.warn
+              ? "rgb(var(--status-cancelled))"
+              : "rgb(var(--color-text-muted))",
             marginTop: 2,
             fontWeight: 600,
           }}
         >
-          {/* D-03: wydający musi wiedzieć, ile przygotować na resztę. */}
-          {order.cashChangeFrom ? `Reszta z ${order.cashChangeFrom} zł` : "Gotówka odliczona"}
+          {/* D-03: wydający ma wiedzieć, ILE wydać, nie z czego liczyć. */}
+          {cash.text}
         </div>
       </div>
 

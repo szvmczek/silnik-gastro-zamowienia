@@ -5,6 +5,7 @@ import { formatShortOrderNumber } from "@/shared/lib/orderNumber";
 import { PiecShell } from "@/features/public/shared/PiecShell";
 import { PiecLinkButton } from "@/features/public/shared/PiecButton";
 import { type CartItem, lineTotal as cartLineTotal } from "@/features/public/cart/cartStore";
+import { CashChangeNote } from "./components/CashChangeNote";
 
 interface ConfirmationLocationState {
   trackingToken?: string;
@@ -97,10 +98,12 @@ export function OrderConfirmationPage() {
               </span>
             </div>
           ) : null}
-          {state.cashChangeFrom ? (
-            <p className="mt-1.5 text-[13px] text-piec-ink/55">
-              Reszta z {formatPrice(state.cashChangeFrom, currency)}.
-            </p>
+          {state.total ? (
+            <CashChangeNote
+              cashChangeFrom={state.cashChangeFrom}
+              total={state.total}
+              currency={currency}
+            />
           ) : null}
         </section>
       ) : (

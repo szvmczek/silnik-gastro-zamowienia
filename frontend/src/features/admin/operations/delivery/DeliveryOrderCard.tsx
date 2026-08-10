@@ -6,6 +6,7 @@ import type {
   OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { useElapsedTick } from "../shared/useElapsedTick";
+import { cashChangeText } from "@/shared/lib/cashChange";
 
 function zl(raw: string | number): string {
   const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
@@ -119,6 +120,7 @@ export function DeliveryRow({
   const isToCollect = variant === "to-collect";
   const primaryLabel = isToCollect ? "Wyjechało →" : "✓ Doręczone";
   const primaryBg = isToCollect ? "rgb(var(--color-primary))" : "rgb(var(--status-ready))";
+  const cash = cashChangeText(order.cashChangeFrom, order.total);
 
   return (
     <div
@@ -155,10 +157,17 @@ export function DeliveryRow({
         {order.customerName}
         {isToCollect ? (
           <>
-            {/* D-03: kurier musi wiedzieć, ile brać na wydanie reszty. */}
-            {order.cashChangeFrom
-              ? ` · gotówka, reszta z ${order.cashChangeFrom} zł`
-              : " · gotówka odliczona"}
+            {/* D-03: kurier ma wiedzieć, ILE wydać, nie z czego liczyć. */}
+            {" · "}
+            <span
+              style={
+                cash.warn
+                  ? { color: "rgb(var(--status-cancelled))", fontWeight: 600 }
+                  : undefined
+              }
+            >
+              {cash.text}
+            </span>
             {addr?.notes && <span> · {addr.notes}</span>}
           </>
         ) : (

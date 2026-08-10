@@ -13,6 +13,7 @@ import { formatShortOrderNumber } from "@/shared/lib/orderNumber";
 import { PiecShell } from "@/features/public/shared/PiecShell";
 import { PiecHeader } from "@/features/public/shared/PiecHeader";
 import { TrackingTimeline } from "./components/TrackingTimeline";
+import { CashChangeNote } from "./components/CashChangeNote";
 import { currentStepIndex, trackingSteps } from "./lib/trackingSteps";
 import { etaClockTime } from "./lib/eta";
 
@@ -187,12 +188,8 @@ export function TrackingPage() {
               {formatPrice(data.total, currency)}
             </span>
           </div>
-          {/* D-03 — kurier musi wiedzieć, ile brać na wydanie. */}
-          {data.cashChangeFrom ? (
-            <p className="mt-1.5 text-[13px] text-piec-ink/55">
-              Reszta z {formatPrice(data.cashChangeFrom, currency)}.
-            </p>
-          ) : null}
+          {/* D-03 — potwierdzenie tego, co klient wybrał przy zamówieniu. */}
+          <CashChangeNote cashChangeFrom={data.cashChangeFrom} total={data.total} currency={currency} />
         </section>
 
         {settings?.phone ? (

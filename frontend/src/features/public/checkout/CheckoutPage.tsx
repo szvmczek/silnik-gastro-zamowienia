@@ -21,7 +21,7 @@ import { cn } from "@/shared/lib/cn";
 import { fetchDeliveryCities } from "./api";
 import { useDeliveryCheck } from "./hooks/useDeliveryCheck";
 import { PiecField, PiecInput, PiecTextarea } from "./components/PiecField";
-import { CashChangeChips } from "./components/CashChangeChips";
+import { CashChangeChips, type CashChoice } from "./components/CashChangeChips";
 import { maskPostalCodeInput } from "@/features/admin/delivery-zones/lib/postalCode";
 
 const phoneRegex = /^\+?\d{9,11}$/;
@@ -126,8 +126,11 @@ export function CheckoutPage() {
   // Rozwinięte na wejściu — klient ma od razu widzieć, co zamawia.
   // Zwinięcie zostaje dostępne dla tych, którzy chcą krótszy formularz.
   const [summaryOpen, setSummaryOpen] = useState(true);
-  // D-03 — null = odliczona kwota.
-  const [cashChangeFrom, setCashChangeFrom] = useState<number | null>(null);
+  // D-03 — null = klient jeszcze nie wybrał; wybór jest wymagany do
+  // złożenia zamówienia. „Odliczoną kwotą" wysyłamy jako sumę zamówienia,
+  // żeby w bazie null znaczyło wyłącznie „brak danych" (patrz
+  // shared/lib/cashChange).
+  const [cashChoice, setCashChoice] = useState<CashChoice>(null);
 
   useEffect(() => {
     if (items.length === 0 && !orderPlacedRef.current) {
@@ -198,6 +201,10 @@ export function CheckoutPage() {
     },
   });
 
+  /** Kwota, którą klient deklaruje mieć przy sobie. */
+  const cashChangeFrom =
+    cashChoice === "EXACT" ? grandTotal : typeof cashChoice === "number" ? cashChoice : null;
+
   /** Pierwszy powód, dla którego nie da się złożyć zamówienia. */
   const blockingHint = useMemo(() => {
     if (!items.length) return "Koszyk jest pusty — wróć do menu.";
@@ -205,6 +212,11 @@ export function CheckoutPage() {
     if (deliveryUnavailable) return "Adres poza strefą — przełącz na odbiór osobisty.";
     if (belowMinimum) {
       return `Dostawy od ${formatPrice(minOrder, currency)} — brakuje ${formatPrice(minOrder - subtotal, currency)}.`;
+    }
+    // Bez tej decyzji kurier nie wie, ile przygotować na wydanie.
+    if (cashChoice === null) return "Wybierz, jak rozliczysz gotówkę.";
+    if (typeof cashChoice === "number" && cashChoice < grandTotal) {
+      return `Kwota do rozmienienia musi być co najmniej ${formatPrice(grandTotal, currency)}.`;
     }
     return null;
   }, [
@@ -215,6 +227,8 @@ export function CheckoutPage() {
     minOrder,
     subtotal,
     currency,
+    cashChoice,
+    grandTotal,
   ]);
 
   const submitDisabled = Boolean(blockingHint) || mutation.isPending;
@@ -487,8 +501,8 @@ export function CheckoutPage() {
 
           <div className="mt-3.5">
             <CashChangeChips
-              value={cashChangeFrom}
-              onChange={setCashChangeFrom}
+              value={cashChoice}
+              onChange={setCashChoice}
               total={grandTotal}
               currency={currency}
               context={isDelivery ? "kurierowi" : "przy odbiorze"}
