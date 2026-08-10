@@ -123,7 +123,9 @@ export function CheckoutPage() {
   const { isOpen } = useIsRestaurantOpen();
   const restaurantIsOpen = isOpen && !settings?.manualClosedReason;
   const orderPlacedRef = useRef(false);
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  // Rozwinięte na wejściu — klient ma od razu widzieć, co zamawia.
+  // Zwinięcie zostaje dostępne dla tych, którzy chcą krótszy formularz.
+  const [summaryOpen, setSummaryOpen] = useState(true);
   // D-03 — null = odliczona kwota.
   const [cashChangeFrom, setCashChangeFrom] = useState<number | null>(null);
 
@@ -258,7 +260,7 @@ export function CheckoutPage() {
       <PiecHeader size="form" back={{ to: "/upsell", label: "Wróć" }} title="Zamówienie" />
 
       <PiecShell size="form" className="pb-11 pt-4">
-        {/* Podsumowanie zwinięte — formularz ma się mieścić bez scrollowania. */}
+        {/* Podsumowanie rozwinięte domyślnie, z możliwością zwinięcia. */}
         <section className="rounded-[14px] border border-piec-ink/10 bg-piec-surface2 p-4">
           <button
             type="button"
