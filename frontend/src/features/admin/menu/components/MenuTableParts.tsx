@@ -1,8 +1,15 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 // Shared bundle-aesthetic table primitives for Menu list (M-040).
 // Bundle ref: frame-menu.jsx table card pattern.
 
+/**
+ * Tabela panelu Menu (Kategorie / Produkty / Grupy dodatków). Poniżej
+ * `minWidth` przewija się w poziomie — świadoma decyzja operatora
+ * (narzędzie wewnętrzne, znany wzorzec). Żeby przewijanie nie było
+ * niewidoczne, prawa krawędź dostaje gradient znikający po dojechaniu
+ * do końca.
+ */
 export function MenuTableCard({
   gridCols,
   headers,
@@ -14,33 +21,66 @@ export function MenuTableCard({
   minWidth?: number;
   children: ReactNode;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasMore, setHasMore] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      // 1 px zapasu — subpikselowe szerokości potrafią zostawić resztę,
+      // przez którą gradient nigdy by nie znikał.
+      setHasMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [minWidth]);
+
   return (
     <div
-      className="overflow-x-auto rounded-xl"
+      className="relative rounded-xl"
       style={{
         background: "rgb(var(--color-bg-card))",
         border: "1px solid rgb(var(--color-border-card))",
       }}
     >
-      <div style={{ minWidth }}>
-        <div
-          className="grid items-center gap-3 px-4 py-3 text-[11px] font-bold uppercase"
-          style={{
-            gridTemplateColumns: gridCols,
-            background: "rgb(var(--color-bg-section))",
-            borderBottom: "1px solid rgb(var(--color-border-subtle))",
-            color: "rgb(var(--color-text-muted))",
-            letterSpacing: "0.04em",
-          }}
-        >
-          {headers.map((h, i) => (
-            <span key={i} style={{ textAlign: h === "" ? undefined : "left" }}>
-              {h}
-            </span>
-          ))}
+      <div ref={scrollRef} className="overflow-x-auto rounded-xl">
+        <div style={{ minWidth }}>
+          <div
+            className="grid items-center gap-3 px-4 py-3 text-[11px] font-bold uppercase"
+            style={{
+              gridTemplateColumns: gridCols,
+              background: "rgb(var(--color-bg-section))",
+              borderBottom: "1px solid rgb(var(--color-border-subtle))",
+              color: "rgb(var(--color-text-muted))",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {headers.map((h, i) => (
+              <span key={i} style={{ textAlign: h === "" ? undefined : "left" }}>
+                {h}
+              </span>
+            ))}
+          </div>
+          {children}
         </div>
-        {children}
       </div>
+      {hasMore && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-xl"
+          style={{
+            background:
+              "linear-gradient(to right, rgb(var(--color-bg-card) / 0), rgb(var(--color-bg-card)))",
+          }}
+        />
+      )}
     </div>
   );
 }
