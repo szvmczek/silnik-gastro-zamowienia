@@ -286,6 +286,14 @@ Razem z Fazą 6 lub tuż po. Potwierdzenie zamówienia + zmiana statusu mailem.
 - Multi-tenant (gdy sprzedaż template'u wielu klientom w jednej instancji)
 - PWA (offline menu, push notifications)
 - File upload zdjęć produktów (zamiast URL)
+- **Zamówienia na wybraną godzinę** — zamówienie istnieje w bazie, ale nie
+  jest jeszcze „przyjęte" do realizacji (klient wybiera odbiór/dostawę np.
+  na 18:00, kuchnia nie zaczyna go robić od razu). Wymaga rozbicia obecnej
+  jedności „istnieje w bazie = przyjęte": dziś `trackingSteps` mapuje
+  NEW + CONFIRMED na krok „Przyjęte" i to jest poprawne dla zamówień
+  natychmiastowych. Model rozszerzenia: pole `scheduledFor` na `Order` +
+  osobny krok osi („Zaplanowane na 18:00") przed „Przyjęte", zamiast
+  przepisywania mapowania D-05. Notatka z rundy poprawek 2026-08-10.
 
 ## QoL improvements (post-MVP)
 

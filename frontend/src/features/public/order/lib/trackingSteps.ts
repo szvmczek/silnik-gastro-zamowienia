@@ -5,6 +5,10 @@ export interface TrackingStep {
   /** Statusy z bazy, które ten krok reprezentuje. */
   statuses: OrderStatus[];
   hint?: string;
+  /** Nagłówek banera nad osią — komunikat stanu na pierwszy rzut oka. */
+  headline: string;
+  /** Zdanie kontekstu pod nagłówkiem banera. */
+  detail: string;
 }
 
 /**
@@ -21,21 +25,58 @@ export interface TrackingStep {
  * przez TrackingPage jako karta zamiast osi.
  */
 const DELIVERY_STEPS: TrackingStep[] = [
-  { label: "Przyjęte", statuses: ["NEW", "CONFIRMED"] },
-  { label: "W przygotowaniu", statuses: ["IN_PREPARATION"] },
-  { label: "W drodze", statuses: ["READY", "OUT_FOR_DELIVERY"] },
-  { label: "Dostarczone", statuses: ["DELIVERED"] },
+  {
+    label: "Przyjęte",
+    statuses: ["NEW", "CONFIRMED"],
+    headline: "Mamy Twoje zamówienie",
+    detail: "Przyjęliśmy je do realizacji. Za chwilę trafi na piec.",
+  },
+  {
+    label: "W przygotowaniu",
+    statuses: ["IN_PREPARATION"],
+    headline: "Robimy Twoje jedzenie",
+    detail: "Zamówienie jest w kuchni.",
+  },
+  {
+    label: "W drodze",
+    statuses: ["READY", "OUT_FOR_DELIVERY"],
+    headline: "Jedzie do Ciebie",
+    detail: "Kurier wyruszył pod wskazany adres.",
+  },
+  {
+    label: "Dostarczone",
+    statuses: ["DELIVERED"],
+    headline: "Dostarczone",
+    detail: "Smacznego!",
+  },
 ];
 
 const PICKUP_STEPS: TrackingStep[] = [
-  { label: "Przyjęte", statuses: ["NEW", "CONFIRMED"] },
-  { label: "W przygotowaniu", statuses: ["IN_PREPARATION"] },
+  {
+    label: "Przyjęte",
+    statuses: ["NEW", "CONFIRMED"],
+    headline: "Mamy Twoje zamówienie",
+    detail: "Przyjęliśmy je do realizacji. Za chwilę trafi na piec.",
+  },
+  {
+    label: "W przygotowaniu",
+    statuses: ["IN_PREPARATION"],
+    headline: "Robimy Twoje jedzenie",
+    detail: "Zamówienie jest w kuchni.",
+  },
   {
     label: "Gotowe do odbioru",
     statuses: ["READY"],
     hint: "Możesz przyjeżdżać — czeka na Ciebie.",
+    headline: "Gotowe do odbioru",
+    detail: "Możesz przyjeżdżać — czeka na Ciebie.",
   },
-  { label: "Odebrane", statuses: ["DELIVERED"] },
+  {
+    label: "Odebrane",
+    statuses: ["DELIVERED"],
+    headline: "Odebrane",
+    detail: "Smacznego!",
+  },
 ];
 
 export function trackingSteps(fulfillmentType: FulfillmentType): TrackingStep[] {
