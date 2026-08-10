@@ -172,14 +172,31 @@ usunac realne zamowienia i zastapic je neutralnymi demo danymi.
 
 Po deployu sprawdz:
 
-1. `https://<railway-url>/actuator/health` -> `{"status":"UP"}`.
-2. `https://<railway-url>/api/public/settings` -> JSON z ustawieniami.
-3. `https://<railway-url>/api/public/legal` -> JSON z legal content.
-4. `/` -> landing.
-5. `/menu` -> menu.
-6. `/privacy` i `/terms` -> publiczne strony legal.
-7. `/admin/login` -> logowanie admina.
-8. E2E demo: zloz zamowienie, obsluz w adminie, sprawdz `/track/{token}`.
+1. **Najpierw: czy to na pewno ten commit.** Zanim zaczniesz klikac po
+   ekranach, potwierdz, co realnie stoi na srodowisku:
+
+   ```bash
+   curl -s https://<railway-url>/actuator/info
+   ```
+
+   ```json
+   {"git":{"commit":"1fe80b2...","branch":"design/v2-stage5-handoff"},
+    "deployment":{"id":"..."}}
+   ```
+
+   Porownaj `commit` z `git rev-parse HEAD` i `branch` z branchem, ktory
+   deployujesz (patrz Krok 2). Zgadza sie — reszta smoke'a ma sens.
+   Nie zgadza sie — patrz troubleshooting nizej, bo testujesz stary kod.
+   `"unknown"` w polach znaczy, ze zmiennych Railway nie ma, czyli ruch
+   obsluguje cos innego niz build z Railway.
+2. `https://<railway-url>/actuator/health` -> `{"status":"UP"}`.
+3. `https://<railway-url>/api/public/settings` -> JSON z ustawieniami.
+4. `https://<railway-url>/api/public/legal` -> JSON z legal content.
+5. `/` -> landing.
+6. `/menu` -> menu.
+7. `/privacy` i `/terms` -> publiczne strony legal.
+8. `/admin/login` -> logowanie admina.
+9. E2E demo: zloz zamowienie, obsluz w adminie, sprawdz `/track/{token}`.
 
 ## Troubleshooting
 
@@ -212,6 +229,21 @@ faktycznie idzie na apke, a nie na proxy.
 brakujacy asset dostaje czyste 404 (fallback nie lapie `Accept: */*`), wiec
 wystarczy hard refresh. Jesli blad wraca po hard refresh, problem jest w
 buildzie frontu, nie w cache.
+
+**Deploy nie zawiera moich zmian, mimo ze build jest swiezy:** sprawdz
+`/actuator/info` (krok 1 smoke'a). Jesli `commit` wskazuje starszy SHA niz
+czubek brancha, sam build byl prawdziwy, ale zbudowal stary kod — tak dziala
+przycisk **Redeploy**, ktory odtwarza deployment z jego przypietego commita.
+Zamiast tego uzyj *Deployments -> Deploy latest commit* (albo `railway up`)
+i sprawdz w `Settings -> Source`, czy **Auto Deploy** jest wlaczony i czy
+branch zgadza sie z tym z Kroku 2.
+
+Nie diagnozuj tego po dacie ani hashu assetu: data mowi tylko, kiedy build
+poszedl, a nie z czego, a nazwa chunku jest mylaca — kod ekranow jest w
+lazy chunkach (`MenuPage-<hash>.js`), wiec swiezy `index-<hash>.js` niczego
+nie dowodzi. Zdarzylo sie to realnie 2026-08-10: runda 11 poprawek nie byla
+widoczna na produkcji, bo serwis stal na commicie sprzed pusha —
+`/actuator/info` powstalo wlasnie po tej sytuacji.
 
 **SSE token w query param:** Tomcat access log jest wylaczony w profilu
 `prod`. Railway stdout logs pokazuja logi aplikacji, nie access log URL.
