@@ -224,7 +224,7 @@ export function OrderDetailPage() {
                 to={`/track/${order.trackingToken}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold md:inline-flex"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-semibold"
                 style={{
                   border: "1px solid rgb(var(--color-border-card))",
                   background: "rgb(var(--color-bg-card))",
@@ -233,7 +233,11 @@ export function OrderDetailPage() {
                   fontFamily: "inherit",
                 }}
               >
-                Tracker klienta <ExternalLink size={12} strokeWidth={1.7} aria-hidden />
+                {/* Na wąskim ekranie sam „Tracker" — pełna etykieta zjadałaby
+                    miejsce tytułowi obok wyciszenia i wylogowania. */}
+                <span className="sm:hidden">Tracker</span>
+                <span className="hidden sm:inline">Tracker klienta</span>
+                <ExternalLink size={12} strokeWidth={1.7} aria-hidden />
               </Link>
             )}
             <button
