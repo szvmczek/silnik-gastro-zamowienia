@@ -57,7 +57,10 @@ export function CartPill({ emptyVariant = "label", className }: CartPillProps) {
       <span aria-hidden="true" className={cn("inline-block", bump)}>
         · {count} ·
       </span>
-      <span aria-hidden="true">
+      {/* flex, nie zwykły span — rolka ma własną wysokość i jako element
+          inline siadałaby na linii bazowej descendera, czyli ~2 px poniżej
+          środka sąsiedniego tekstu. */}
+      <span aria-hidden="true" className="flex items-center">
         <RollingNumber value={formatPrice(total, settings?.currency)} size={13.5} plain />
       </span>
     </Link>

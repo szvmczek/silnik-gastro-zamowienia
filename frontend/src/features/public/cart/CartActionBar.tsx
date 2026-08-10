@@ -31,7 +31,9 @@ export function CartActionBar() {
           <span>
             Koszyk · {count} {plural(count, "pozycja", "pozycje", "pozycji")}
           </span>
-          <span className="text-[17px] font-bold">
+          {/* flex — patrz komentarz w CartPill: rolka wyrównana do środka,
+              nie do descendera linii. */}
+          <span className="flex items-center text-[17px] font-bold">
             <RollingNumber value={formatPrice(total, settings?.currency)} size={17} plain />
           </span>
         </Link>
