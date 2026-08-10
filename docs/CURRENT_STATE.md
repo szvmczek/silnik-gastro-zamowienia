@@ -4,10 +4,111 @@ Snapshot stanu projektu. Aktualizowany przez Claude Code na koniec każdej fazy.
 
 ## Faza aktualnie w toku
 Brak — Faza 8 (Design v3 „PIEC") ZAMKNIĘTA 2026-08-09 na branchu
-`design/v2-stage5-handoff`. Wcześniej: Faza 4.5 (2026-04-30),
+`design/v2-stage5-handoff`, po niej runda poprawek po teście live
+(2026-08-10, sekcja niżej). Wcześniej: Faza 4.5 (2026-04-30),
 Faza 7.0 (2026-04-28), Fazy 4+5 i redesign post-MVP. Następne kroki:
 Railway deploy albo Faza 4.6 (Kitchen item checklist, PLANNED —
 patrz ROADMAP.md).
+
+## Runda poprawek po teście live (2026-08-10)
+
+Jedenaście punktów zgłoszonych po teście wersji na Railway (desktop +
+mobile). Osiem to bugi, trzy to świadome zmiany zachowania. Dwa punkty
+okazały się nie-bugami — opisane niżej, bo diagnoza jest ważniejsza niż
+sam fix.
+
+**Wyrównanie ceny (P1).** `RollingNumber` ma własną wysokość
+(`size * 1.18`) i jako element inline z `vertical-align: bottom` siadał
+dnem na descenderze linii — zmierzone +2,13 px poniżej środka
+sąsiedniego tekstu. Opakowujące spany w `CartPill` i `CartActionBar`
+dostały `flex items-center`, więc wyrównuje je flex zamiast
+`vertical-align` (0,00 px). Sam `RollingNumber` nietknięty — w CTA
+koszyka, dosprzedaży i checkoutu był już bezpośrednim dzieckiem flexa.
+
+**Layout „solo" (P2 = P5).** `MenuProductCard` miał wariant `solo` od
+Fazy 8, ale renderował się w siatce auto-fill z kolumnami
+`minmax(clamp(150px,26vw,250px),1fr)`. Karta dostawała 255 px na 1060 px
+wiersza, więc jej wewnętrzny podział `auto-fit minmax(280px)` zawijał się
+do jednej kolumny — layout nigdy się nie uruchamiał. Kategoria
+jednoproduktowa (Calzone) idzie teraz `grid-cols-1` na pełną szerokość,
+bez nadpisania `grid-cols-2` na mobile. To był jeden bug w dwóch
+zgłoszeniach.
+
+**Drift hero (P3) — NIE BUG.** Keyframes były zamontowane i działały;
+zmierzone w przeglądarce (`getAnimations()`, seek po `currentTime`):
+interpolacja poprawna, stan `running`. Problemem był zakres — scale
+1.06→1.14 z przesunięciem 1,2 %/1,4 % przez 26 s to ~0,8 px/s, poniżej
+progu zauważalności. Decyzją operatora podbite: cykl 18 s, scale do 1.20,
+przesunięcie 2,5 %. Paczki v3 nie ma w repo (`docs/design/v3` to sam
+dokument decyzji), więc nie było czego dociągać 1:1.
+
+**Podsumowanie checkoutu (P4).** Domyślnie rozwinięte, zwijanie zostaje.
+
+**Karta zamówienia na mobile (P6).** Wiersz listy był jednym gridem
+spadającym do `grid-cols-1` poniżej lg — każda komórka stawała się
+osobnym wierszem, łącznie z zawsze renderowaną (często pustą) kolumną
+ikony notki. Rozdzielone na `OrderRow` (`hidden lg:grid`) i nowy
+`OrderCardMobile` (`lg:hidden`) zbudowany pod wąski ekran.
+
+**Sygnał przewijania (P7).** Poziomy scroll tabel panelu Menu zostaje
+(decyzja operatora). `MenuTableCard` dostał gradient na prawej krawędzi,
+znikający po dojechaniu do końca (`scrollLeft + clientWidth` vs
+`scrollWidth`, odświeżany na scroll i przez `ResizeObserver`). Obejmuje
+wszystkie trzy zakładki. Auto-scroll do wybranej pozycji nie wszedł —
+to tabela wierszy, nie pasek wyboru.
+
+**Tracker klienta na mobile (P8).** Nie layout — link miał
+`hidden ... md:inline-flex`. Etykieta skrócona do „Tracker" poniżej sm.
+
+**Oś statusu (P9) — NIE BUG.** Zamówienie testowe ze statusem `NEW` ma
+krok „Przyjęte" aktywny natychmiast; mapowanie D-05 działa poprawnie
+i zostało bez zmian. Realnym problemem była czytelność — stan niósł
+tylko mały punkt i drobny badge. Doszedł baner nad osią („KROK n z m" +
+nagłówek + zdanie kontekstu, treści per krok w `trackingSteps`,
+`aria-live="polite"` bo polling zmienia stan bez przeładowania) oraz
+większa aktywna kropka z ringiem. Zamówienia na wybraną godzinę
+zanotowane w `ROADMAP.md` ze szkicem rozszerzenia, żeby mapowanie nie
+musiało być przepisywane.
+
+**Reszta z gotówki (P10).** Zmiana semantyki `Order.cashChangeFrom`
+**bez migracji**: pole trzyma teraz zawsze kwotę deklarowaną przez
+klienta, a „odliczoną kwotą" zapisuje sumę zamówienia. Dzięki temu
+`null` znaczy dokładnie jedno — brak danych. Wcześniej `null` znaczyło
+„odliczoną" i nie dało się odróżnić wyboru od braku informacji, czego
+wymagała korekta operatora (trzy różne komunikaty). Backend nietknięty:
+walidacja AD-026 (`>= total`) przepuszcza kwotę równą sumie, CHECK > 0
+też, a API dalej przyjmuje `null` — panel ma to obsłużyć, nie odrzucać
+zamówienia. Checkout: brak domyślnego wyboru, wybór wymagany (CTA
+blokowane przez `blockingHint`), nowy chip „Inna kwota" z polem. Stan
+trzymany jako `CashChoice ("EXACT" | number | null)`, kwota liczona
+dopiero przy wysyłce — inaczej wybór „odliczoną" przed rozwiązaniem
+strefy zapisałby sumę bez dostawy. Wyświetlanie przez
+`shared/lib/cashChange` w panelu, u kuriera i u klienta: „wydaj resztę:
+X", „gotówka odliczona", „brak danych — zadzwoń" (na czerwono). Stare
+zamówienia z `null` pokazują „brak danych" — uczciwie, bo naprawdę nie
+wiadomo.
+
+**Toast w panelu (P11).** Reguła podnosząca toasty o 150 px od dołu
+poniżej 1024 px była globalna i pochodziła z czasów `MobileCartBar`
+(usuniętego w Fazie 8). W panelu wypychała toast na środek ekranu
+telefonu. Selektor zawężony do `html[data-public-theme="piec"]`, więc
+panel wraca do narożnika `bottom-right` z `Toastera`.
+
+**Weryfikacja:** `npm run build` i `./gradlew test` zielone. W
+przeglądarce sprawdzone: geometria wyrównania rolki (pomiar
+`getBoundingClientRect`), szerokość karty solo (1060 px, podział
+529 | 529), keyframes driftu przed i po zmianie, baner trackingu przy
+`NEW` i `IN_PREPARATION`, bramka CTA na checkoucie w pięciu stanach
+wyboru gotówki, oraz trzy stany reszty na realnych zamówieniach
+2026-00013 (140 zł → 108 zł), 2026-00014 (odliczona), 2026-00015
+(`null` → brak danych) i 2026-00016 (dostawa, 200 zł → 130 zł).
+Godziny otwarcia zmienione na czas testu bramki CTA i przywrócone do
+wartości z seeda.
+
+**Do sprawdzenia przez operatora na realnym telefonie:** karta
+zamówienia i toast w panelu na 375 px — automatyzacja przeglądarki nie
+mogła zmienić viewportu, więc layout mobilny był weryfikowany przez
+wymuszenie klas i zawężenie kontenera, nie przez faktyczny media query.
 
 ## Weryfikacja obrazu produkcyjnego (2026-08-10)
 
