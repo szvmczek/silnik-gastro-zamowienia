@@ -63,9 +63,13 @@ const config: Config = {
           "40%": { transform: "scale(1.34)" },
           "100%": { transform: "scale(1)" },
         },
+        // Zakres i tempo podbite względem pierwszego wdrożenia: 1.06→1.14
+        // przez 26 s to ~0,8 px/s, czyli ruch poniżej progu zauważalności
+        // przy krótkim spojrzeniu na hero. Oddech ma być widoczny w kilka
+        // sekund i dalej spokojny.
         piecHeroDrift: {
           "0%": { transform: "scale(1.06) translate3d(0, 0, 0)" },
-          "100%": { transform: "scale(1.14) translate3d(-1.2%, -1.4%, 0)" },
+          "100%": { transform: "scale(1.2) translate3d(-2.5%, -2.5%, 0)" },
         },
         // Puls kropki: zielony = otwarte, bursztynowy = aktywny krok trackingu.
         piecPulseDot: {
@@ -91,7 +95,7 @@ const config: Config = {
         "pulse-new": "adminPulse 1.8s ease-out infinite",
         "piec-shimmer": "piecShimmer 1.6s ease-in-out infinite",
         "piec-bump": "piecCountBump 0.22s cubic-bezier(0.2, 0.8, 0.3, 1)",
-        "piec-drift": "piecHeroDrift 26s ease-in-out infinite alternate",
+        "piec-drift": "piecHeroDrift 18s ease-in-out infinite alternate",
         "piec-dot": "piecPulseDot 2.2s ease-out infinite",
         "piec-amber": "piecPulseAmber 1.8s ease-out infinite",
         "piec-fwd": "piecNavForward 0.19s cubic-bezier(0.2, 0.7, 0.3, 1) both",
