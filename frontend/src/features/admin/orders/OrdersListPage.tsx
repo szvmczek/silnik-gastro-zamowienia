@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Printer, Search } from "lucide-react";
@@ -342,7 +342,10 @@ export function OrdersListPage() {
           </div>
         ) : (
           rows.map((row, idx) => (
-            <OrderRow key={row.id} row={row} isLast={idx === rows.length - 1} />
+            <Fragment key={row.id}>
+              <OrderCardMobile row={row} isLast={idx === rows.length - 1} />
+              <OrderRow row={row} isLast={idx === rows.length - 1} />
+            </Fragment>
           ))
         )}
       </div>
@@ -431,6 +434,127 @@ interface OrderRowProps {
   isLast: boolean;
 }
 
+/**
+ * Wersja mobilna wiersza (<lg). Wcześniej ten sam grid spadał do
+ * grid-cols-1, przez co każda komórka stawała się osobnym wierszem —
+ * łącznie z pustą kolumną ikony notki i kolumną akcji, stąd martwa
+ * przestrzeń i brak wyrównania. Tu układ jest zbudowany pod wąski ekran:
+ * numer + status w nagłówku, klient i telefon w środku, kwota i akcja
+ * w stopce.
+ */
+function OrderCardMobile({ row, isLast }: OrderRowProps) {
+  const dot = STATUS_DOT[row.status];
+
+  return (
+    <div
+      className="flex flex-col gap-2.5 px-4 py-3.5 lg:hidden"
+      style={{
+        borderBottom: isLast ? "none" : "1px solid rgb(var(--color-border-subtle))",
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 14,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+          }}
+        >
+          {row.orderNumber}
+        </span>
+        <span
+          className="inline-flex flex-none items-center"
+          style={{
+            gap: 6,
+            padding: "4px 10px",
+            borderRadius: 9999,
+            background: `rgb(var(${dot}) / 0.12)`,
+            color: `rgb(var(${dot}))`,
+            fontSize: 12,
+            fontWeight: 600,
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            style={{ width: 6, height: 6, borderRadius: 9999, background: "currentColor" }}
+            aria-hidden
+          />
+          {STATUS_LABEL[row.status]}
+        </span>
+      </div>
+
+      <div className="min-w-0">
+        <div
+          className="truncate"
+          style={{ fontSize: 15, fontWeight: 500, color: "rgb(var(--color-text-primary))" }}
+        >
+          {row.customerName}
+        </div>
+        <div
+          className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1"
+          style={{ fontSize: 12, color: "rgb(var(--color-text-muted))" }}
+        >
+          <a
+            href={`tel:${row.customerPhone}`}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontWeight: 600,
+              color: "rgb(var(--color-primary))",
+              textDecoration: "none",
+            }}
+          >
+            {row.customerPhone}
+          </a>
+          <span aria-hidden>·</span>
+          <span>{row.fulfillmentType === "DELIVERY" ? "Dostawa" : "Odbiór"}</span>
+          <span aria-hidden>·</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600 }}>
+            {formatTimeHHmm(row.placedAt)}
+          </span>
+          {row.customerNotes && (
+            <>
+              <span aria-hidden>·</span>
+              <span style={{ color: "#B45309", fontWeight: 600 }}>notka klienta</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 15,
+            fontWeight: 700,
+            color: "rgb(var(--color-text-primary))",
+          }}
+        >
+          {zl(row.total)}
+        </span>
+        <Link
+          to={`/admin/orders/${row.id}`}
+          className="inline-flex flex-none items-center justify-center"
+          style={{
+            height: 36,
+            padding: "0 14px",
+            borderRadius: 6,
+            border: "1px solid rgb(var(--color-border-card))",
+            background: "rgb(var(--color-bg-card))",
+            color: "rgb(var(--color-text-primary))",
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: "none",
+          }}
+        >
+          Szczegóły →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function OrderRow({ row, isLast }: OrderRowProps) {
   const dot = STATUS_DOT[row.status];
   const statusLabel = STATUS_LABEL[row.status];
@@ -438,7 +562,7 @@ function OrderRow({ row, isLast }: OrderRowProps) {
 
   return (
     <div
-      className="grid grid-cols-1 lg:grid-cols-[82px_1fr_140px_130px_100px_90px_44px_70px_110px]"
+      className="hidden lg:grid lg:grid-cols-[82px_1fr_140px_130px_100px_90px_44px_70px_110px]"
       style={{
         gap: 12,
         padding: "14px 16px",
