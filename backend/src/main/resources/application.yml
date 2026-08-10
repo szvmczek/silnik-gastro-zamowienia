@@ -30,6 +30,24 @@ management:
     web:
       exposure:
         include: health,info
+  info:
+    env:
+      enabled: true
+
+# Co realnie stoi na środowisku — jednym curlem, bez zgadywania z hashy
+# assetów. Railway wstrzykuje te zmienne automatycznie przy każdym buildzie;
+# lokalnie i w Dockerze bez nich wyjdzie "unknown", co samo w sobie jest
+# poprawną odpowiedzią („to nie jest deploy z Railway").
+#
+# Powód: po wdrożeniu rundy poprawek 2026-08-10 produkcja serwowała stary
+# commit, a jedynym sposobem sprawdzenia tego było pobieranie assetów
+# i porównywanie ich treści z lokalnym buildem.
+info:
+  git:
+    commit: ${RAILWAY_GIT_COMMIT_SHA:unknown}
+    branch: ${RAILWAY_GIT_BRANCH:unknown}
+  deployment:
+    id: ${RAILWAY_DEPLOYMENT_ID:unknown}
 
 server:
   port: ${PORT:8080}
