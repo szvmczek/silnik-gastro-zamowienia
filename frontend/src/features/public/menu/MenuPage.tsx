@@ -106,7 +106,17 @@ export function MenuPage() {
               ) : (
                 <div
                   data-stagger="1"
-                  className="mt-3.5 grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(clamp(150px,26vw,250px),1fr))] max-[430px]:!grid-cols-2 max-[430px]:!gap-2.5"
+                  className={
+                    // Kategoria jednoproduktowa dostaje w paczce szeroki layout
+                    // „solo" (zdjęcie | opis). Siatka auto-fill ściskała ją do
+                    // jednej kolumny ~250 px, więc podział nigdy się nie
+                    // uruchamiał, a reszta wiersza zostawała pusta. Solo idzie
+                    // jednym blokiem na pełną szerokość — na mobile też,
+                    // dlatego bez nadpisania grid-cols-2.
+                    solo
+                      ? "mt-3.5 grid grid-cols-1"
+                      : "mt-3.5 grid gap-3.5 [grid-template-columns:repeat(auto-fill,minmax(clamp(150px,26vw,250px),1fr))] max-[430px]:!grid-cols-2 max-[430px]:!gap-2.5"
+                  }
                 >
                   {category.products.map((product) => (
                     <MenuProductCard
