@@ -4,6 +4,7 @@ import type {
   OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { useElapsedTick } from "../shared/useElapsedTick";
+import { orderItemBrief } from "../shared/orderItemMeta";
 import { cashChangeText } from "@/shared/lib/cashChange";
 
 interface PickupRowProps {
@@ -19,10 +20,8 @@ function zl(raw: string | number): string {
 
 function fmtItemsBrief(items: OrderTrackingItemDto[]): string {
   if (!items.length) return "—";
-  const fmt = (it: OrderTrackingItemDto) =>
-    `${it.quantity}× ${it.productName}${it.variantName ? ` ${it.variantName}` : ""}`;
-  if (items.length <= 3) return items.map(fmt).join(", ");
-  const head = items.slice(0, 2).map(fmt).join(", ");
+  if (items.length <= 3) return items.map(orderItemBrief).join(", ");
+  const head = items.slice(0, 2).map(orderItemBrief).join(", ");
   return `${head} · +${items.length - 2} więcej`;
 }
 
@@ -115,12 +114,7 @@ export function PickupRow({ order, slotEmphasis = true }: PickupRowProps) {
 
       <div style={{ minWidth: 0 }}>
         <div
-          title={order.items
-            .map(
-              (it) =>
-                `${it.quantity}× ${it.productName}${it.variantName ? ` ${it.variantName}` : ""}`,
-            )
-            .join(", ")}
+          title={order.items.map(orderItemBrief).join(", ")}
           style={{
             fontSize: 12,
             color: "rgb(var(--color-text-body))",

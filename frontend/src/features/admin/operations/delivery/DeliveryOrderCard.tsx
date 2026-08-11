@@ -6,6 +6,7 @@ import type {
   OrderTrackingItemDto,
 } from "@/shared/api/orderApi";
 import { useElapsedTick } from "../shared/useElapsedTick";
+import { orderItemAddonLines } from "../shared/orderItemMeta";
 import { cashChangeText } from "@/shared/lib/cashChange";
 
 function zl(raw: string | number): string {
@@ -83,6 +84,18 @@ export function DeliveryItemList({ items, compact = false }: ItemListProps) {
                 {it.variantName}
               </span>
             )}
+            {orderItemAddonLines(it).map((line) => (
+              <span
+                key={line}
+                style={{
+                  display: "block",
+                  fontWeight: 400,
+                  color: "rgb(var(--color-text-muted))",
+                }}
+              >
+                {line}
+              </span>
+            ))}
           </span>
           <span
             style={{

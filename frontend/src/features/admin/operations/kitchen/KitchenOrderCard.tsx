@@ -14,6 +14,7 @@ import {
 import { extractProblem } from "@/shared/api/client";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { useElapsedTick } from "../shared/useElapsedTick";
+import { orderItemAddonLines } from "../shared/orderItemMeta";
 
 interface KitchenOrderCardProps {
   order: AdminOrderListItemDto;
@@ -365,6 +366,7 @@ function KitchenItemRow({
   item: OrderTrackingItemDto;
   highlightNote: boolean;
 }) {
+  const addonLines = orderItemAddonLines(item);
   return (
     <div
       style={{
@@ -408,6 +410,25 @@ function KitchenItemRow({
             </span>
           )}
         </div>
+        {addonLines.length > 0 && (
+          <div style={{ marginTop: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+            {addonLines.map((line) => (
+              <div
+                key={line}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "rgb(var(--color-text-body))",
+                  lineHeight: 1.35,
+                  paddingLeft: 9,
+                  borderLeft: "2px solid rgb(var(--color-primary))",
+                }}
+              >
+                {line}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <span
         style={{
