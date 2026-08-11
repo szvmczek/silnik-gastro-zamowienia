@@ -14,6 +14,9 @@ export interface AdminNavLink {
   end?: boolean;
   icon?: IconName;
   badge?: number;
+  /** Miga, dopóki admin nie zauważy tego, co badge liczy. */
+  badgePulse?: boolean;
+  badgeLabel?: string;
 }
 
 export interface AdminNavSeparator {
@@ -120,7 +123,17 @@ export function AdminSidebar({
               {item.icon && <Icon name={item.icon} size={18} />}
               <span className="flex-1 truncate">{item.label}</span>
               {item.badge !== undefined && item.badge > 0 && (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgb(var(--color-primary))] px-1.5 text-[11px] font-semibold text-white">
+                <span
+                  aria-label={item.badgeLabel}
+                  className={cn(
+                    "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[rgb(var(--color-primary))] px-1.5 text-[11px] font-semibold text-white",
+                    // adminPulse (bursztynowy ring) — ten sam keyframe, którym
+                    // Kuchnia oznacza wiszące zamówienia. Pod reduced-motion
+                    // pulsu nie ma, więc zostaje statyczny ring jako nośnik.
+                    item.badgePulse &&
+                      "motion-safe:animate-pulse-new motion-reduce:ring-2 motion-reduce:ring-amber-400",
+                  )}
+                >
                   {item.badge}
                 </span>
               )}

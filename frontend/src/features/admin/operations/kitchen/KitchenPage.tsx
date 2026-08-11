@@ -10,7 +10,6 @@ import {
   type OrderStatus,
 } from "@/shared/api/orderApi";
 import { extractProblem } from "@/shared/api/client";
-import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { EtaDialog } from "@/features/admin/orders/components/EtaDialog";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
@@ -40,7 +39,8 @@ function queryError(err: unknown): string | null {
 }
 
 export function KitchenPage() {
-  useOperationalSound("kitchen");
+  // Dźwięk kuchni subskrybuje teraz AdminLayout (słychać go z każdego ekranu).
+  // Tu nie wolno go montować drugi raz — pub/sub wywołałby oba nasłuchy.
   const queryClient = useQueryClient();
   const now = useElapsedTick();
   const settings = usePublicSettings();

@@ -67,10 +67,15 @@ export function useAdminOrderFeed(): void {
         // stats is the new Faza 4.5 manager dashboard query key.
         queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "summary"] });
         queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
+        // Nowe zamówienie nie znika samo: to jedyne zdarzenie w panelu, którego
+        // przegapienie kosztuje czas kuchni. Znika dopiero, gdy admin je
+        // otworzy albo jawnie zamknie.
         toast.success(`Nowe zamówienie: ${data.orderNumber}`, {
+          duration: Infinity,
+          closeButton: true,
           action: {
             label: "Otwórz",
-            onClick: () => navigate("/admin/kitchen"),
+            onClick: () => navigate(`/admin/orders/${data.orderId}`),
           },
         });
         emitOrderFeed({

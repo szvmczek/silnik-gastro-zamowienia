@@ -4,11 +4,13 @@ import { useAuth } from "@/shared/auth/useAuth";
 import { Button } from "@/shared/components/ui/Button";
 import { Sheet, SheetContent } from "@/shared/components/ui/Sheet";
 import { useAdminOrderFeed } from "@/features/admin/realtime/useAdminOrderFeed";
+import { useNewOrdersBadge } from "@/features/admin/realtime/useNewOrdersBadge";
+import { useOperationalSound } from "@/features/admin/realtime/useOperationalSound";
 import { SoundToggle } from "@/features/admin/realtime/SoundToggle";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { AdminSidebar, type AdminNavEntry } from "./AdminSidebar";
 
-const navItems: AdminNavEntry[] = [
+const baseNavItems: AdminNavEntry[] = [
   { kind: "section", title: "Operacyjne" },
   { kind: "link", to: "/admin", label: "Pulpit", end: true, icon: "dashboard" },
   { kind: "link", to: "/admin/kitchen", label: "Kuchnia", icon: "kitchen" },
@@ -50,6 +52,26 @@ export function AdminLayout() {
   const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null);
 
   useAdminOrderFeed();
+  // Dźwięk kuchni na poziomie powłoki, nie strony — inaczej ding leci tylko
+  // wtedy, kiedy admin i tak patrzy na Kuchnię, czyli dokładnie wtedy, kiedy
+  // jest najmniej potrzebny.
+  useOperationalSound("kitchen");
+  const { unseenCount } = useNewOrdersBadge();
+
+  const navItems = useMemo<AdminNavEntry[]>(
+    () =>
+      baseNavItems.map((item) =>
+        item.kind === "link" && item.to === "/admin/kitchen"
+          ? {
+              ...item,
+              badge: unseenCount,
+              badgePulse: unseenCount > 0,
+              badgeLabel: `Nowe zamówienia do otwarcia: ${unseenCount}`,
+            }
+          : item,
+      ),
+    [unseenCount],
+  );
 
   const settings = usePublicSettings();
   const restaurantName = settings.data?.name ?? "Panel";
