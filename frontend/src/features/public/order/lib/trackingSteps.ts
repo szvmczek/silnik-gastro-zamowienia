@@ -12,22 +12,36 @@ export interface TrackingStep {
 }
 
 /**
- * D-05 — mapowanie statusów na cztery kroki widoczne dla klienta,
+ * D-05 — mapowanie statusów na pięć kroków widocznych dla klienta,
  * zależne od typu realizacji.
  *
- * Backend ma sześć statusów (AD-008), z których dwa nie mają sensu
- * dla klienta w tej postaci: CONFIRMED to opcjonalna ścieżka
- * back-office, a READY znaczy co innego przy dostawie („czeka na
- * kuriera") niż przy odbiorze („przyjdź po odbiór") — i właśnie przy
- * odbiorze jest najważniejszym momentem całego zamówienia.
+ * NEW i CONFIRMED to dwa osobne kroki, bo w panelu są to dwa osobne
+ * kliknięcia i nie ma między nimi skrótu: „Potwierdź zamówienie"
+ * (NEW → CONFIRMED) i „Rozpocznij przygotowanie" (CONFIRMED →
+ * IN_PREPARATION). Zamówienie realnie czeka w CONFIRMED — na Kuchni
+ * oba statusy leżą obok siebie w kolumnie „Nowe", więc lokal potwierdza
+ * przyjęcie od razu, a gotowanie zaczyna, gdy zwolni się piec. Scalanie
+ * ich w jedno „Przyjęte" mówiło klientowi „zajmujemy się tym", zanim
+ * ktokolwiek zamówienie potwierdził.
+ *
+ * READY zostaje scalone z OUT_FOR_DELIVERY przy dostawie, bo znaczy co
+ * innego przy dostawie („czeka na kuriera") niż przy odbiorze („przyjdź
+ * po odbiór") — i właśnie przy odbiorze jest najważniejszym momentem
+ * całego zamówienia.
  *
  * CANCELED celowo nie jest krokiem osi — to osobny stan, renderowany
  * przez TrackingPage jako karta zamiast osi.
  */
 const DELIVERY_STEPS: TrackingStep[] = [
   {
-    label: "Przyjęte",
-    statuses: ["NEW", "CONFIRMED"],
+    label: "Otrzymane",
+    statuses: ["NEW"],
+    headline: "Otrzymaliśmy Twoje zamówienie",
+    detail: "Czeka na potwierdzenie przez restaurację.",
+  },
+  {
+    label: "Potwierdzone",
+    statuses: ["CONFIRMED"],
     headline: "Mamy Twoje zamówienie",
     detail: "Przyjęliśmy je do realizacji. Za chwilę trafi na piec.",
   },
@@ -53,8 +67,14 @@ const DELIVERY_STEPS: TrackingStep[] = [
 
 const PICKUP_STEPS: TrackingStep[] = [
   {
-    label: "Przyjęte",
-    statuses: ["NEW", "CONFIRMED"],
+    label: "Otrzymane",
+    statuses: ["NEW"],
+    headline: "Otrzymaliśmy Twoje zamówienie",
+    detail: "Czeka na potwierdzenie przez restaurację.",
+  },
+  {
+    label: "Potwierdzone",
+    statuses: ["CONFIRMED"],
     headline: "Mamy Twoje zamówienie",
     detail: "Przyjęliśmy je do realizacji. Za chwilę trafi na piec.",
   },

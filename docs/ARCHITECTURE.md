@@ -317,6 +317,18 @@ działa bez zmian.
   widoczny w sekcji "NOWE" obok `NEW`); akcja "Przyjmij" działa identycznie
   dla obu i kieruje do `IN_PREPARATION`.
 
+**Stan faktyczny od Fazy 8 (zweryfikowane 2026-08-12):** redesign „PIEC"
+zastąpił jednogestową akcję "Przyjmij" dwoma osobnymi przyciskami —
+`KitchenOrderCard` i `OrderDetailPage` oferują "Potwierdź zamówienie"
+(`NEW → CONFIRMED`) i "Rozpocznij przygotowanie" (`CONFIRMED →
+IN_PREPARATION`). **Skrót `NEW → IN_PREPARATION` nie jest wywoływany
+z żadnego miejsca w UI** — pozostaje wyłącznie jako dopuszczona tranzycja
+w `transitions.ts` i w state machine backendu. Historia statusów
+potwierdza: zamówienia sprzed Fazy 8 mają w bazie ścieżkę skróconą,
+wszystkie nowsze idą przez `CONFIRMED`. W konsekwencji trigger
+reewaluacji "klient potrzebuje rozróżnienia »zaakceptowano ale jeszcze
+nie zaczęto gotować«" **zadziałał** — patrz AD-027, rewizja 2026-08-12.
+
 **Trigger do reewaluacji:**
 - Pojawi się wymaganie capacity gating / payment verification między
   akceptacją a rozpoczęciem przygotowania.
@@ -403,22 +415,34 @@ po doliczeniu `deliveryFee`, bo klient płaci kwotę końcową.
 
 ### AD-027: Mapowanie statusów na kroki trackingu zależne od typu realizacji
 
-**Decyzja:** Publiczny tracking pokazuje cztery kroki mapowane z sześciu
+**Decyzja:** Publiczny tracking pokazuje pięć kroków mapowanych z sześciu
 statusów backendu (D-05), z mapowaniem zależnym od `fulfillmentType`.
 Mapowanie żyje wyłącznie na froncie (`order/lib/trackingSteps.ts`);
 state machine i `OrderStatus` bez zmian.
 
+**Rewizja 2026-08-12:** pierwotnie kroków były cztery, z `NEW` i
+`CONFIRMED` scalonymi w „Przyjęte". Rozdzielone na „Otrzymane" (`NEW`)
+i „Potwierdzone" (`CONFIRMED`) — uzasadnienie niżej.
+
 **Powody:**
-- `CONFIRMED` to opcjonalna ścieżka back-office (AD-023) — dla klienta
-  nieodróżnialna od `NEW`.
+- `NEW` i `CONFIRMED` to dwa osobne kliknięcia w panelu („Potwierdź
+  zamówienie" i „Rozpocznij przygotowanie") i nie ma między nimi skrótu
+  w UI — mimo że state machine go dopuszcza (AD-023). Zamówienie realnie
+  czeka w `CONFIRMED`: na Kuchni oba statusy leżą obok siebie w kolumnie
+  „Nowe", więc lokal potwierdza przyjęcie od razu, a gotowanie zaczyna,
+  gdy zwolni się piec. Scalony krok mówił klientowi „zajmujemy się tym",
+  zanim ktokolwiek zamówienie potwierdził.
 - `READY` znaczy co innego przy dostawie („czeka na kuriera", chowane
   pod „W drodze") niż przy odbiorze („przyjdź po odbiór") — i przy
   odbiorze jest najważniejszym momentem całego zamówienia.
 - `CANCELED` nie jest krokiem osi, tylko osobnym stanem z telefonem.
 
-**Konsekwencje akceptowane:** dwa opisy tego samego statusu w zależności
-od kontekstu. Świadome — klient odbierający osobiście nigdy nie zobaczy
-„W drodze".
+**Konsekwencje akceptowane:**
+- Dwa opisy tego samego statusu w zależności od kontekstu. Świadome —
+  klient odbierający osobiście nigdy nie zobaczy „W drodze".
+- Jeśli kiedyś wróci skrót `NEW → IN_PREPARATION` w UI panelu, krok
+  „Potwierdzone" przestanie się pokazywać i mapowanie trzeba będzie
+  scalić z powrotem. To jest trigger do reewaluacji tej decyzji.
 
 ## Domain conventions
 
