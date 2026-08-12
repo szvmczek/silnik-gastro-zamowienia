@@ -11,6 +11,7 @@ import com.pizzashowcase.order.api.dto.admin.AdminDashboardStatsDto.Today;
 import com.pizzashowcase.order.api.dto.admin.AdminDashboardStatsDto.TopProductStats;
 import com.pizzashowcase.order.api.dto.admin.AdminDashboardSummaryDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
+import com.pizzashowcase.order.api.dto.admin.AdminOrderEditDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusHistoryDto;
@@ -18,7 +19,9 @@ import com.pizzashowcase.order.domain.Address;
 import com.pizzashowcase.order.domain.FulfillmentType;
 import com.pizzashowcase.order.domain.Order;
 import com.pizzashowcase.order.domain.OrderItem;
+import com.pizzashowcase.order.domain.OrderEdit;
 import com.pizzashowcase.order.domain.OrderStatus;
+import com.pizzashowcase.order.infrastructure.OrderEditRepository;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
 import com.pizzashowcase.shared.error.ApiException;
 import org.springframework.data.domain.Page;
@@ -53,9 +56,12 @@ public class AdminOrderQueryService {
             List.of(OrderStatus.READY, OrderStatus.OUT_FOR_DELIVERY);
 
     private final OrderRepository orderRepository;
+    private final OrderEditRepository orderEditRepository;
 
-    public AdminOrderQueryService(OrderRepository orderRepository) {
+    public AdminOrderQueryService(OrderRepository orderRepository,
+                                  OrderEditRepository orderEditRepository) {
         this.orderRepository = orderRepository;
+        this.orderEditRepository = orderEditRepository;
     }
 
     public Page<AdminOrderListItemDto> list(OrderStatus status,
@@ -281,8 +287,42 @@ public class AdminOrderQueryService {
                 order.getDeliveryFee(),
                 order.getDeliveryZoneName(),
                 order.getTotal(),
-                history
+                history,
+                editHistory(order)
         );
+    }
+
+    /**
+     * Historia edycji doklejana wyłącznie do detalu. Jedno dodatkowe
+     * zapytanie na otwarcie zamówienia — lista (AD-022) tego nie płaci.
+     */
+    private List<AdminOrderEditDto> editHistory(Order order) {
+        if (order.getId() == null) {
+            return List.of();
+        }
+        List<OrderEdit> edits = orderEditRepository.findByOrderIdOrderByEditedAtDescIdDesc(order.getId());
+        boolean editable = order.getStatus().isContentEditable();
+        boolean undoOfferedForNewest = editable;
+        List<AdminOrderEditDto> result = new ArrayList<>(edits.size());
+        for (OrderEdit edit : edits) {
+            // Cofać można tylko najnowszy JESZCZE niecofnięty wpis; kolejne
+            // kliknięcie schodzi o edycję wcześniejszą (cofanie łańcuchowe).
+            boolean canUndo = undoOfferedForNewest && !edit.isUndone();
+            if (canUndo) {
+                undoOfferedForNewest = false;
+            }
+            result.add(new AdminOrderEditDto(
+                    edit.getId(),
+                    edit.getEditedAt(),
+                    edit.getEditedBy(),
+                    List.of(edit.getSummary().split("\n")),
+                    edit.getTotalBefore(),
+                    edit.getTotalAfter(),
+                    edit.getUndoneAt(),
+                    edit.getUndoneBy(),
+                    canUndo));
+        }
+        return result;
     }
 
     private List<OrderTrackingItemDto> toItemDtos(Order order) {

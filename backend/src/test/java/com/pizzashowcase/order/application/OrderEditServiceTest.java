@@ -106,7 +106,19 @@ class OrderEditServiceTest {
 
         order = newOrder();
         when(orderRepository.findWithDetailsById(7L)).thenReturn(Optional.of(order));
-        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+        // Udajemy bazę: flush nadaje identyfikatory świeżo dodanym pozycjom.
+        // Bez tego kolejna edycja tego samego zamówienia nie miałaby czym
+        // wskazać wiersza powstałego w poprzedniej.
+        java.util.concurrent.atomic.AtomicLong itemSeq = new java.util.concurrent.atomic.AtomicLong(200L);
+        when(orderRepository.saveAndFlush(any(Order.class))).thenAnswer(inv -> {
+            Order saved = inv.getArgument(0);
+            for (OrderItem item : saved.getItems()) {
+                if (item.getId() == null) {
+                    setField(item, "id", itemSeq.incrementAndGet());
+                }
+            }
+            return saved;
+        });
         when(orderEditRepository.save(any(OrderEdit.class))).thenAnswer(inv -> inv.getArgument(0));
         when(queryService.toDto(any(Order.class))).thenReturn(mock(AdminOrderDto.class));
     }
@@ -290,6 +302,91 @@ class OrderEditServiceTest {
         ArgumentCaptor<OrderEdit> captor = ArgumentCaptor.forClass(OrderEdit.class);
         verify(orderEditRepository).save(captor.capture());
         assertThat(captor.getValue().getSummary()).contains("Dodano do „Margherita”: jalapeño");
+    }
+
+    // ---- Cofanie ----
+
+    @Test
+    void undoRestoresItemsTotalsAndCashChangeExactly() {
+        wireEditStore();
+        service.edit(7L, new EditOrderRequest(
+                1L,
+                List.of(line(101L, 1L, 2, "bez cebuli"), line(102L, 2L, 2, null)),
+                "zadzwonić przed",
+                new BigDecimal("200.00"),
+                null));
+        assertThat(order.getTotal()).isEqualByComparingTo("87.00");
+
+        service.undoLast(7L, 1L);
+
+        assertThat(order.getItems()).hasSize(2);
+        OrderItem margherita = itemByName("Margherita", null);
+        assertThat(margherita.getQuantity()).isEqualTo(1);
+        assertThat(margherita.getUnitPriceSnapshot()).isEqualByComparingTo("30.00");
+        assertThat(margherita.getItemNote()).isNull();
+        assertThat(order.getSubtotal()).isEqualByComparingTo("42.00");
+        assertThat(order.getTotal()).isEqualByComparingTo("47.00");
+        assertThat(order.getCashChangeFrom()).isNull();
+        assertThat(order.getCustomerNotes()).isNull();
+    }
+
+    @Test
+    void undoIsChained_secondCallRollsBackTheEarlierEdit() {
+        wireEditStore();
+        service.edit(7L, request(line(101L, 1L, 2, null), line(102L, 2L, 2, null)));
+        // Margherita dostała po pierwszej edycji nowy wiersz (nową cenę),
+        // więc druga edycja wskazuje go już nowym identyfikatorem.
+        Long margheritaId = itemByName("Margherita", null).getId();
+        service.edit(7L, request(line(margheritaId, 1L, 2, null)));
+        assertThat(order.getItems()).hasSize(1);
+
+        service.undoLast(7L, 1L);
+        assertThat(order.getItems()).hasSize(2);
+        assertThat(order.getTotal()).isEqualByComparingTo("87.00");
+
+        service.undoLast(7L, 1L);
+        assertThat(order.getTotal()).isEqualByComparingTo("47.00");
+        assertThat(itemByName("Margherita", null).getQuantity()).isEqualTo(1);
+    }
+
+    @Test
+    void undoWithoutAnyEditIsRejected() {
+        assertThatThrownBy(() -> service.undoLast(7L, 1L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("Brak zmian do cofnięcia");
+    }
+
+    @Test
+    void undoIsBlockedOnceTheOrderLeftEditableStatuses() {
+        wireEditStore();
+        service.edit(7L, request(line(101L, 1L, 2, null), line(102L, 2L, 2, null)));
+        order.setStatus(OrderStatus.READY);
+
+        assertThatThrownBy(() -> service.undoLast(7L, 1L))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("nie da się już zmienić");
+    }
+
+    /**
+     * Repozytorium wpisów udaje bazę: nadaje id, zapamiętuje i zwraca
+     * najnowszy niecofnięty wpis — bez tego nie da się przetestować
+     * łańcuchowego cofania na mocku.
+     */
+    private void wireEditStore() {
+        List<OrderEdit> store = new java.util.ArrayList<>();
+        java.util.concurrent.atomic.AtomicLong seq = new java.util.concurrent.atomic.AtomicLong();
+        when(orderEditRepository.save(any(OrderEdit.class))).thenAnswer(inv -> {
+            OrderEdit edit = inv.getArgument(0);
+            if (edit.getId() == null) {
+                setField(edit, "id", seq.incrementAndGet());
+                store.add(edit);
+            }
+            return edit;
+        });
+        when(orderEditRepository.findFirstByOrderIdAndUndoneAtIsNullOrderByEditedAtDescIdDesc(7L))
+                .thenAnswer(inv -> store.stream()
+                        .filter(e -> !e.isUndone())
+                        .max(java.util.Comparator.comparing(OrderEdit::getId)));
     }
 
     // ---- Pomocnicze ----

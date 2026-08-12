@@ -5,6 +5,7 @@ import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
 import com.pizzashowcase.order.api.dto.admin.EditOrderRequest;
 import com.pizzashowcase.order.api.dto.admin.OrderEditPreviewDto;
+import com.pizzashowcase.order.api.dto.admin.UndoOrderEditRequest;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderEtaRequest;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderStatusRequest;
 import com.pizzashowcase.order.application.AdminOrderQueryService;
@@ -89,6 +90,12 @@ public class AdminOrderController {
     public AdminOrderDto editItems(@PathVariable Long id,
                                    @Valid @RequestBody EditOrderRequest request) {
         return editService.edit(id, request);
+    }
+
+    @PostMapping("/{id}/edits/undo")
+    public AdminOrderDto undoLastEdit(@PathVariable Long id,
+                                      @Valid @RequestBody UndoOrderEditRequest request) {
+        return editService.undoLast(id, request.version());
     }
 
     @PatchMapping("/{id}/eta")

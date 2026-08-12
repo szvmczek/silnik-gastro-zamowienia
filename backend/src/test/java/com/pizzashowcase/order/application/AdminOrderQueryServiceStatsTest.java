@@ -34,7 +34,8 @@ class AdminOrderQueryServiceStatsTest {
     @BeforeEach
     void setUp() {
         orderRepository = mock(OrderRepository.class);
-        service = new AdminOrderQueryService(orderRepository);
+        service = new AdminOrderQueryService(orderRepository,
+                mock(com.pizzashowcase.order.infrastructure.OrderEditRepository.class));
 
         when(orderRepository.countByStatus(any(OrderStatus.class))).thenReturn(0L);
         when(orderRepository.countByStatusAndFulfillmentType(any(), any())).thenReturn(0L);

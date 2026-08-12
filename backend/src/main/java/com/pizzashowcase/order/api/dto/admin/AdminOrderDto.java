@@ -40,6 +40,9 @@ public record AdminOrderDto(
         BigDecimal deliveryFee,
         String deliveryZoneName,
         BigDecimal total,
-        List<AdminOrderStatusHistoryDto> statusHistory
+        List<AdminOrderStatusHistoryDto> statusHistory,
+        // Historia edycji treści zamówienia — tylko w detalu, świadomie NIE
+        // w AdminOrderListItemDto: payload listy z AD-022 zostaje bez zmian.
+        List<AdminOrderEditDto> edits
 ) {
 }

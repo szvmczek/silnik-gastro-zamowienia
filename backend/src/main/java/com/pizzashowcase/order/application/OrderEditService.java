@@ -186,6 +186,47 @@ public class OrderEditService {
         return adminOrderQueryService.toDto(saved);
     }
 
+    // ---- Cofanie ----
+
+    /**
+     * Cofa najnowszą jeszcze niecofniętą edycję. Pozycje odtwarzane są
+     * WPROST ze snapshotu, bez zaglądania do menu — dzięki temu cofnięcie
+     * jest wierne nawet wtedy, gdy produkt zdążył zniknąć z karty albo
+     * zmienić cenę.
+     *
+     * <p>Cofanie jest łańcuchowe: kolejne wywołanie zdejmie edycję
+     * wcześniejszą. To dalej nie jest wersjonowanie — nie ma skoku do
+     * dowolnego punktu historii, tylko krok wstecz.
+     */
+    public AdminOrderDto undoLast(Long id, Long version) {
+        Order order = loadOrThrow(id);
+        assertVersion(order, version);
+        assertEditable(order);
+
+        OrderEdit last = orderEditRepository
+                .findFirstByOrderIdAndUndoneAtIsNullOrderByEditedAtDescIdDesc(id)
+                .orElseThrow(() -> ApiException.unprocessable("Brak zmian do cofnięcia."));
+
+        OrderEditSnapshot snapshot = readSnapshot(last.getSnapshotBefore());
+
+        List<OrderItem> current = List.copyOf(order.getItems());
+        current.forEach(order::removeItem);
+        for (OrderEditSnapshot.Item item : snapshot.items()) {
+            order.addItem(OrderEditSnapshot.toEntity(item));
+        }
+        order.setSubtotal(snapshot.subtotal());
+        order.setTotal(snapshot.total());
+        order.setCashChangeFrom(snapshot.cashChangeFrom());
+        order.setCustomerNotes(snapshot.customerNotes());
+
+        last.markUndone(Instant.now(), currentAdminIdentity());
+        orderEditRepository.save(last);
+
+        Order saved = orderRepository.saveAndFlush(order);
+        publishEdited(saved, OrderEditedEvent.Kind.UNDO);
+        return adminOrderQueryService.toDto(saved);
+    }
+
     // ---- Rozwiązanie pozycji ----
 
     /** Jedna linia wyniku: encja (istniejąca albo świeżo wyceniona) + kontekst do opisu zmiany. */
