@@ -43,6 +43,35 @@ const ALL_STATUSES: OrderStatus[] = [
   "DELIVERED",
 ];
 
+const CONTENT_EDITABLE: OrderStatus[] = ["NEW", "CONFIRMED", "IN_PREPARATION"];
+
+/**
+ * Mirror `OrderStatus.isContentEditable()` z backendu (wzorzec AD-017 —
+ * backend zostaje ostateczną bramką, front tylko chowa i tłumaczy).
+ * Oś niezależna od tranzycji statusów: po READY jedzenie jest spakowane
+ * albo w drodze, więc zmiana pozycji nie ma pokrycia w rzeczywistości.
+ */
+export function isContentEditable(status: OrderStatus): boolean {
+  return CONTENT_EDITABLE.includes(status);
+}
+
+/** Dlaczego edycja jest zablokowana — tekst pod przycisk i tooltip. */
+export function contentEditBlockedReason(status: OrderStatus): string | null {
+  if (isContentEditable(status)) return null;
+  switch (status) {
+    case "READY":
+      return "Zamówienie jest gotowe — pozycji nie da się już zmienić.";
+    case "OUT_FOR_DELIVERY":
+      return "Zamówienie jest w drodze — pozycji nie da się już zmienić.";
+    case "DELIVERED":
+      return "Zamówienie zostało zrealizowane.";
+    case "CANCELED":
+      return "Zamówienie jest anulowane.";
+    default:
+      return "Tego zamówienia nie można już edytować.";
+  }
+}
+
 export function nextAllowedStatuses(
   from: OrderStatus,
   fulfillmentType: FulfillmentType

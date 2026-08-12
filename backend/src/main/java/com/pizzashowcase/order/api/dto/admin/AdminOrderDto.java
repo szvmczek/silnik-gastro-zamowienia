@@ -35,7 +35,9 @@ public record AdminOrderDto(
         // kurier / osoba wydająca musi wiedzieć, ile brać na wydanie.
         BigDecimal cashChangeFrom,
         OrderTrackingAddressDto deliveryAddress,
-        List<OrderTrackingItemDto> items,
+        // Detal używa wersji z identyfikatorami — tryb edycji musi wiedzieć,
+        // który wiersz i jaki produkt/wariant/dodatki niesie pozycja.
+        List<AdminOrderItemDto> items,
         BigDecimal subtotal,
         BigDecimal deliveryFee,
         String deliveryZoneName,

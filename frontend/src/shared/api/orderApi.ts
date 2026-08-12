@@ -154,6 +154,35 @@ export interface AdminOrderStatusHistoryDto {
   reason: string | null;
 }
 
+/**
+ * Pozycja w detalu zamówienia — nadzbiór OrderTrackingItemDto o identyfikatory,
+ * których potrzebuje tryb edycji. Publiczny tracking ich nie dostaje.
+ */
+export interface AdminOrderItemDto extends OrderTrackingItemDto {
+  orderItemId: number;
+  productId: number;
+  variantId: number | null;
+  addons: AdminOrderAddonDto[];
+}
+
+export interface AdminOrderAddonDto extends OrderTrackingAddonDto {
+  addonId: number;
+}
+
+export interface AdminOrderEditDto {
+  id: number;
+  editedAt: string;
+  editedBy: string | null;
+  /** Gotowe linie opisu po polsku — backend nigdy nie wystawia surowego snapshotu. */
+  summaryLines: string[];
+  totalBefore: string;
+  totalAfter: string;
+  undoneAt: string | null;
+  undoneBy: string | null;
+  /** Liczone serwerowo: najnowszy niecofnięty wpis i status dalej edytowalny. */
+  canUndo: boolean;
+}
+
 export interface AdminOrderDto {
   id: number;
   version: number;
@@ -175,12 +204,14 @@ export interface AdminOrderDto {
   /** D-03: nominał, z którego wydać resztę. null = odliczona kwota. */
   cashChangeFrom: string | null;
   deliveryAddress: OrderTrackingAddressDto | null;
-  items: OrderTrackingItemDto[];
+  items: AdminOrderItemDto[];
   subtotal: string;
   deliveryFee: string;
   deliveryZoneName: string | null;
   total: string;
   statusHistory: AdminOrderStatusHistoryDto[];
+  /** Historia edycji treści — tylko w detalu, lista (AD-022) jej nie niesie. */
+  edits: AdminOrderEditDto[];
 }
 
 export interface AdminDashboardSummaryDto {
@@ -308,6 +339,77 @@ export async function updateOrderEta(
   payload: UpdateOrderEtaPayload
 ): Promise<AdminOrderDto> {
   const { data } = await apiClient.patch<AdminOrderDto>(`/admin/orders/${id}/eta`, payload);
+  return data;
+}
+
+// ---- Edycja zamówienia ----
+
+export interface EditOrderItemPayload {
+  /** null = nowa pozycja. Podany id wskazuje istniejący wiersz. */
+  orderItemId: number | null;
+  productId: number;
+  variantId: number | null;
+  addonIds: number[];
+  quantity: number;
+  itemNote: string | null;
+}
+
+export interface EditOrderPayload {
+  version: number;
+  /** Pełny stan docelowy, nie delta — backend sam ustala, co się zmieniło. */
+  items: EditOrderItemPayload[];
+  customerNotes: string | null;
+  /** null = brak danych o reszcie (P10). Wysyłane zawsze jawnie. */
+  cashChangeFrom: number | null;
+  reason?: string | null;
+}
+
+export interface OrderEditPreviewItemDto {
+  orderItemId: number | null;
+  productName: string;
+  variantName: string | null;
+  quantity: number;
+  unitPrice: string;
+  lineTotal: string;
+  itemNote: string | null;
+  /** false = pozycja zachowuje snapshot cenowy z chwili złożenia zamówienia. */
+  repriced: boolean;
+  addons: OrderTrackingAddonDto[];
+}
+
+export interface OrderEditPreviewDto {
+  items: OrderEditPreviewItemDto[];
+  subtotal: string;
+  deliveryFee: string;
+  total: string;
+  cashChangeFrom: string | null;
+  cashChangeSufficient: boolean;
+  warnings: string[];
+}
+
+export async function previewOrderEdit(
+  id: number,
+  payload: EditOrderPayload
+): Promise<OrderEditPreviewDto> {
+  const { data } = await apiClient.post<OrderEditPreviewDto>(
+    `/admin/orders/${id}/edit/preview`,
+    payload
+  );
+  return data;
+}
+
+export async function updateOrderItems(
+  id: number,
+  payload: EditOrderPayload
+): Promise<AdminOrderDto> {
+  const { data } = await apiClient.patch<AdminOrderDto>(`/admin/orders/${id}/items`, payload);
+  return data;
+}
+
+export async function undoLastOrderEdit(id: number, version: number): Promise<AdminOrderDto> {
+  const { data } = await apiClient.post<AdminOrderDto>(`/admin/orders/${id}/edits/undo`, {
+    version,
+  });
   return data;
 }
 

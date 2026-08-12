@@ -7,8 +7,10 @@ import { AlertTriangle, ExternalLink, Phone, Printer } from "lucide-react";
 import {
   fetchAdminOrderById,
   updateOrderEta,
+  updateOrderItems,
   updateOrderStatus,
   type AdminOrderDto,
+  type EditOrderPayload,
   type AdminOrderStatusHistoryDto,
   type FulfillmentType,
   type OrderStatus,
@@ -24,6 +26,8 @@ import { EtaDialog } from "./components/EtaDialog";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { useElapsedTick } from "../operations/shared/useElapsedTick";
 import { ItemNoteLine } from "../operations/shared/ItemNoteLine";
+import { contentEditBlockedReason } from "./lib/transitions";
+import { OrderItemsEditor } from "./edit/OrderItemsEditor";
 
 function zl(raw: string | number): string {
   const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
@@ -98,6 +102,7 @@ export function OrderDetailPage() {
   const queryClient = useQueryClient();
   const [etaOpen, setEtaOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const now = useElapsedTick();
 
   const query = useQuery<AdminOrderDto>({
@@ -147,6 +152,25 @@ export function OrderDetailPage() {
       setEtaOpen(false);
     },
     onError: (err) => handleMutationError(err, "Nie udało się zapisać ETA"),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: (payload: EditOrderPayload) => updateOrderItems(id, payload),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "orders", "detail", id], data);
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
+      setEditing(false);
+      toast.success("Zamówienie zaktualizowane");
+    },
+    onError: (err) => {
+      handleMutationError(err, "Nie udało się zapisać zmian");
+      // 409 = ktoś inny ruszył zamówienie. Wersja i pozycje w edytorze są
+      // już nieaktualne, więc zamykamy go i pokazujemy świeży stan.
+      if (err instanceof AxiosError && err.response?.status === 409) {
+        setEditing(false);
+      }
+    },
   });
 
   const errorMessage = useMemo(() => {
@@ -204,6 +228,7 @@ export function OrderDetailPage() {
   const action = primaryAction(order.status, order.fulfillmentType);
   const itemsCount = order.items.length;
   const piecesCount = order.items.reduce((acc, it) => acc + it.quantity, 0);
+  const editBlockedReason = contentEditBlockedReason(order.status);
 
   return (
     <div className="flex flex-col gap-5">
@@ -285,6 +310,28 @@ export function OrderDetailPage() {
           · od {sincePlaced} min
         </span>
         <div className="flex-1" />
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={editBlockedReason !== null || editing || statusMutation.isPending}
+          title={editBlockedReason ?? "Zmień pozycje, dodatki i notatki"}
+          style={{
+            height: 38,
+            padding: "0 14px",
+            borderRadius: 8,
+            border: "1px solid rgb(var(--color-border-card))",
+            background: "rgb(var(--color-bg-card))",
+            fontSize: 13,
+            color:
+              editBlockedReason !== null
+                ? "rgb(var(--color-text-faint))"
+                : "rgb(var(--color-text-body))",
+            cursor: editBlockedReason !== null ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          Edytuj pozycje
+        </button>
         <button
           type="button"
           onClick={() => setEtaOpen(true)}
@@ -384,6 +431,14 @@ export function OrderDetailPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[7fr_5fr]">
+        {editing ? (
+          <OrderItemsEditor
+            order={order}
+            isSaving={editMutation.isPending}
+            onCancel={() => setEditing(false)}
+            onSave={(payload) => editMutation.mutate(payload)}
+          />
+        ) : (
         <div
           style={{
             background: "rgb(var(--color-bg-card))",
@@ -433,6 +488,7 @@ export function OrderDetailPage() {
             <TotalsRow label="Razem" value={zl(order.total)} bold />
           </div>
         </div>
+        )}
 
         <div className="flex flex-col gap-4">
           <AsideCard title="Klient">

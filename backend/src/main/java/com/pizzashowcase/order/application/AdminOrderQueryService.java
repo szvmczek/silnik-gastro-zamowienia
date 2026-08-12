@@ -12,6 +12,7 @@ import com.pizzashowcase.order.api.dto.admin.AdminDashboardStatsDto.TopProductSt
 import com.pizzashowcase.order.api.dto.admin.AdminDashboardSummaryDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderEditDto;
+import com.pizzashowcase.order.api.dto.admin.AdminOrderItemDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusHistoryDto;
@@ -257,7 +258,7 @@ public class AdminOrderQueryService {
     }
 
     public AdminOrderDto toDto(Order order) {
-        List<OrderTrackingItemDto> items = toItemDtos(order);
+        List<AdminOrderItemDto> items = toAdminItemDtos(order);
 
         List<AdminOrderStatusHistoryDto> history = order.getStatusHistory().stream()
                 .map(h -> new AdminOrderStatusHistoryDto(
@@ -323,6 +324,29 @@ public class AdminOrderQueryService {
                     canUndo));
         }
         return result;
+    }
+
+    /** Wersja dla detalu — z identyfikatorami, których potrzebuje tryb edycji. */
+    private List<AdminOrderItemDto> toAdminItemDtos(Order order) {
+        return order.getItems().stream()
+                .map(item -> new AdminOrderItemDto(
+                        item.getId(),
+                        item.getProductId(),
+                        item.getVariantId(),
+                        item.getProductNameSnapshot(),
+                        item.getVariantNameSnapshot(),
+                        item.getQuantity(),
+                        item.getUnitPriceSnapshot(),
+                        item.getLineTotal(),
+                        item.getItemNote(),
+                        item.getAddons().stream()
+                                .map(addon -> new AdminOrderItemDto.Addon(
+                                        addon.getAddonId(),
+                                        addon.getAddonGroupNameSnapshot(),
+                                        addon.getAddonNameSnapshot(),
+                                        addon.getUnitPriceSnapshot()))
+                                .toList()))
+                .toList();
     }
 
     private List<OrderTrackingItemDto> toItemDtos(Order order) {
