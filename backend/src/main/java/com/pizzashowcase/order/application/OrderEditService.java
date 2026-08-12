@@ -19,6 +19,8 @@ import com.pizzashowcase.order.domain.OrderItemAddon;
 import com.pizzashowcase.order.infrastructure.OrderEditRepository;
 import com.pizzashowcase.order.infrastructure.OrderRepository;
 import com.pizzashowcase.shared.error.ApiException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
@@ -67,13 +69,16 @@ public class OrderEditService {
     private final AdminOrderQueryService adminOrderQueryService;
     private final ApplicationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final EntityManager entityManager;
 
     public OrderEditService(OrderRepository orderRepository,
                             OrderEditRepository orderEditRepository,
                             OrderLinePricer orderLinePricer,
                             AdminOrderQueryService adminOrderQueryService,
                             ApplicationEventPublisher eventPublisher,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            EntityManager entityManager) {
+        this.entityManager = entityManager;
         this.orderRepository = orderRepository;
         this.orderEditRepository = orderEditRepository;
         this.orderLinePricer = orderLinePricer;
@@ -163,6 +168,10 @@ public class OrderEditService {
         }
 
         applyResolution(order, resolution);
+        // Zmiana samej notatki pozycji brudzi wiersz order_items, a nie
+        // orders — bez wymuszenia @Version zostałaby bez zmian i drugi
+        // admin nadpisałby ją po cichu zamiast dostać 409 (AD-009).
+        entityManager.lock(order, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         order.setSubtotal(subtotal);
         order.setTotal(total);
         order.setCashChangeFrom(cashChangeFrom);
@@ -209,6 +218,7 @@ public class OrderEditService {
 
         OrderEditSnapshot snapshot = readSnapshot(last.getSnapshotBefore());
 
+        entityManager.lock(order, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
         List<OrderItem> current = List.copyOf(order.getItems());
         current.forEach(order::removeItem);
         for (OrderEditSnapshot.Item item : snapshot.items()) {
@@ -356,11 +366,20 @@ public class OrderEditService {
     // ---- Opisy zmian (czytelne dla człowieka) ----
 
     private static void describeNoteChange(OrderItem item, String noteAfter, List<String> out) {
+        describeNoteChange(item, noteAfter, label(item), out);
+    }
+
+    /**
+     * Etykieta podawana osobno, bo przy zmienionej pozycji notatka dotyczy
+     * jej stanu PO zmianie — inaczej wpis mówiłby o „Margherita 30 cm",
+     * której w zamówieniu już nie ma.
+     */
+    private static void describeNoteChange(OrderItem item, String noteAfter,
+                                           String label, List<String> out) {
         String before = item.getItemNote();
         if (Objects.equals(before, noteAfter)) {
             return;
         }
-        String label = label(item);
         if (noteAfter == null) {
             out.add("Usunięto notatkę z „" + label + "”");
         } else {
@@ -391,7 +410,7 @@ public class OrderEditService {
         if (!dropped.isEmpty()) {
             out.add("Usunięto z „" + label + "”: " + String.join(", ", dropped));
         }
-        describeNoteChange(before, after.getItemNote(), out);
+        describeNoteChange(before, after.getItemNote(), label, out);
     }
 
     private static void describeOrderNoteChange(String before, String after, List<String> out) {

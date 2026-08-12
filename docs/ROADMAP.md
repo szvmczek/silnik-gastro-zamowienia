@@ -117,9 +117,37 @@ Stripe + BLIK via Stripe. Decyzja po MVP, zależnie od klienta.
 - **Zwroty** — refund flow jako osobna operacja admin.
 - **Sandbox testing** — wszystkie przepływy w trybie test przed produkcją.
 
+### Edycja zamówień opłaconych online (wchodzi RAZEM z Fazą 6)
+
+Edycja treści zamówienia z panelu (2026-08-12, AD-028/AD-029) obsługuje
+**wyłącznie zamówienia gotówkowe** — innych w systemie nie ma. Kwota jest
+przeliczana serwerowo i zapisywana wprost na zamówieniu, bo przy gotówce
+różnicę reguluje się przy drzwiach.
+
+Przy płatnościach online to przestaje wystarczać i **nie wolno wypuścić
+Fazy 6 bez zaadresowania tego**:
+
+- **Suma rośnie** → dopłata. Albo osobne obciążenie (drugi payment intent
+  powiązany z tym samym zamówieniem), albo link do dopłaty wysłany
+  klientowi. Do czasu opłacenia zamówienie ma niedopłatę — potrzebny stan,
+  który to pokazuje kuchni i wydaniu.
+- **Suma maleje** → zwrot różnicy przez API providera. Refund jest
+  asynchroniczny i może się nie udać, więc potrzebny jest stan „zwrot
+  w toku" i obsługa nieudanego zwrotu.
+- **Zgoda klienta.** Obciążenie karty kwotą wyższą niż autoryzowana bywa
+  niedopuszczalne regulaminowo — najpewniej edycja podnosząca sumę będzie
+  wymagała potwierdzenia przez klienta, nie tylko telefonu.
+- **Cofnięcie edycji** musi wtedy cofać także operację finansową, albo
+  być zablokowane dla zamówień z rozliczoną dopłatą/zwrotem.
+
+Praktyczna konsekwencja: `OrderEditService` dostanie bramkę po metodzie
+płatności, a `PaymentService` (Faza 6) operację „rozlicz różnicę".
+Do tego czasu bramki nie ma, bo nie ma czego blokować.
+
 ### Szacunek
 - Solidna integracja bez testów: 7-10 dni
 - Z testami i edge case'ami: 12-15 dni
+- Edycja zamówień opłaconych online: +3-4 dni
 
 ## Faza 7: Strefy dostawy
 

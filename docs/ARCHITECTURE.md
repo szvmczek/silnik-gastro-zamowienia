@@ -444,6 +444,95 @@ i „Potwierdzone" (`CONFIRMED`) — uzasadnienie niżej.
   „Potwierdzone" przestanie się pokazywać i mapowanie trzeba będzie
   scalić z powrotem. To jest trigger do reewaluacji tej decyzji.
 
+### AD-028: Edycja treści zamówienia — wspólny silnik cenowy, snapshoty nietkniętych pozycji
+
+**Kontekst:** klient dzwoni po złożeniu zamówienia i chce coś zmienić
+(„bez cebuli", „dodajcie jalapeño"). Do 2026-08-12 admin nie miał jak —
+musiałby anulować i wystawić nowe zamówienie, gubiąc numer, historię
+statusów i link trackingowy, który klient ma już otwarty.
+
+**Decyzja:** zamówienie jest edytowalne w miejscu, ale wyłącznie do
+statusu `IN_PREPARATION` włącznie (`OrderStatus.isContentEditable()`).
+Żądanie (`PATCH /api/admin/orders/{id}/items`) niesie **pełny stan
+docelowy**, nie deltę; backend porównuje go z bieżącym i sam ustala, co
+się zmieniło.
+
+Reguła wyceny:
+
+- Pozycja o **niezmienionej** krotce `(productId, variantId, posortowane
+  addonIds, quantity)` zostaje **tą samą encją** ze swoim snapshotem
+  cenowym (AD-006). Podwyżka w menu po złożeniu zamówienia nie ma prawa
+  po cichu przepisać kwoty czegoś, czego admin nie tknął.
+- Pozycja **nowa albo zmieniona** przechodzi przez `OrderLinePricer`
+  z aktualnymi cenami menu.
+- `OrderLinePricer` powstał z wyciągnięcia prywatnych metod
+  `CheckoutService` — to **jeden silnik dla checkoutu i edycji**
+  (CLAUDE.md §5). Tryb `CHECKOUT` egzekwuje dostępność produktu,
+  `ADMIN_EDIT` nie: admin rozmawia z klientem przez telefon i wie, co jest
+  na stanie, a chwilowo wyłączony produkt nie może blokować dopisania
+  sosu (podgląd zwraca za to ostrzeżenie).
+- `deliveryFee` i `deliveryZoneName` **nie są przeliczane** — adres się
+  nie zmienia, a snapshot strefy z AD-016 ma pozostać niezmienny.
+- Reguła AD-026 (`cashChangeFrom >= total`) jest sprawdzana na **nowej**
+  sumie — inaczej podbicie zamówienia zostawiłoby nieaktualny nominał
+  i kurier przyjechałby bez odpowiedniej reszty. Pole przychodzi zawsze
+  jawnie, więc nie da się go „zapomnieć".
+- `POST /{id}/edit/preview` liczy to samo bez zapisu, żeby admin widział
+  cenę na żywo w trakcie rozmowy. Podgląd nie dotyka encji `Order` —
+  nowe pozycje powstają jako obiekty wolne, więc nic nie wycieknie
+  flushem na końcu transakcji.
+
+**Konsekwencje akceptowane:**
+
+- Detal zamówienia zwraca własny `AdminOrderItemDto` z identyfikatorami
+  (wiersz, produkt, wariant, dodatki); publiczny tracking zostaje przy
+  `OrderTrackingItemDto` bez nich.
+- Edycja zmieniająca **tylko notatkę pozycji** brudzi `order_items`,
+  a nie `orders`, więc `@Version` sam by się nie podbił. Serwis wymusza
+  inkrement (`OPTIMISTIC_FORCE_INCREMENT`), inaczej AD-009 przestałoby
+  obowiązywać dla takiej edycji i drugi admin nadpisałby ją po cichu.
+- Usunięcie wszystkich pozycji jest zabronione — wycofanie całości to
+  anulowanie (D-05), nie edycja do zera.
+- Nowe zdarzenie `ORDER_EDITED` (nie `ORDER_STATUS_CHANGED`): widoki
+  operacyjne odświeżają listę, ale nie grają dźwiękiem — tabela dźwięków
+  z Fazy 4.5 zostaje nietknięta.
+
+**Poza zakresem:** zamówienia opłacone online. Nie istnieją (Faza 6),
+a ich edycja wymaga rozliczenia różnicy (refund / dopłata) — zapisane
+w `ROADMAP.md` przy Fazie 6 jako warunek jej wypuszczenia.
+
+### AD-029: Historia edycji z cofaniem o krok, snapshot w JSONB
+
+**Decyzja:** każda edycja zapisuje wiersz w `order_edit`: kto, kiedy,
+czytelny po polsku opis zmian (`summary`, jedna zmiana w jednej linii),
+suma przed i po oraz `snapshot_before` (JSONB) ze stanem sprzed edycji.
+Cofnięcie odtwarza pozycje **wprost ze snapshotu**, bez odpytywania menu.
+
+**Powody:**
+
+- Odtworzenie ze snapshotu jest wierne nawet wtedy, gdy produkt zdążył
+  zniknąć z karty albo zmienić cenę — przeliczanie przy cofaniu mogłoby
+  dać inną kwotę niż ta, do której wracamy.
+- Opis generuje serwis, który zna mapowanie „linia żądania ↔ poprzednia
+  pozycja", więc zmiana ilości opisuje się jako zmiana ilości, a nie jako
+  usunięcie i dodanie. Surowy JSON nigdy nie trafia do DTO.
+- Encja `OrderEdit` celowo **nie wisi** na `@OneToMany` w `Order` —
+  grafy encji w `OrderRepository` i kształt payloadu listy (AD-022)
+  zostają bez zmian. Historia dokleja się wyłącznie do detalu, jednym
+  dodatkowym zapytaniem.
+
+**Zakres cofania:** przycisk zdejmuje najnowszy jeszcze niecofnięty wpis;
+kolejne kliknięcie schodzi o edycję wcześniejszą (cofanie łańcuchowe —
+wychodzi za darmo z modelu „wpis trzyma stan sprzed siebie"). To **nie
+jest wersjonowanie**: nie ma skoku do dowolnego punktu historii, tylko
+krok wstecz. Cofnięcie nie kasuje wpisu, tylko stempluje go
+(`undone_at`/`undone_by`) — ślad po operacji jest wart więcej niż czysta
+lista. Te same bramki co edycja: status i wersja.
+
+**Trigger do reewaluacji:** gdyby pojawiła się potrzeba przywrócenia
+zamówienia do dowolnego punktu historii albo audytu per-użytkownik
+szerszego niż jedna tożsamość ADMIN (AD-020).
+
 ## Domain conventions
 
 ### Address normalization (od Fazy 7.0)

@@ -102,7 +102,8 @@ class OrderEditServiceTest {
                 new OrderLinePricer(productRepository, productAddonGroupRepository),
                 queryService,
                 eventPublisher,
-                new ObjectMapper());
+                new ObjectMapper(),
+                mock(jakarta.persistence.EntityManager.class));
 
         order = newOrder();
         when(orderRepository.findWithDetailsById(7L)).thenReturn(Optional.of(order));

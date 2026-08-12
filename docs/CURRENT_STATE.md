@@ -10,6 +10,84 @@ Faza 7.0 (2026-04-28), Fazy 4+5 i redesign post-MVP. Następne kroki:
 Railway deploy albo Faza 4.6 (Kitchen item checklist, PLANNED —
 patrz ROADMAP.md).
 
+## Edycja zamówienia w panelu + `itemNote` (2026-08-12)
+
+Klient dzwoni po złożeniu zamówienia i chce coś zmienić. Do tej pory admin
+musiałby anulować i wystawić nowe zamówienie, gubiąc numer, historię
+i link trackingowy. Teraz zmienia pozycje w miejscu. Decyzje: **AD-028**
+(wspólny silnik cenowy, snapshoty nietkniętych pozycji) i **AD-029**
+(historia edycji z cofaniem o krok) w `ARCHITECTURE.md`.
+
+Przy okazji domknięty dług z Fazy 5: `OrderItem.itemNote` był w `CLAUDE.md`
+opisany jako część rdzenia produktu, ale **nie istniał w kodzie** — brakowało
+kolumny, pola encji i DTO.
+
+**Migracja `V211__order_item_note_and_edit_history.sql`:**
+`order_items.item_note VARCHAR(200)` + tabela `order_edit`
+(`summary` jako gotowy tekst po polsku, `snapshot_before` JSONB wyłącznie
+do cofania, `undone_at`/`undone_by` zamiast kasowania wpisu).
+
+**Backend:**
+- **NOWY** `OrderLinePricer` — wycena pozycji wyciągnięta 1:1 z
+  `CheckoutService`, wspólna dla checkoutu i edycji (CLAUDE.md §5). Tryb
+  `CHECKOUT` egzekwuje dostępność produktu, `ADMIN_EDIT` nie (podgląd
+  zwraca ostrzeżenie zamiast blokady). Reguła AD-026 przeniesiona do
+  `CashChangePolicy`, bo edycja musi ją stosować tak samo.
+- **NOWY** `OrderEditService`: `POST /{id}/edit/preview` (bez zapisu,
+  nie dotyka encji), `PATCH /{id}/items`, `POST /{id}/edits/undo`.
+  Żądanie niesie pełny stan docelowy; backend sam ustala różnicę i pisze
+  czytelny opis, bo zna mapowanie „linia żądania ↔ poprzednia pozycja".
+- `OrderStatus.isContentEditable()` — nowa oś, niezależna od tranzycji
+  D-05 (state machine nietknięta). Edycja i cofanie do `IN_PREPARATION`
+  włącznie.
+- **FIX wykryty w smoke:** edycja ruszająca tylko `item_note` brudzi
+  `order_items`, a nie `orders`, więc `@Version` sam się nie podbijał —
+  AD-009 przestawało obowiązywać i drugi admin nadpisałby zmianę po cichu.
+  Serwis wymusza `OPTIMISTIC_FORCE_INCREMENT`. Skutek uboczny: inkrement
+  zachodzi przy commicie, więc DTO z odpowiedzi niesie jeszcze starą
+  wersję — front po zapisie **invaliduje** detal zamiast cache'ować
+  odpowiedź.
+- `OrderTrackingItemDto.itemNote` — jeden rekord obsługuje tracking,
+  detal i listę (AD-022), więc notatka trafia wszędzie jednym polem.
+  Detal dostał osobny `AdminOrderItemDto` z identyfikatorami, bez których
+  edytor nie zbudowałby żądania; publiczny tracking ich nie widzi.
+- **NOWE** zdarzenie `ORDER_EDITED` (nie `ORDER_STATUS_CHANGED`) — widoki
+  operacyjne odświeżają listę, ale nie grają dźwiękiem.
+
+**Frontend:**
+- Karta „Pozycje" w `/admin/orders/:id` przełącza się w edytor
+  (`features/admin/orders/edit/`): ilość, wariant, dodatki, notatka per
+  pozycja, dodawanie i usuwanie. Katalog z istniejącego `GET /public/menu`
+  — ma potrzebny kształt i jest już cache'owany, więc żadnego nowego
+  endpointu admina.
+- Cena z serwera przy każdej zmianie (debounce 300 ms), z deltą względem
+  stanu zapisanego. Reszta z gotówki blokuje zapis, gdy suma przekroczy
+  zadeklarowaną kwotę.
+- Sekcja historii pod pozycjami + „Cofnij ostatnią zmianę" (łańcuchowe,
+  z potwierdzeniem). Wpisy cofnięte zostają wyszarzone ze stemplem.
+- `itemNote` renderowany przez `ItemNoteLine` na Kuchni, Dostawie
+  i w detalu, w skrócie pozycji na Wydaniu (`orderItemBrief`) oraz
+  kursywą na trackingu klienta. Notatkę pisze na razie wyłącznie panel —
+  publiczny checkout jej nie wysyła (ROADMAP).
+
+**Poza zakresem:** zamówienia opłacone online. Nie istnieją (Faza 6),
+a ich edycja wymaga rozliczenia różnicy — zapisane w `ROADMAP.md` przy
+Fazie 6 jako warunek jej wypuszczenia.
+
+**Weryfikacja:** `./gradlew test` (118 testów, w tym 17 nowych
+`OrderEditServiceTest`) i `npm run build` zielone. Migracja sprawdzona
+przez `psql` na realnej bazie. E2E na zamówieniach 2026-00022 i
+2026-00023: podgląd blokujący zapis przy resztze ze 100 zł, zapis po
+zmianie nominału na 200 zł, cofnięcie odtwarzające stan 1:1, bramka
+statusu (`READY` → 422 dla edycji i cofania, `canUndo:false`), 409 na
+nieaktualnej wersji, notatka pozycji widoczna na Kuchni, w detalu
+i na publicznym trackingu.
+
+**Do sprawdzenia przez operatora na realnym telefonie:** edytor pozycji
+na 375 px — automatyzacja przeglądarki nadal nie zmienia viewportu
+(to samo ograniczenie co w rundzie 2026-08-10), więc layout mobilny nie
+był weryfikowany realnym media query.
+
 ## Runda poprawek po teście live (2026-08-10)
 
 Jedenaście punktów zgłoszonych po teście wersji na Railway (desktop +

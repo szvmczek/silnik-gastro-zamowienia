@@ -158,8 +158,12 @@ export function OrderDetailPage() {
 
   const editMutation = useMutation({
     mutationFn: (payload: EditOrderPayload) => updateOrderItems(id, payload),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["admin", "orders", "detail", id], data);
+    onSuccess: () => {
+      // Świadomie invalidate zamiast setQueryData: przy edycji ruszającej
+      // tylko wiersze pozycji @Version podbija się dopiero przy commicie,
+      // więc odpowiedź niesie jeszcze starą wersję. Zapisanie jej w cache
+      // wywaliłoby następny zapis na 409 bez powodu.
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "detail", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
       setEditing(false);
@@ -177,8 +181,10 @@ export function OrderDetailPage() {
 
   const undoMutation = useMutation({
     mutationFn: (version: number) => undoLastOrderEdit(id, version),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["admin", "orders", "detail", id], data);
+    onSuccess: () => {
+      // Ten sam powód co przy zapisie edycji — wersja z odpowiedzi bywa
+      // sprzed wymuszonego inkrementu.
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "detail", id] });
       queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
       toast.success("Ostatnia zmiana cofnięta");
