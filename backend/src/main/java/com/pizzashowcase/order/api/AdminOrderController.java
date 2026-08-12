@@ -3,9 +3,12 @@ package com.pizzashowcase.order.api;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderListItemDto;
 import com.pizzashowcase.order.api.dto.admin.AdminOrderStatusCountsDto;
+import com.pizzashowcase.order.api.dto.admin.EditOrderRequest;
+import com.pizzashowcase.order.api.dto.admin.OrderEditPreviewDto;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderEtaRequest;
 import com.pizzashowcase.order.api.dto.admin.UpdateOrderStatusRequest;
 import com.pizzashowcase.order.application.AdminOrderQueryService;
+import com.pizzashowcase.order.application.OrderEditService;
 import com.pizzashowcase.order.application.OrderStatusService;
 import com.pizzashowcase.order.domain.FulfillmentType;
 import com.pizzashowcase.order.domain.OrderStatus;
@@ -19,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,11 +37,14 @@ public class AdminOrderController {
 
     private final AdminOrderQueryService queryService;
     private final OrderStatusService statusService;
+    private final OrderEditService editService;
 
     public AdminOrderController(AdminOrderQueryService queryService,
-                                OrderStatusService statusService) {
+                                OrderStatusService statusService,
+                                OrderEditService editService) {
         this.queryService = queryService;
         this.statusService = statusService;
+        this.editService = editService;
     }
 
     @GetMapping
@@ -67,6 +74,21 @@ public class AdminOrderController {
     public AdminOrderDto changeStatus(@PathVariable Long id,
                                       @Valid @RequestBody UpdateOrderStatusRequest request) {
         return statusService.changeStatus(id, request);
+    }
+
+    // Edycja treści zamówienia (klient dzwoni i chce coś zmienić).
+    // Podgląd liczy nową sumę bez zapisu, żeby admin widział cenę na żywo
+    // w trakcie rozmowy — zero niespodzianek po zapisaniu.
+    @PostMapping("/{id}/edit/preview")
+    public OrderEditPreviewDto previewEdit(@PathVariable Long id,
+                                           @Valid @RequestBody EditOrderRequest request) {
+        return editService.preview(id, request);
+    }
+
+    @PatchMapping("/{id}/items")
+    public AdminOrderDto editItems(@PathVariable Long id,
+                                   @Valid @RequestBody EditOrderRequest request) {
+        return editService.edit(id, request);
     }
 
     @PatchMapping("/{id}/eta")

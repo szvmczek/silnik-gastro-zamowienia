@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -91,6 +92,21 @@ public class OrderLinePricer {
             subtotal = subtotal.add(item.getLineTotal());
         }
         return new PricedLines(items, subtotal.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * Ostrzeżenia dla podglądu edycji: ADMIN_EDIT nie blokuje pozycji
+     * z produktem zdjętym z karty, ale admin ma o tym wiedzieć, zanim
+     * obieca coś klientowi przez telefon.
+     */
+    public List<String> availabilityWarnings(Collection<Long> productIds) {
+        if (productIds.isEmpty()) {
+            return List.of();
+        }
+        return productRepository.findAllByIdInWithVariants(productIds).stream()
+                .filter(p -> !p.isAvailable() || !p.getCategory().isActive())
+                .map(p -> "Produkt „" + p.getName() + "” jest obecnie niedostępny w menu.")
+                .toList();
     }
 
     private OrderItem buildOrderItem(LineSpec line,
