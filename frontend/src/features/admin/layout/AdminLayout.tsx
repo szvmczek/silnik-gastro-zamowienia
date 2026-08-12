@@ -56,7 +56,7 @@ export function AdminLayout() {
   // wtedy, kiedy admin i tak patrzy na Kuchnię, czyli dokładnie wtedy, kiedy
   // jest najmniej potrzebny.
   useOperationalSound("kitchen");
-  const { unseenCount } = useNewOrdersBadge();
+  const { pendingCount } = useNewOrdersBadge();
 
   const navItems = useMemo<AdminNavEntry[]>(
     () =>
@@ -64,13 +64,13 @@ export function AdminLayout() {
         item.kind === "link" && item.to === "/admin/kitchen"
           ? {
               ...item,
-              badge: unseenCount,
-              badgePulse: unseenCount > 0,
-              badgeLabel: `Nowe zamówienia do otwarcia: ${unseenCount}`,
+              badge: pendingCount,
+              badgePulse: pendingCount > 0,
+              badgeLabel: `Zamówienia czekające na kuchnię: ${pendingCount}`,
             }
           : item,
       ),
-    [unseenCount],
+    [pendingCount],
   );
 
   const settings = usePublicSettings();

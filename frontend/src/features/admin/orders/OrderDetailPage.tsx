@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -20,7 +20,6 @@ import { formatDateTime } from "@/shared/lib/formatDate";
 import { cashChangeText } from "@/shared/lib/cashChange";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
-import { useNewOrdersStore } from "@/features/admin/realtime/newOrdersStore";
 import { EtaDialog } from "./components/EtaDialog";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { useElapsedTick } from "../operations/shared/useElapsedTick";
@@ -99,13 +98,6 @@ export function OrderDetailPage() {
   const [etaOpen, setEtaOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const now = useElapsedTick();
-
-  // Otwarcie szczegółów = admin zauważył zamówienie, więc gaśnie jego udział
-  // w pulsującym badge'u nawigacji.
-  const acknowledgeNewOrder = useNewOrdersStore((s) => s.acknowledge);
-  useEffect(() => {
-    if (Number.isFinite(id)) acknowledgeNewOrder(id);
-  }, [id, acknowledgeNewOrder]);
 
   const query = useQuery<AdminOrderDto>({
     queryKey: ["admin", "orders", "detail", id],
