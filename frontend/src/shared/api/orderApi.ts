@@ -72,6 +72,8 @@ export interface OrderTrackingItemDto {
   quantity: number;
   unitPrice: string;
   lineTotal: string;
+  /** Komentarz klienta do tej pozycji („bez cebuli"). */
+  itemNote: string | null;
   addons: OrderTrackingAddonDto[];
 }
 

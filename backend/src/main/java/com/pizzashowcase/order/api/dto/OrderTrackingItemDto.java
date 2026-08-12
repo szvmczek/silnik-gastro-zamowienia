@@ -9,6 +9,10 @@ public record OrderTrackingItemDto(
         Integer quantity,
         BigDecimal unitPrice,
         BigDecimal lineTotal,
+        // Komentarz klienta do tej pozycji („bez cebuli"). Ten sam rekord
+        // obsługuje tracking klienta, detal admina i listę (AD-022), więc
+        // notatka dociera na wszystkie ekrany operacyjne jednym polem.
+        String itemNote,
         List<OrderTrackingAddonDto> addons
 ) {
 }

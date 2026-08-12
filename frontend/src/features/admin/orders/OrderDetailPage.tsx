@@ -23,6 +23,7 @@ import { AdminTopbar } from "@/features/admin/layout/AdminTopbar";
 import { EtaDialog } from "./components/EtaDialog";
 import { CancelOrderDialog } from "./components/CancelOrderDialog";
 import { useElapsedTick } from "../operations/shared/useElapsedTick";
+import { ItemNoteLine } from "../operations/shared/ItemNoteLine";
 
 function zl(raw: string | number): string {
   const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
@@ -672,6 +673,7 @@ function OrderItemRow({ item, isLast }: { item: OrderTrackingItemDto; isLast: bo
               ))}
             </ul>
           )}
+          <ItemNoteLine item={item} />
         </div>
         <span
           style={{

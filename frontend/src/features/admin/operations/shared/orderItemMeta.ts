@@ -19,9 +19,21 @@ export function orderItemAddonLines(item: OrderTrackingItemDto): string[] {
   return [...byGroup].map(([groupName, names]) => `${groupName}: ${names.join(", ")}`);
 }
 
-/** Jednolinijkowy opis pozycji — ilość, produkt, wariant, dodatki. */
+/**
+ * Notatka klienta do POJEDYNCZEJ pozycji („bez cebuli na tej jednej
+ * pizzy") — inna rzecz niż `customerNotes` całego zamówienia, i ważniejsza
+ * dla kuchni, bo dotyczy konkretnego dania. Zwraca null, gdy pusta.
+ */
+export function orderItemNoteLine(item: OrderTrackingItemDto): string | null {
+  const note = item.itemNote?.trim();
+  return note ? note : null;
+}
+
+/** Jednolinijkowy opis pozycji — ilość, produkt, wariant, dodatki, notatka. */
 export function orderItemBrief(item: OrderTrackingItemDto): string {
   const head = `${item.quantity}× ${item.productName}${item.variantName ? ` ${item.variantName}` : ""}`;
   const addons = orderItemAddonLines(item);
-  return addons.length > 0 ? `${head} (${addons.join("; ")})` : head;
+  const withAddons = addons.length > 0 ? `${head} (${addons.join("; ")})` : head;
+  const note = orderItemNoteLine(item);
+  return note ? `${withAddons} — ${note}` : withAddons;
 }

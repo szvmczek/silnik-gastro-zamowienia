@@ -293,6 +293,7 @@ public class AdminOrderQueryService {
                         item.getQuantity(),
                         item.getUnitPriceSnapshot(),
                         item.getLineTotal(),
+                        item.getItemNote(),
                         item.getAddons().stream()
                                 .map(addon -> new OrderTrackingAddonDto(
                                         addon.getAddonGroupNameSnapshot(),

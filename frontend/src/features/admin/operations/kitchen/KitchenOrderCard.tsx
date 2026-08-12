@@ -15,6 +15,7 @@ import { extractProblem } from "@/shared/api/client";
 import { statusLabel } from "@/shared/components/ui/OrderStatusBadge";
 import { useElapsedTick } from "../shared/useElapsedTick";
 import { orderItemAddonLines } from "../shared/orderItemMeta";
+import { ItemNoteLine } from "../shared/ItemNoteLine";
 
 interface KitchenOrderCardProps {
   order: AdminOrderListItemDto;
@@ -429,6 +430,7 @@ function KitchenItemRow({
             ))}
           </div>
         )}
+        <ItemNoteLine item={item} />
       </div>
       <span
         style={{

@@ -7,6 +7,7 @@ import type {
 } from "@/shared/api/orderApi";
 import { useElapsedTick } from "../shared/useElapsedTick";
 import { orderItemAddonLines } from "../shared/orderItemMeta";
+import { ItemNoteLine } from "../shared/ItemNoteLine";
 import { cashChangeText } from "@/shared/lib/cashChange";
 
 function zl(raw: string | number): string {
@@ -96,6 +97,7 @@ export function DeliveryItemList({ items, compact = false }: ItemListProps) {
                 {line}
               </span>
             ))}
+            <ItemNoteLine item={it} />
           </span>
           <span
             style={{

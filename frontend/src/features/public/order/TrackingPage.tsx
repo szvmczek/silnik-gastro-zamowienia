@@ -167,6 +167,14 @@ export function TrackingPage() {
                   {item.addons.map((a) => a.name.toLowerCase()).join(", ")}
                 </p>
               ) : null}
+              {/* Notatka klienta do tej pozycji — pokazujemy ją, bo klient
+                  ma widzieć, że jego prośba faktycznie jest w zamówieniu
+                  (także po zmianie wprowadzonej przez lokal przez telefon). */}
+              {item.itemNote ? (
+                <p className="text-[13px] italic leading-[1.45] text-piec-ink/70">
+                  📝 {item.itemNote}
+                </p>
+              ) : null}
             </div>
           ))}
 
