@@ -58,7 +58,10 @@ class CheckoutServiceDeliveryFeeTest {
         RestaurantSettings settings = mock(RestaurantSettings.class);
         when(settings.getDefaultPreparationMinutes()).thenReturn(30);
         when(restaurantSettingsService.getSettings()).thenReturn(settings);
-        service = new CheckoutService(productRepository, productAddonGroupRepository,
+        // Prawdziwy OrderLinePricer na zamockowanych repozytoriach menu —
+        // wycena pozycji ma iść tą samą ścieżką co produkcyjnie.
+        service = new CheckoutService(
+                new OrderLinePricer(productRepository, productAddonGroupRepository),
                 orderRepository, orderNumberGenerator, eventPublisher, deliveryLookup,
                 restaurantSettingsService);
 

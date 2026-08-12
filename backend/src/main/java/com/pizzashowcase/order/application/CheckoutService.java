@@ -1,25 +1,21 @@
 package com.pizzashowcase.order.application;
 
-import com.pizzashowcase.menu.domain.Addon;
-import com.pizzashowcase.menu.domain.AddonGroup;
-import com.pizzashowcase.menu.domain.Product;
-import com.pizzashowcase.menu.domain.ProductAddonGroup;
-import com.pizzashowcase.menu.domain.ProductVariant;
 import com.pizzashowcase.delivery.application.DeliveryZoneLookupService;
 import com.pizzashowcase.delivery.domain.DeliveryLookupResult;
 import com.pizzashowcase.delivery.domain.DeliveryZoneType;
-import com.pizzashowcase.menu.infrastructure.ProductAddonGroupRepository;
-import com.pizzashowcase.menu.infrastructure.ProductRepository;
 import com.pizzashowcase.order.api.dto.AddressRequest;
 import com.pizzashowcase.order.api.dto.CreateOrderItemRequest;
 import com.pizzashowcase.order.api.dto.CreateOrderRequest;
 import com.pizzashowcase.order.api.dto.OrderConfirmationDto;
+import com.pizzashowcase.order.application.OrderLinePricer.LineSpec;
+import com.pizzashowcase.order.application.OrderLinePricer.PricedLines;
+import com.pizzashowcase.order.application.OrderLinePricer.PricingMode;
 import com.pizzashowcase.order.application.event.OrderCreatedEvent;
 import com.pizzashowcase.order.domain.Address;
+import com.pizzashowcase.order.domain.CashChangePolicy;
 import com.pizzashowcase.order.domain.FulfillmentType;
 import com.pizzashowcase.order.domain.Order;
 import com.pizzashowcase.order.domain.OrderItem;
-import com.pizzashowcase.order.domain.OrderItemAddon;
 import com.pizzashowcase.order.domain.OrderStatus;
 import com.pizzashowcase.order.domain.OrderStatusHistory;
 import com.pizzashowcase.order.domain.PaymentMethod;
@@ -33,36 +29,27 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class CheckoutService {
 
-    private final ProductRepository productRepository;
-    private final ProductAddonGroupRepository productAddonGroupRepository;
+    private final OrderLinePricer orderLinePricer;
     private final OrderRepository orderRepository;
     private final OrderNumberGenerator orderNumberGenerator;
     private final ApplicationEventPublisher eventPublisher;
     private final DeliveryZoneLookupService deliveryZoneLookupService;
     private final RestaurantSettingsService restaurantSettingsService;
 
-    public CheckoutService(ProductRepository productRepository,
-                           ProductAddonGroupRepository productAddonGroupRepository,
+    public CheckoutService(OrderLinePricer orderLinePricer,
                            OrderRepository orderRepository,
                            OrderNumberGenerator orderNumberGenerator,
                            ApplicationEventPublisher eventPublisher,
                            DeliveryZoneLookupService deliveryZoneLookupService,
                            RestaurantSettingsService restaurantSettingsService) {
-        this.productRepository = productRepository;
-        this.productAddonGroupRepository = productAddonGroupRepository;
+        this.orderLinePricer = orderLinePricer;
         this.orderRepository = orderRepository;
         this.orderNumberGenerator = orderNumberGenerator;
         this.eventPublisher = eventPublisher;
@@ -74,25 +61,14 @@ public class CheckoutService {
     public OrderConfirmationDto placeOrder(CreateOrderRequest request) {
         validateFulfillmentPaymentAddress(request);
 
-        Set<Long> productIds = request.items().stream()
-                .map(CreateOrderItemRequest::productId)
-                .collect(Collectors.toSet());
-
-        Map<Long, Product> productsById = productRepository.findAllByIdInWithVariants(productIds).stream()
-                .collect(Collectors.toMap(Product::getId, p -> p));
-
-        Map<Long, List<ProductAddonGroup>> addonGroupsByProductId = productAddonGroupRepository
-                .findAllByProductIdsWithAddons(productIds).stream()
-                .collect(Collectors.groupingBy(link -> link.getProduct().getId()));
-
-        List<OrderItem> items = new ArrayList<>();
-        BigDecimal subtotal = BigDecimal.ZERO;
-        for (CreateOrderItemRequest line : request.items()) {
-            OrderItem item = buildOrderItem(line, productsById, addonGroupsByProductId);
-            items.add(item);
-            subtotal = subtotal.add(item.getLineTotal());
-        }
-        subtotal = subtotal.setScale(2, RoundingMode.HALF_UP);
+        // Wycena idzie przez OrderLinePricer — ten sam silnik, którego używa
+        // edycja zamówienia w panelu (CLAUDE.md §5).
+        List<LineSpec> specs = request.items().stream()
+                .map(CheckoutService::toLineSpec)
+                .toList();
+        PricedLines priced = orderLinePricer.price(specs, PricingMode.CHECKOUT);
+        List<OrderItem> items = priced.items();
+        BigDecimal subtotal = priced.subtotal();
 
         BigDecimal deliveryFee = BigDecimal.ZERO;
         String deliveryZoneName = null;
@@ -112,7 +88,7 @@ public class CheckoutService {
 
         // D-03: reszta z gotówki. null = odliczona kwota. Obie metody płatności,
         // jakie mamy, są gotówkowe, więc nie ma tu rozgałęzienia na paymentMethod.
-        BigDecimal cashChangeFrom = normalizeCashChangeFrom(request.cashChangeFrom(), total);
+        BigDecimal cashChangeFrom = CashChangePolicy.normalize(request.cashChangeFrom(), total);
 
         Order order = new Order(
                 orderNumber,
@@ -156,18 +132,10 @@ public class CheckoutService {
                 persisted.getCashChangeFrom());
     }
 
-    // D-03: banknot musi pokryć zamówienie, inaczej „reszta ze 100 zł" przy
-    // rachunku na 132 zł jest nonsensem, którego kurier nie rozwiąże.
-    private static BigDecimal normalizeCashChangeFrom(BigDecimal requested, BigDecimal total) {
-        if (requested == null) {
-            return null;
-        }
-        BigDecimal scaled = requested.setScale(2, RoundingMode.HALF_UP);
-        if (scaled.compareTo(total) < 0) {
-            throw ApiException.unprocessable(
-                    "Kwota, z której ma być wydana reszta, jest niższa niż wartość zamówienia.");
-        }
-        return scaled;
+    private static LineSpec toLineSpec(CreateOrderItemRequest line) {
+        // itemNote nie wchodzi jeszcze do publicznego payloadu checkoutu —
+        // notatkę per pozycja pisze na razie wyłącznie panel (patrz ROADMAP).
+        return new LineSpec(line.productId(), line.variantId(), line.addonIds(), line.quantity(), null);
     }
 
     private void validateFulfillmentPaymentAddress(CreateOrderRequest req) {
@@ -195,121 +163,6 @@ public class CheckoutService {
                 throw ApiException.unprocessable("Dla odbioru osobistego nie podawaj adresu dostawy.");
             }
         }
-    }
-
-    private OrderItem buildOrderItem(CreateOrderItemRequest line,
-                                     Map<Long, Product> productsById,
-                                     Map<Long, List<ProductAddonGroup>> addonGroupsByProductId) {
-        Product product = productsById.get(line.productId());
-        if (product == null) {
-            throw ApiException.unprocessable("Produkt o id " + line.productId() + " nie istnieje.");
-        }
-        if (!product.isAvailable() || !product.getCategory().isActive()) {
-            throw ApiException.unprocessable("Produkt '" + product.getName() + "' nie jest już dostępny.");
-        }
-
-        ProductVariant variant = resolveVariant(product, line.variantId());
-        BigDecimal unitPrice = variant != null ? variant.getPrice() : product.getBasePrice();
-        if (unitPrice == null) {
-            throw ApiException.unprocessable("Produkt '" + product.getName() + "' nie ma poprawnej ceny.");
-        }
-
-        List<ProductAddonGroup> productGroups = addonGroupsByProductId.getOrDefault(product.getId(), List.of());
-        List<OrderItemAddon> resolvedAddons = resolveAddons(product, productGroups, line.addonIds());
-
-        BigDecimal addonsSum = resolvedAddons.stream()
-                .map(OrderItemAddon::getUnitPriceSnapshot)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal lineUnitTotal = unitPrice.add(addonsSum);
-        BigDecimal lineTotal = lineUnitTotal.multiply(BigDecimal.valueOf(line.quantity()))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        OrderItem item = new OrderItem(
-                product.getId(),
-                variant != null ? variant.getId() : null,
-                product.getName(),
-                variant != null ? variant.getName() : null,
-                unitPrice,
-                line.quantity(),
-                lineTotal
-        );
-        for (OrderItemAddon addon : resolvedAddons) {
-            item.addAddon(addon);
-        }
-        return item;
-    }
-
-    private ProductVariant resolveVariant(Product product, Long variantId) {
-        boolean hasVariants = !product.getVariants().isEmpty();
-        if (hasVariants) {
-            if (variantId == null) {
-                throw ApiException.unprocessable("Produkt '" + product.getName() + "' wymaga wyboru wariantu.");
-            }
-            return product.getVariants().stream()
-                    .filter(v -> v.getId().equals(variantId))
-                    .findFirst()
-                    .orElseThrow(() -> ApiException.unprocessable(
-                            "Wariant " + variantId + " nie należy do produktu '" + product.getName() + "'."));
-        }
-        if (variantId != null) {
-            throw ApiException.unprocessable("Produkt '" + product.getName() + "' nie ma wariantów.");
-        }
-        return null;
-    }
-
-    private List<OrderItemAddon> resolveAddons(Product product,
-                                               List<ProductAddonGroup> productGroups,
-                                               List<Long> requestedAddonIds) {
-        List<Long> requested = requestedAddonIds != null ? requestedAddonIds : List.of();
-
-        Map<Long, AddonContext> allowedAddons = new HashMap<>();
-        for (ProductAddonGroup link : productGroups) {
-            AddonGroup group = link.getAddonGroup();
-            for (Addon addon : group.getAddons()) {
-                allowedAddons.put(addon.getId(), new AddonContext(addon, group));
-            }
-        }
-
-        List<OrderItemAddon> snapshots = new ArrayList<>();
-        Map<Long, Integer> selectedPerGroup = new HashMap<>();
-        Set<Long> seen = new HashSet<>();
-        for (Long addonId : requested) {
-            if (!seen.add(addonId)) {
-                throw ApiException.unprocessable(
-                        "Powtórzony dodatek " + addonId + " w pozycji produktu '" + product.getName() + "'.");
-            }
-            AddonContext ctx = allowedAddons.get(addonId);
-            if (ctx == null) {
-                throw ApiException.unprocessable(
-                        "Dodatek " + addonId + " nie należy do produktu '" + product.getName() + "'.");
-            }
-            selectedPerGroup.merge(ctx.group.getId(), 1, Integer::sum);
-            snapshots.add(new OrderItemAddon(
-                    ctx.addon.getId(),
-                    ctx.group.getName(),
-                    ctx.addon.getName(),
-                    ctx.addon.getPrice()
-            ));
-        }
-
-        for (ProductAddonGroup link : productGroups) {
-            AddonGroup group = link.getAddonGroup();
-            int selected = selectedPerGroup.getOrDefault(group.getId(), 0);
-            if (group.isRequired() && selected < 1) {
-                throw ApiException.unprocessable(
-                        "Grupa dodatków '" + group.getName() + "' jest wymagana dla produktu '" + product.getName() + "'.");
-            }
-            if (selected < group.getMinSelect()) {
-                throw ApiException.unprocessable(
-                        "Grupa '" + group.getName() + "' wymaga minimum " + group.getMinSelect() + " dodatków.");
-            }
-            if (selected > group.getMaxSelect()) {
-                throw ApiException.unprocessable(
-                        "Grupa '" + group.getName() + "' dopuszcza maksimum " + group.getMaxSelect() + " dodatków.");
-            }
-        }
-
-        return snapshots;
     }
 
     private Address buildAddress(CreateOrderRequest request) {
@@ -353,8 +206,5 @@ public class CheckoutService {
 
     private static String normalizeNotes(String notes) {
         return trimOrNull(notes);
-    }
-
-    private record AddonContext(Addon addon, AddonGroup group) {
     }
 }
