@@ -13,6 +13,17 @@ public enum OrderStatus {
         return this == DELIVERED || this == CANCELED;
     }
 
+    /**
+     * Czy admin może jeszcze zmienić TREŚĆ zamówienia (pozycje, dodatki,
+     * notatki). Oś niezależna od tranzycji statusów (D-05): po
+     * {@code READY} jedzenie jest spakowane albo w drodze, więc zmiana
+     * pozycji nie ma pokrycia w rzeczywistości — zostaje anulowanie.
+     * Backend jest tu źródłem prawdy, front ma mirror (wzorzec AD-017).
+     */
+    public boolean isContentEditable() {
+        return this == NEW || this == CONFIRMED || this == IN_PREPARATION;
+    }
+
     public boolean canTransitionTo(OrderStatus next, FulfillmentType fulfillmentType) {
         if (next == null || fulfillmentType == null || next == this) {
             return false;

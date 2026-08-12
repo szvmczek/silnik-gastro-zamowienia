@@ -51,6 +51,11 @@ public class OrderItem extends AuditableEntity {
     @Column(name = "line_total", nullable = false, precision = 10, scale = 2)
     private BigDecimal lineTotal;
 
+    // Komentarz klienta do TEJ pozycji („bez cebuli na tej jednej pizzy").
+    // Nie wpływa na cenę, więc jako jedyne pole pozycji ma setter.
+    @Column(name = "item_note", length = 200)
+    private String itemNote;
+
     @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
     private Set<OrderItemAddon> addons = new LinkedHashSet<>();
@@ -112,6 +117,14 @@ public class OrderItem extends AuditableEntity {
 
     public BigDecimal getLineTotal() {
         return lineTotal;
+    }
+
+    public String getItemNote() {
+        return itemNote;
+    }
+
+    public void setItemNote(String itemNote) {
+        this.itemNote = itemNote;
     }
 
     public Set<OrderItemAddon> getAddons() {

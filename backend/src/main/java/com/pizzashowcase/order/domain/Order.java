@@ -226,6 +226,33 @@ public class Order extends AuditableEntity {
         item.setOrder(this);
     }
 
+    // Poniższe mutatory istnieją wyłącznie dla edycji zamówienia z panelu
+    // (OrderEditService). Checkout ustawia te wartości przez konstruktor
+    // i ich nie rusza — zamówienie klienta dalej jest niemutowalne
+    // poza statusem, ETA i jawną edycją admina.
+
+    // orphanRemoval na kolekcji kasuje wiersz przy usunięciu z setu.
+    public void removeItem(OrderItem item) {
+        items.remove(item);
+        item.setOrder(null);
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public void setCustomerNotes(String customerNotes) {
+        this.customerNotes = customerNotes;
+    }
+
+    public void setCashChangeFrom(BigDecimal cashChangeFrom) {
+        this.cashChangeFrom = cashChangeFrom;
+    }
+
     public Set<OrderStatusHistory> getStatusHistory() {
         return statusHistory;
     }
