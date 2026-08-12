@@ -7,6 +7,7 @@ import { AlertTriangle, ExternalLink, Phone, Printer } from "lucide-react";
 import {
   fetchAdminOrderById,
   updateOrderEta,
+  undoLastOrderEdit,
   updateOrderItems,
   updateOrderStatus,
   type AdminOrderDto,
@@ -28,6 +29,7 @@ import { useElapsedTick } from "../operations/shared/useElapsedTick";
 import { ItemNoteLine } from "../operations/shared/ItemNoteLine";
 import { contentEditBlockedReason } from "./lib/transitions";
 import { OrderItemsEditor } from "./edit/OrderItemsEditor";
+import { OrderEditHistory } from "./edit/OrderEditHistory";
 
 function zl(raw: string | number): string {
   const n = typeof raw === "number" ? raw : Number.parseFloat(raw);
@@ -171,6 +173,17 @@ export function OrderDetailPage() {
         setEditing(false);
       }
     },
+  });
+
+  const undoMutation = useMutation({
+    mutationFn: (version: number) => undoLastOrderEdit(id, version),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["admin", "orders", "detail", id], data);
+      queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
+      toast.success("Ostatnia zmiana cofnięta");
+    },
+    onError: (err) => handleMutationError(err, "Nie udało się cofnąć zmiany"),
   });
 
   const errorMessage = useMemo(() => {
@@ -431,6 +444,7 @@ export function OrderDetailPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[7fr_5fr]">
+        <div className="flex flex-col gap-4">
         {editing ? (
           <OrderItemsEditor
             order={order}
@@ -489,6 +503,14 @@ export function OrderDetailPage() {
           </div>
         </div>
         )}
+
+        {/* Historia zmian pod pozycjami — dotyczy właśnie ich. */}
+        <OrderEditHistory
+          edits={order.edits}
+          isUndoing={undoMutation.isPending}
+          onUndo={() => undoMutation.mutate(order.version)}
+        />
+        </div>
 
         <div className="flex flex-col gap-4">
           <AsideCard title="Klient">

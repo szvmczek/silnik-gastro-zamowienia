@@ -19,6 +19,13 @@ interface OrderStatusChangedPayload {
   fulfillmentType?: OrderFulfillmentType;
 }
 
+interface OrderEditedPayload {
+  orderId: number;
+  orderNumber: string;
+  total: string | number;
+  kind: "EDIT" | "UNDO";
+}
+
 const STREAM_PATH = "/api/admin/orders/stream";
 const INITIAL_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
@@ -101,6 +108,24 @@ export function useAdminOrderFeed(): void {
           newStatus: data.newStatus,
           fulfillmentType: data.fulfillmentType ?? null,
         });
+      });
+
+      // Treść zamówienia zmieniła się (edycja z panelu albo jej cofnięcie).
+      // Kuchnia ma zobaczyć nowe pozycje natychmiast, ale bez dźwięku —
+      // dlatego nie wołamy emitOrderFeed(), które steruje pikaniem widoków.
+      es.addEventListener("ORDER_EDITED", (ev) => {
+        const data = parsePayload<OrderEditedPayload>((ev as MessageEvent).data);
+        if (!data) return;
+        queryClient.invalidateQueries({ queryKey: ["admin", "orders", "list"] });
+        queryClient.invalidateQueries({
+          queryKey: ["admin", "orders", "detail", data.orderId],
+        });
+        queryClient.invalidateQueries({ queryKey: ["admin", "dashboard", "stats"] });
+        toast.info(
+          data.kind === "UNDO"
+            ? `Cofnięto zmianę w zamówieniu ${data.orderNumber}`
+            : `Zmieniono zamówienie ${data.orderNumber}`,
+        );
       });
 
       es.onerror = () => {
