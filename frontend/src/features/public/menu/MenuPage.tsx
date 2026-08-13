@@ -11,6 +11,7 @@ import { PiecShell } from "@/features/public/shared/PiecShell";
 import { PiecFooter } from "@/features/public/shared/PiecFooter";
 import { CartPill } from "@/features/public/shared/CartPill";
 import { CartActionBar } from "@/features/public/cart/CartActionBar";
+import { DeliveryCheckBar } from "@/features/public/delivery/DeliveryCheckBar";
 import { formatPhoneDisplay } from "@/shared/lib/formatPhone";
 import type { PublicCategoryDto } from "@/shared/api/menuApi";
 
@@ -58,6 +59,7 @@ export function MenuPage() {
         <p className="mt-1 text-sm leading-[1.6] text-piec-ink/60">
           Rozmiar, dodatki i sosy wybierzesz po kliknięciu „Wybierz".
         </p>
+        <DeliveryCheckBar />
       </PiecShell>
 
       {isLoading ? <MenuSkeleton /> : null}

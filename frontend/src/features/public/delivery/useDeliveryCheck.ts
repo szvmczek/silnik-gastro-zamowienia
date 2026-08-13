@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { checkDelivery, type DeliveryCheckResponse } from "../api";
+import { checkDelivery, type DeliveryCheckResponse } from "@/features/public/checkout/api";
 
 const POSTAL_REGEX = /^\d{2}-\d{3}$/;
 

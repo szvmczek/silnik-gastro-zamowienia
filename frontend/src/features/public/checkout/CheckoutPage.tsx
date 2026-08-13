@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
 import { extractProblem } from "@/shared/api/client";
@@ -18,8 +18,10 @@ import { PiecHeader } from "@/features/public/shared/PiecHeader";
 import { PiecShell } from "@/features/public/shared/PiecShell";
 import { RollingNumber } from "@/shared/motion/RollingNumber";
 import { cn } from "@/shared/lib/cn";
-import { fetchDeliveryCities } from "./api";
-import { useDeliveryCheck } from "./hooks/useDeliveryCheck";
+import { useDeliveryCheck } from "@/features/public/delivery/useDeliveryCheck";
+import { DeliveryAddressFields } from "@/features/public/delivery/DeliveryAddressFields";
+import { DeliveryCheckResult } from "@/features/public/delivery/DeliveryCheckResult";
+import { readCheckedAddress } from "@/features/public/delivery/checkedAddress";
 import { PiecField, PiecInput, PiecTextarea } from "./components/PiecField";
 import { CashChangeChips, type CashChoice } from "./components/CashChangeChips";
 import { maskPostalCodeInput } from "@/features/admin/delivery-zones/lib/postalCode";
@@ -138,25 +140,38 @@ export function CheckoutPage() {
     }
   }, [items.length, navigate]);
 
+  // Adres sprawdzony wcześniej na pasku w menu wchodzi jako domyślna
+  // wartość pól — klient może go swobodnie nadpisać, walidacja i lookup
+  // strefy działają tak samo jak przy ręcznym wpisaniu.
+  const [initialValues] = useState<CheckoutFormValues>(() => {
+    const saved = readCheckedAddress();
+    if (!saved) return defaultValues;
+    return {
+      ...defaultValues,
+      deliveryAddress: {
+        ...defaultValues.deliveryAddress,
+        city: saved.city,
+        postalCode: saved.postalCode,
+      },
+    };
+  });
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
     formState: { errors },
-  } = useForm<CheckoutFormValues>({ resolver: zodResolver(checkoutSchema), defaultValues });
+  } = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: initialValues,
+  });
 
   const fulfillmentType = watch("fulfillmentType");
   const isDelivery = fulfillmentType === "DELIVERY";
 
   const watchedCity = watch("deliveryAddress.city") ?? "";
   const watchedPostal = watch("deliveryAddress.postalCode") ?? "";
-  const { data: citiesData } = useQuery({
-    queryKey: ["public", "delivery-cities"],
-    queryFn: fetchDeliveryCities,
-    staleTime: 5 * 60_000,
-    enabled: isDelivery,
-  });
   const { data: deliveryCheck, isFetching: deliveryChecking } = useDeliveryCheck(
     watchedCity,
     watchedPostal,
@@ -413,58 +428,29 @@ export function CheckoutPage() {
 
               {/* D-01: backend liczy strefę po (miasto, kod pocztowy), więc
                   te dwa pola muszą tu być — paczka szukała strefy po ulicy. */}
-              <div className="mt-3.5 grid grid-cols-[2fr_1fr] gap-3">
-                <PiecField label="Miasto" error={errors.deliveryAddress?.city?.message}>
-                  <PiecInput
-                    {...register("deliveryAddress.city")}
-                    invalid={Boolean(errors.deliveryAddress?.city)}
-                    list="delivery-cities"
-                    placeholder="np. Pułtusk"
-                    autoComplete="address-level2"
-                  />
-                  <datalist id="delivery-cities">
-                    {(citiesData ?? []).map((city) => (
-                      <option key={city.display} value={city.display} />
-                    ))}
-                  </datalist>
-                </PiecField>
-                <PiecField
-                  label="Kod pocztowy"
-                  error={errors.deliveryAddress?.postalCode?.message}
-                >
-                  <PiecInput
-                    {...register("deliveryAddress.postalCode")}
-                    invalid={Boolean(errors.deliveryAddress?.postalCode)}
-                    placeholder="00-000"
-                    inputMode="numeric"
-                    onChange={(e) =>
-                      setValue("deliveryAddress.postalCode", maskPostalCodeInput(e.target.value), {
-                        shouldValidate: false,
-                      })
-                    }
-                  />
-                </PiecField>
-              </div>
+              <DeliveryAddressFields
+                listId="checkout-delivery-cities"
+                className="mt-3.5"
+                enableCitySuggestions={isDelivery}
+                cityError={errors.deliveryAddress?.city?.message}
+                postalError={errors.deliveryAddress?.postalCode?.message}
+                cityProps={register("deliveryAddress.city")}
+                postalProps={{
+                  ...register("deliveryAddress.postalCode"),
+                  onChange: (e) =>
+                    setValue("deliveryAddress.postalCode", maskPostalCodeInput(e.target.value), {
+                      shouldValidate: false,
+                    }),
+                }}
+              />
 
-              {deliveryChecking ? (
-                <p className="mt-3 text-sm text-piec-ink/50">Sprawdzamy adres…</p>
-              ) : null}
-
-              {zoneResolved ? (
-                <p className="mt-3 flex items-center gap-2.5 rounded-xl border border-piec-ok/30 bg-piec-ok/[0.08] px-3.5 py-3 text-sm text-piec-okSoft">
-                  <span aria-hidden="true" className="h-2 w-2 flex-none rounded-full bg-piec-ok" />
-                  {deliveryCheck.fee > 0
-                    ? `${deliveryCheck.zoneName} — dostawa ${formatPrice(deliveryCheck.fee, currency)}`
-                    : `${deliveryCheck.zoneName} — dostawa gratis`}
-                </p>
-              ) : null}
-
-              {deliveryUnavailable ? (
-                <div className="mt-3 rounded-xl border border-piec-warn/40 bg-piec-warn/[0.08] px-3.5 py-3">
-                  <p className="text-sm leading-[1.6] text-piec-warnSoft">
-                    Niestety nie dowozimy pod ten adres.
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-3.5">
+              <DeliveryCheckResult
+                result={isDelivery ? deliveryCheck : undefined}
+                isFetching={deliveryChecking}
+                currency={currency}
+                className="mt-3"
+                unavailableActions={
+                  <>
                     <button
                       type="button"
                       onClick={() => setFulfillment("PICKUP")}
@@ -480,9 +466,9 @@ export function CheckoutPage() {
                         Zadzwoń: {formatPhoneDisplay(settings.phone)}
                       </a>
                     ) : null}
-                  </div>
-                </div>
-              ) : null}
+                  </>
+                }
+              />
             </>
           ) : null}
 
