@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from "react";
+import { ChevronDown, MapPin } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
 import { usePublicSettings } from "@/shared/theme/usePublicSettings";
 import { maskPostalCodeInput } from "@/features/admin/delivery-zones/lib/postalCode";
 import { DeliveryAddressFields } from "./DeliveryAddressFields";
@@ -33,24 +35,39 @@ export function DeliveryCheckBar() {
   const pickupAddress = [settings?.addressLine, settings?.city].filter(Boolean).join(", ");
 
   return (
-    // max-w: na desktopie pełna szerokość shella robiłaby z tego baner
-    // konkurujący z siatką — a to ma być drobna, opcjonalna wstawka.
-    <div className="mt-5 max-w-[560px] rounded-2xl border border-piec-ink/10 bg-piec-surface">
+    <div className="mt-5">
+      {/* Pigułka, nie pasek: szerokość z treści, kolor akcentu i kształt
+          z pigułki koszyka w nagłówku — ma czytać się jako coś do
+          kliknięcia, nie jako kolejne pole formularza. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex min-h-[48px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[13.5px] font-semibold text-piec-ink/75"
+        className={cn(
+          // px/gap wyliczone tak, żeby całość zmieściła się w jednej linii
+          // w szerokości shella na 375 px — bez tego etykieta łamie się na dwie.
+          "inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold text-primary",
+          "transition-[background-color,border-color] duration-150 hover:bg-primary/15",
+          open ? "border-primary/55 bg-primary/15" : "border-primary/35 bg-primary/[0.08]",
+        )}
       >
+        <MapPin aria-hidden="true" className="h-[15px] w-[15px] flex-none" />
         <span>Sprawdź, czy dowozimy pod Twój adres</span>
-        <span aria-hidden="true" className="text-primary">
-          {open ? "×" : "→"}
-        </span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cn(
+            "h-[15px] w-[15px] flex-none transition-transform duration-150",
+            open ? "rotate-180" : "",
+          )}
+        />
       </button>
 
       {open ? (
-        <div id={panelId} className="border-t border-piec-ink/10 px-4 pb-4 pt-3.5">
+        <div
+          id={panelId}
+          className="mt-3 max-w-[520px] rounded-2xl border border-primary/20 bg-piec-surface p-3.5"
+        >
           <DeliveryAddressFields
             listId="menu-delivery-cities"
             cityProps={{
