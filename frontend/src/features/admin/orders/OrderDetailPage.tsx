@@ -303,7 +303,11 @@ export function OrderDetailPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Mobile: pasek statusu osobno, akcje w siatce 2-kolumnowej (akcja
+          główna i anulowanie na całą szerokość). Od sm w górę — jeden rząd
+          jak dotąd. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-wrap items-center gap-3">
         <span
           className="inline-flex items-center"
           style={{
@@ -328,9 +332,12 @@ export function OrderDetailPage() {
         <span className="text-[13px] text-[rgb(var(--color-text-muted))]">
           · od {sincePlaced} min
         </span>
-        <div className="flex-1" />
+        </div>
+        <div className="hidden sm:block sm:flex-1" />
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
         <button
           type="button"
+          className="w-full sm:w-auto"
           onClick={() => setEditing(true)}
           disabled={editBlockedReason !== null || editing || statusMutation.isPending}
           title={editBlockedReason ?? "Zmień pozycje, dodatki i notatki"}
@@ -353,6 +360,7 @@ export function OrderDetailPage() {
         </button>
         <button
           type="button"
+          className="w-full sm:w-auto"
           onClick={() => setEtaOpen(true)}
           disabled={statusMutation.isPending || etaMutation.isPending}
           style={{
@@ -372,6 +380,7 @@ export function OrderDetailPage() {
         {order.status !== "CANCELED" && order.status !== "DELIVERED" && (
           <button
             type="button"
+            className="col-span-2 w-full sm:w-auto"
             onClick={() => setCancelOpen(true)}
             disabled={statusMutation.isPending || etaMutation.isPending}
             style={{
@@ -393,6 +402,7 @@ export function OrderDetailPage() {
         {action && (
           <button
             type="button"
+            className="order-first col-span-2 w-full sm:order-none sm:w-auto"
             onClick={() => statusMutation.mutate({ next: action.next, version: order.version })}
             disabled={statusMutation.isPending || etaMutation.isPending}
             style={{
@@ -412,6 +422,7 @@ export function OrderDetailPage() {
             {statusMutation.isPending ? "Zapisywanie…" : action.label}
           </button>
         )}
+        </div>
       </div>
 
       {order.customerNotes && (
