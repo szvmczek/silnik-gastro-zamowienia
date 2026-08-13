@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from "react";
+import type { ComponentPropsWithRef } from "react";
 import { cn } from "@/shared/lib/cn";
 import { PiecField, PiecInput } from "@/features/public/checkout/components/PiecField";
 import { useDeliveryCities } from "./useDeliveryCities";
@@ -18,8 +18,11 @@ export function DeliveryAddressFields({
   enableCitySuggestions = true,
   className,
 }: {
-  cityProps: InputHTMLAttributes<HTMLInputElement> & { ref?: unknown };
-  postalProps: InputHTMLAttributes<HTMLInputElement> & { ref?: unknown };
+  // ComponentPropsWithRef, nie InputHTMLAttributes: `ref` musi tu mieć typ
+  // Ref<HTMLInputElement>, żeby dało się przepuścić dalej do PiecInput.
+  // RefCallBack z react-hook-form wchodzi w ten typ bez rzutowania.
+  cityProps: ComponentPropsWithRef<"input">;
+  postalProps: ComponentPropsWithRef<"input">;
   cityError?: string;
   postalError?: string;
   /** Unikalne id datalisty — dwa ekrany nie mogą dzielić jednego. */
